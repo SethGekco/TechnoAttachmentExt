@@ -13,6 +13,8 @@
 #include <New/Entity/AttachmentClass.h>
 #include <Ext/TechnoType/Body.h>
 
+class WeaponTypeClass;
+
 // Standalone port of Phobos's TechnoExt, stripped to ONLY the attachment
 // state and helpers. Uses Container<T> in unordered_map mode (Canary defined,
 // no ExtPointerOffset) so we claim no pointer slot in TechnoClass.
@@ -64,6 +66,10 @@ public:
 
 	// Set before deploy-target construction to skip InitializeAttachments.
 	static TechnoClass* DeployTransferSource;
+
+	// ---- Ported Phobos helpers the attachment runtime needs ----
+	static CoordStruct GetFLHAbsoluteCoords(TechnoClass* pThis, CoordStruct flh, bool turretFLH = false);
+	static void FireWeaponAtSelf(TechnoClass* pThis, WeaponTypeClass* pWeaponType);
 
 	// ---- Attachment API (defined in Body.TechnoAttachment.cpp / hooks) ----
 	static bool AttachTo(TechnoClass* pThis, TechnoClass* pParent);
