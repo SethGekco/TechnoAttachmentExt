@@ -33,6 +33,10 @@ static void RegisterFactoryForClass()
 // AttachmentLocomotionClass CLSID becomes CoCreateInstance-able.
 DEFINE_HOOK(0x6BD68D, WinMain_RegisterAttachmentLoco, 0x6)
 {
+	// Log our module load base so crash addresses inside this DLL can be
+	// mapped back to functions via the linker .map (RVA = addr - base).
+	Debug::Log("[TechnoAttachmentExt] Module base: 0x%X\n",
+		(unsigned int)(size_t)GetModuleHandleA("TechnoAttachmentExt.dll"));
 	Debug::Log("[TechnoAttachmentExt] Registering attachment locomotor COM factory...\n");
 	RegisterFactoryForClass<AttachmentLocomotionClass>();
 	return 0;
