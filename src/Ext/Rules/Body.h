@@ -21,8 +21,7 @@ public:
 
 	static ExtData* Global() { return &Data; }
 
-	// Called from a rules-load hook: parses the [AttachmentTypes] list and the
-	// two [General] globals.
+	// Called from the rules-load hook (before type data): parses the
+	// [AttachmentTypes] list and the two [General] globals.
 	static void LoadBeforeTypeData(RulesClass* pThis, CCINIClass* pINI);
-	static void LoadFromINIFile(RulesClass* pThis, CCINIClass* pINI);
 };

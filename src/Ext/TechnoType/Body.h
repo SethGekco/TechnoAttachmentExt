@@ -8,6 +8,8 @@
 #include <New/Type/AttachmentTypeClass.h>
 #include <Ext/Rules/Body.h>
 
+class Matrix3D;
+
 // Standalone port of Phobos's TechnoTypeExt, stripped to ONLY the attachment
 // fields. Uses Container<T> in unordered_map mode (Canary defined, no
 // ExtPointerOffset) so we claim no pointer slot inside TechnoTypeClass and
@@ -26,6 +28,10 @@ public:
 	public:
 		Valueable<int> AttachmentTopLayerMinHeight;
 		Valueable<int> AttachmentUndergroundLayerMaxHeight;
+
+		// Needed by GetFLHAbsoluteCoords for turret-relative attachment FLH.
+		// Read from the art INI [Image]TurretOffset= (same as Phobos).
+		Valueable<PartialVector3D<int>> TurretOffset;
 
 		struct AttachmentDataEntry
 		{
@@ -49,6 +55,7 @@ public:
 		ExtData(TechnoTypeClass* OwnerObject) : Extension<TechnoTypeClass>(OwnerObject)
 			, AttachmentTopLayerMinHeight { RulesExt::Global()->AttachmentTopLayerMinHeight }
 			, AttachmentUndergroundLayerMaxHeight { RulesExt::Global()->AttachmentUndergroundLayerMaxHeight }
+			, TurretOffset { { 0, 0, 0 } }
 			, AttachmentData {}
 		{ }
 
@@ -60,6 +67,8 @@ public:
 
 		virtual void LoadFromStream(PhobosStreamReader& Stm) override;
 		virtual void SaveToStream(PhobosStreamWriter& Stm) override;
+
+		void ApplyTurretOffset(Matrix3D* mtx, double factor = 1.0);
 
 	private:
 		template <typename T>
@@ -74,4 +83,6 @@ public:
 	};
 
 	static ExtContainer ExtMap;
+
+	static void ApplyTurretOffset(TechnoTypeClass* pType, Matrix3D* mtx, double factor = 1.0);
 };

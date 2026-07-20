@@ -2,9 +2,29 @@
 
 #include <set>
 
+#include <Matrix3D.h>
+#include <Utilities/Macro.h>
+
 #include <AttachmentParsers.h>
 
 TechnoTypeExt::ExtContainer TechnoTypeExt::ExtMap;
+
+void TechnoTypeExt::ExtData::ApplyTurretOffset(Matrix3D* mtx, double factor)
+{
+	// Does not verify if the offset actually has all values parsed as it makes
+	// no difference, it will be 0 for the unparsed ones either way.
+	const auto offset = this->TurretOffset.GetEx();
+	const float x = static_cast<float>(offset->X * factor);
+	const float y = static_cast<float>(offset->Y * factor);
+	const float z = static_cast<float>(offset->Z * factor);
+
+	mtx->Translate(x, y, z);
+}
+
+void TechnoTypeExt::ApplyTurretOffset(TechnoTypeClass* pType, Matrix3D* mtx, double factor)
+{
+	TechnoTypeExt::ExtMap.Find(pType)->ApplyTurretOffset(mtx, factor);
+}
 
 void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 {
@@ -14,6 +34,12 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		return;
 
 	INI_EX exINI(pINI);
+
+	// Turret offset lives in the art INI, keyed on the type's Image name.
+	const auto pArtINI = &CCINIClass::INI_Art;
+	INI_EX exArtINI(pArtINI);
+	auto pArtSection = this->AttachedToObject->ImageFile;
+	this->TurretOffset.Read(exArtINI, pArtSection, "TurretOffset");
 
 	this->AttachmentTopLayerMinHeight.Read(exINI, pSection, "AttachmentTopLayerMinHeight");
 	this->AttachmentUndergroundLayerMaxHeight.Read(exINI, pSection, "AttachmentUndergroundLayerMaxHeight");
@@ -80,6 +106,7 @@ void TechnoTypeExt::ExtData::Serialize(T& Stm)
 	Stm
 		.Process(this->AttachmentTopLayerMinHeight)
 		.Process(this->AttachmentUndergroundLayerMaxHeight)
+		.Process(this->TurretOffset)
 		.Process(this->AttachmentData)
 		;
 }
@@ -132,3 +159,52 @@ TechnoTypeExt::ExtContainer::ExtContainer()
 { }
 
 TechnoTypeExt::ExtContainer::~ExtContainer() = default;
+
+// ============================================================================
+// Container lifecycle hooks — addresses verified from Phobos (develop).
+// map-mode container: TryAllocate on ctor, Remove on dtor, Prepare/Static on
+// save/load, LoadFromINI on the type's INI read.
+// ============================================================================
+
+DEFINE_HOOK(0x711835, TechnoTypeClass_CTOR_TAExt, 0x5)
+{
+	GET(TechnoTypeClass*, pItem, ESI);
+	TechnoTypeExt::ExtMap.TryAllocate(pItem);
+	return 0;
+}
+
+DEFINE_HOOK(0x711AE0, TechnoTypeClass_DTOR_TAExt, 0x5)
+{
+	GET(TechnoTypeClass*, pItem, ECX);
+	TechnoTypeExt::ExtMap.Remove(pItem);
+	return 0;
+}
+
+DEFINE_HOOK_AGAIN(0x716DC0, TechnoTypeClass_SaveLoad_Prefix_TAExt, 0x5)
+DEFINE_HOOK(0x7162F0, TechnoTypeClass_SaveLoad_Prefix_TAExt, 0x6)
+{
+	GET_STACK(TechnoTypeClass*, pItem, 0x4);
+	GET_STACK(IStream*, pStm, 0x8);
+	TechnoTypeExt::ExtMap.PrepareStream(pItem, pStm);
+	return 0;
+}
+
+DEFINE_HOOK(0x716DAC, TechnoTypeClass_Load_Suffix_TAExt, 0xA)
+{
+	TechnoTypeExt::ExtMap.LoadStatic();
+	return 0;
+}
+
+DEFINE_HOOK(0x717094, TechnoTypeClass_Save_Suffix_TAExt, 0x5)
+{
+	TechnoTypeExt::ExtMap.SaveStatic();
+	return 0;
+}
+
+DEFINE_HOOK(0x716123, TechnoTypeClass_LoadFromINI_TAExt, 0x5)
+{
+	GET(TechnoTypeClass*, pItem, EBP);
+	GET_STACK(CCINIClass*, pINI, 0x380);
+	TechnoTypeExt::ExtMap.LoadFromINI(pItem, pINI);
+	return 0;
+}
