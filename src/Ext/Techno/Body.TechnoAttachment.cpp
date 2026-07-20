@@ -37,7 +37,10 @@ void TechnoExt::InitializeAttachments(TechnoClass* pThis)
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
 	auto const pType = pThis->GetTechnoType();
-	auto const pTypeExt = TechnoTypeExt::ExtMap.Find(pType);
+	auto const pTypeExt = pType ? TechnoTypeExt::ExtMap.Find(pType) : nullptr;
+
+	if (!pExt || !pTypeExt)
+		return;
 
 	for (auto& entry : pTypeExt->AttachmentData)
 		pExt->ChildAttachments.emplace_back(std::make_unique<AttachmentClass>(&entry, pThis, nullptr))->OnCreated();

@@ -45,6 +45,8 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	GET(FootClass* const, pThis, ESI);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return 0;
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
 
@@ -56,6 +58,8 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 	GET(BuildingClass*, pThis, ESI);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return 0;
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
 
