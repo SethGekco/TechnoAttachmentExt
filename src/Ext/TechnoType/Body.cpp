@@ -28,7 +28,7 @@ void TechnoTypeExt::ApplyTurretOffset(TechnoTypeClass* pType, Matrix3D* mtx, dou
 
 void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 {
-	const char* pSection = this->AttachedToObject->ID;
+	const char* pSection = this->OwnerObject()->ID;
 
 	if (!pINI->GetSection(pSection))
 		return;
@@ -38,7 +38,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	// Turret offset lives in the art INI, keyed on the type's Image name.
 	const auto pArtINI = &CCINIClass::INI_Art;
 	INI_EX exArtINI(pArtINI);
-	auto pArtSection = this->AttachedToObject->ImageFile;
+	auto pArtSection = this->OwnerObject()->ImageFile;
 	this->TurretOffset.Read(exArtINI, pArtSection, "TurretOffset");
 
 	this->AttachmentTopLayerMinHeight.Read(exINI, pSection, "AttachmentTopLayerMinHeight");
