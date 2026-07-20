@@ -57,10 +57,11 @@ void AttachmentClass::CreateChild()
 {
 	if (auto const pChildType = this->GetChildType())
 	{
-		if (pChildType->WhatAmI() != AbstractType::UnitType)
-			return;
-
-		if (const auto pTechno = static_cast<TechnoClass*>(pChildType->CreateObject(this->Parent->Owner)))
+		// Standalone extension (beyond PR #352, which was UnitType-only):
+		// allow any TechnoType child — vehicles, infantry, aircraft, buildings.
+		// CreateObject yields the matching techno instance; AttachChild sorts
+		// out the loco swap (Foot only) vs building handling.
+		if (const auto pTechno = abstract_cast<TechnoClass*>(pChildType->CreateObject(this->Parent->Owner)))
 		{
 			this->AttachChild(pTechno);
 		}
@@ -214,8 +215,19 @@ bool AttachmentClass::AttachChild(TechnoClass* pChild)
 	if (this->Child)
 		return false;
 
-	if (pChild->WhatAmI() != AbstractType::Unit)
+	// Standalone extension: accept any techno instance (vehicle/infantry/
+	// aircraft/building), not just vehicles as in PR #352. The locomotor swap
+	// below only applies to FootClass children; buildings have no locomotor.
+	switch (pChild->WhatAmI())
+	{
+	case AbstractType::Unit:
+	case AbstractType::Infantry:
+	case AbstractType::Aircraft:
+	case AbstractType::Building:
+		break;
+	default:
 		return false;
+	}
 
 	if (auto const pChildAsFoot = abstract_cast<FootClass*>(pChild))
 	{
