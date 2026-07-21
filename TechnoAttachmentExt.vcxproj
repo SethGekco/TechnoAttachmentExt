@@ -38,6 +38,7 @@
     <ClCompile Include="src\Locomotion\AttachmentLocomotionClass.cpp" />
     <ClCompile Include="src\COM.cpp" />
     <ClCompile Include="src\Hooks.Attachment.cpp" />
+    <ClCompile Include="src\Hooks.AttachedFactory.cpp" />
   </ItemGroup>
 
   <!-- Header files -->
