@@ -47,6 +47,13 @@ DEFINE_HOOK(0x44EFD8, BuildingClass_FindExitCell_AttachedFactory, 0x6)
 	if (!pTechno)
 		return 0;
 
+	// Mark the produced unit to auto-scatter off the exit cell on its next
+	// update — vanilla gives factory-exited infantry Mission::Area_Guard, so it
+	// would otherwise sit on the exit cell and block the next unit (which then
+	// refunds). Set regardless of whether our own scan below picks the cell.
+	if (auto const pUnitExt = TechnoExt::ExtMap.Find(pTechno))
+		pUnitExt->PendingExitScatter = true;
+
 	REF_STACK(CellStruct, resultCell, STACK_OFFSET(0x30, -0x20));
 
 	// Anchor the exit search on the parent vehicle's current cell.

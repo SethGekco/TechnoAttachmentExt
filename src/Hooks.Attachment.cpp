@@ -47,6 +47,19 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
 	if (!pExt)
 		return 0;
+
+	// A unit freshly produced from an attached factory: scatter it once so it
+	// clears the exit cell for the next unit. Only fires when it can actually
+	// move (on the map, not in limbo).
+	if (pExt->PendingExitScatter)
+	{
+		if (!pThis->InLimbo && pThis->IsAlive && pThis->CanScatter())
+		{
+			pThis->Scatter(CoordStruct::Empty, true, false);
+			pExt->PendingExitScatter = false;
+		}
+	}
+
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
 

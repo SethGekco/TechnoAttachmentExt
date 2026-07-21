@@ -37,11 +37,17 @@ public:
 		// it uses the "high" occupation members.
 		std::optional<bool> AltOccupation;
 
+		// Transient (not serialized): set on a unit freshly produced from an
+		// attached factory building so its next FootClass update scatters it off
+		// the exit cell, freeing that cell for the next produced unit.
+		bool PendingExitScatter;
+
 		ExtData(TechnoClass* OwnerObject) : Extension<TechnoClass>(OwnerObject)
 			, ParentAttachment {}
 			, ChildAttachments {}
 			, DormantAttachments {}
 			, AltOccupation {}
+			, PendingExitScatter { false }
 		{ }
 
 		virtual ~ExtData() override;
