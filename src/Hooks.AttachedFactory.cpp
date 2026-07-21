@@ -56,6 +56,8 @@ DEFINE_HOOK(0x44EFD8, BuildingClass_FindExitCell_AttachedFactory, 0x6)
 
 	REF_STACK(CellStruct, resultCell, STACK_OFFSET(0x30, -0x20));
 
+	auto const pType = pTechno->GetTechnoType();
+
 	// Anchor the exit search on the parent vehicle's current cell.
 	CellStruct const anchor = pParent->GetMapCoords();
 
@@ -81,11 +83,21 @@ DEFINE_HOOK(0x44EFD8, BuildingClass_FindExitCell_AttachedFactory, 0x6)
 			continue;
 
 		auto const pCell = MapClass::Instance.GetCellAt(cand);
-		if (pTechno->IsCellOccupied(pCell, FacingType::None, -1, nullptr, true) == Move::OK)
-		{
-			resultCell = cand;
-			return ReturnFromFunction;
-		}
+
+		// Reject cells blocked by units/buildings...
+		if (pTechno->IsCellOccupied(pCell, FacingType::None, -1, nullptr, true) != Move::OK)
+			continue;
+
+		// ...AND cells the unit can't stand on due to TERRAIN (trees, ore
+		// drills / TIBTRE, cliffs, water). IsCellOccupied misses these, which
+		// let units spawn onto impassable terrain and get stuck. IsClearToMove
+		// ignores infantry/vehicles here (occupation handled above) and just
+		// validates terrain passability for this unit's movement type.
+		if (pType && !pCell->IsClearToMove(pType->SpeedType, true, true, -1, pType->MovementZone, -1, pCell->ContainsBridge()))
+			continue;
+
+		resultCell = cand;
+		return ReturnFromFunction;
 	}
 
 	// Couldn't find a spot near the parent — let vanilla/Phobos try.
