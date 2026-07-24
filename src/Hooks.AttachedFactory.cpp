@@ -57,47 +57,29 @@ DEFINE_HOOK(0x44EFD8, BuildingClass_FindExitCell_AttachedFactory, 0x6)
 	REF_STACK(CellStruct, resultCell, STACK_OFFSET(0x30, -0x20));
 
 	auto const pType = pTechno->GetTechnoType();
+	if (!pType)
+		return 0;
 
-	// Anchor the exit search on the parent vehicle's current cell.
+	// Anchor the exit search on the parent vehicle's current cell, then let the
+	// engine's own placement routine pick the nearest valid, reachable cell for
+	// this unit. NearByLocation respects terrain/passability/reachability
+	// (cliffs, water, trees, ore drills / TIBTRE) far better than a naive ring
+	// scan + IsClearToMove — it's the same routine YR uses to drop free units
+	// beside a building.
 	CellStruct const anchor = pParent->GetMapCoords();
 
-	// Deterministic outward scan (expanding rings around the parent). The first
-	// cell the produced unit can legally occupy wins.
-	static constexpr struct { int dx, dy; } offsets[] =
+	CellStruct const exitCell = MapClass::Instance.NearByLocation(
+		anchor, pType->SpeedType, -1, pType->MovementZone,
+		false, 1, 1, false, false, false, true, anchor, false, false);
+
+	if (MapClass::Instance.CoordinatesLegal(exitCell))
 	{
-		{  0, -1 }, {  1,  0 }, {  0,  1 }, { -1,  0 },
-		{  1, -1 }, {  1,  1 }, { -1,  1 }, { -1, -1 },
-		{  0, -2 }, {  2,  0 }, {  0,  2 }, { -2,  0 },
-		{  2, -1 }, {  2,  1 }, { -2,  1 }, { -2, -1 },
-		{  1, -2 }, {  1,  2 }, { -1,  2 }, { -1, -2 },
-		{  2, -2 }, {  2,  2 }, { -2,  2 }, { -2, -2 },
-	};
-
-	for (auto const& off : offsets)
-	{
-		CellStruct cand = anchor;
-		cand.X = (short)(anchor.X + off.dx);
-		cand.Y = (short)(anchor.Y + off.dy);
-
-		if (!MapClass::Instance.CoordinatesLegal(cand))
-			continue;
-
-		auto const pCell = MapClass::Instance.GetCellAt(cand);
-
-		// Reject cells blocked by units/buildings...
-		if (pTechno->IsCellOccupied(pCell, FacingType::None, -1, nullptr, true) != Move::OK)
-			continue;
-
-		// ...AND cells the unit can't stand on due to TERRAIN (trees, ore
-		// drills / TIBTRE, cliffs, water). IsCellOccupied misses these, which
-		// let units spawn onto impassable terrain and get stuck. IsClearToMove
-		// ignores infantry/vehicles here (occupation handled above) and just
-		// validates terrain passability for this unit's movement type.
-		if (pType && !pCell->IsClearToMove(pType->SpeedType, true, true, -1, pType->MovementZone, -1, pCell->ContainsBridge()))
-			continue;
-
-		resultCell = cand;
-		return ReturnFromFunction;
+		auto const pCell = MapClass::Instance.GetCellAt(exitCell);
+		if (pTechno->IsCellOccupied(pCell, FacingType::None, -1, nullptr, true) == Move::OK)
+		{
+			resultCell = exitCell;
+			return ReturnFromFunction;
+		}
 	}
 
 	// Couldn't find a spot near the parent — let vanilla/Phobos try.

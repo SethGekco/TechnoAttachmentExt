@@ -1,5 +1,7 @@
 #include "AttachmentTypeClass.h"
 
+#include <BuildingTypeClass.h>
+
 #include <AttachmentParsers.h>
 
 const char* Enumerable<AttachmentTypeClass>::GetMainSection()
@@ -31,6 +33,7 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->DestructionWeapon_Parent.Read(exINI, section, "DestructionWeapon.Parent");
 	this->ParentDestructionMission.Read(exINI, section, "ParentDestructionMission");
 	this->ParentDetachmentMission.Read(exINI, section, "ParentDetachmentMission");
+	this->Prerequisite.Read(exINI, section, "Prerequisite");
 }
 
 template <typename T>
@@ -55,6 +58,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->DestructionWeapon_Parent)
 		.Process(this->ParentDestructionMission)
 		.Process(this->ParentDetachmentMission)
+		.Process(this->Prerequisite)
 		;
 }
 

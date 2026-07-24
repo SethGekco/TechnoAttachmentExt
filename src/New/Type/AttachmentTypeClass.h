@@ -5,6 +5,8 @@
 
 #include <TechnoTypeClass.h>
 
+class BuildingTypeClass;
+
 // NOTE (standalone port): the upstream PR added AttachmentYSortPosition to
 // Phobos's <Utilities/Enum.h>. We are a standalone DLL and must not shadow
 // Phobos's Enum.h (it lives on the include path and holds hundreds of enums
@@ -37,6 +39,9 @@ public:
 	Nullable<WeaponTypeClass*> DestructionWeapon_Parent;
 	Nullable<Mission> ParentDestructionMission;
 	Nullable<Mission> ParentDetachmentMission;
+	// Standalone extension: the child is only (re)spawned while the host's owner
+	// house has ALL of these buildings present. Empty = no prerequisite.
+	ValueableVector<BuildingTypeClass*> Prerequisite;
 
 	AttachmentTypeClass(const char* pTitle = NONE_STR) : Enumerable<AttachmentTypeClass>(pTitle)
 		, RespawnAtCreation { true }
@@ -57,6 +62,7 @@ public:
 		, DestructionWeapon_Parent { }
 		, ParentDestructionMission { }
 		, ParentDetachmentMission { }
+		, Prerequisite { }
 	{ }
 
 	virtual ~AttachmentTypeClass() = default;

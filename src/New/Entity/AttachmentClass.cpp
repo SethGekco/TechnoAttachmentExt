@@ -4,6 +4,8 @@
 #include <BulletClass.h>
 #include <BulletTypeClass.h>
 #include <WarheadTypeClass.h>
+#include <HouseClass.h>
+#include <BuildingTypeClass.h>
 
 #include <ObjBase.h>
 
@@ -55,6 +57,23 @@ void AttachmentClass::OnCreated()
 
 void AttachmentClass::CreateChild()
 {
+	// Prerequisite gate (standalone extension): only spawn the child while the
+	// host's owner house has ALL required buildings present. Re-checked on every
+	// (re)spawn, so losing a prerequisite building stops future respawns and
+	// regaining it resumes them.
+	if (auto const pType = this->GetType(); pType->Prerequisite.size() > 0)
+	{
+		auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
+		if (!pOwner)
+			return;
+
+		for (auto const pBld : pType->Prerequisite)
+		{
+			if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
+				return; // prerequisite not satisfied — don't spawn
+		}
+	}
+
 	if (auto const pChildType = this->GetChildType())
 	{
 		// Standalone extension (beyond PR #352, which was UnitType-only):
