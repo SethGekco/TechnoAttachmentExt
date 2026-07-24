@@ -60,17 +60,24 @@ void AttachmentClass::CreateChild()
 	// Prerequisite gate (standalone extension): only spawn the child while the
 	// host's owner house has ALL required buildings present. Re-checked on every
 	// (re)spawn, so losing a prerequisite building stops future respawns and
-	// regaining it resumes them.
-	if (auto const pType = this->GetType(); pType->Prerequisite.size() > 0)
+	// regaining it resumes them. The per-slot AttachmentX.Prerequisite on the
+	// host overrides the AttachmentType's Prerequisite when it is non-empty.
 	{
-		auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
-		if (!pOwner)
-			return;
+		auto const& prereqs = (this->Data && !this->Data->Prerequisite.empty())
+			? this->Data->Prerequisite
+			: this->GetType()->Prerequisite;
 
-		for (auto const pBld : pType->Prerequisite)
+		if (!prereqs.empty())
 		{
-			if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
-				return; // prerequisite not satisfied — don't spawn
+			auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
+			if (!pOwner)
+				return;
+
+			for (auto const pBld : prereqs)
+			{
+				if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
+					return; // prerequisite not satisfied — don't spawn
+			}
 		}
 	}
 

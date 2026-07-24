@@ -9,6 +9,7 @@
 #include <Ext/Rules/Body.h>
 
 class Matrix3D;
+class BuildingTypeClass;
 
 // Standalone port of Phobos's TechnoTypeExt, stripped to ONLY the attachment
 // fields. Uses Container<T> in unordered_map mode (Canary defined, no
@@ -41,6 +42,9 @@ public:
 			Valueable<bool> IsOnTurret;
 			Valueable<DirType> RotationAdjust;
 			PhobosFixedString<32> ID;
+			// Per-slot prerequisite override. If non-empty, it takes precedence
+			// over the AttachmentType's Prerequisite; if empty, the type's applies.
+			ValueableVector<BuildingTypeClass*> Prerequisite;
 
 			bool Load(PhobosStreamReader& stm, bool registerForChange);
 			bool Save(PhobosStreamWriter& stm) const;

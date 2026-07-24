@@ -3,6 +3,7 @@
 #include <set>
 
 #include <Matrix3D.h>
+#include <BuildingTypeClass.h>
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -76,7 +77,11 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ID", static_cast<int>(i));
 		id.Read(pINI, pSection, tempBuffer);
 
-		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id };
+		ValueableVector<BuildingTypeClass*> prereq;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite", static_cast<int>(i));
+		prereq.Read(exINI, pSection, tempBuffer);
+
+		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -147,6 +152,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->IsOnTurret)
 		.Process(this->RotationAdjust)
 		.Process(this->ID)
+		.Process(this->Prerequisite)
 		.Success();
 }
 
