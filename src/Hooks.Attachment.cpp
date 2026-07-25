@@ -34,8 +34,8 @@ DEFINE_HOOK(0x7258D0, TechnoAttachmentExt_AnnounceInvalidPointer, 0x6)
 	GET(void* const, pInvalid, ECX);
 	GET(bool const, removed, EDX);
 
-	TechnoExt::ExtMap.InvalidateExtDataPointer(pInvalid, removed);
-	TechnoTypeExt::ExtMap.InvalidateExtDataPointer(pInvalid, removed);
+	TechnoExt::ExtMap.PointerGotInvalid(pInvalid, removed);
+	TechnoTypeExt::ExtMap.PointerGotInvalid(pInvalid, removed);
 
 	return 0;
 }
