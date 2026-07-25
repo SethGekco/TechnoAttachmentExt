@@ -45,6 +45,11 @@ public:
 	TechnoTypeClass* GetChildType();
 	CoordStruct GetChildLocation();
 
+	// True if the host owner satisfies the effective prerequisite (per-slot
+	// override, else the AttachmentType's), or if there is none. Re-evaluated
+	// each frame so the child hides/shows as the prerequisite is gained/lost.
+	bool PrerequisitesMet();
+
 	void OnCreated();
 	void CreateChild();
 	void AI();

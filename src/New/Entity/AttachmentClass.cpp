@@ -55,32 +55,35 @@ void AttachmentClass::OnCreated()
 		this->CreateChild();
 }
 
-void AttachmentClass::CreateChild()
+// True if the host owner satisfies the effective prerequisite, or if there is
+// none. The per-slot AttachmentX.Prerequisite on the host overrides the
+// AttachmentType's Prerequisite when it is non-empty. Evaluated every frame in
+// AI() so the child is hidden (limbo'd) while the prerequisite is unmet and
+// shown again once it is regained.
+bool AttachmentClass::PrerequisitesMet()
 {
-	// Prerequisite gate (standalone extension): only spawn the child while the
-	// host's owner house has ALL required buildings present. Re-checked on every
-	// (re)spawn, so losing a prerequisite building stops future respawns and
-	// regaining it resumes them. The per-slot AttachmentX.Prerequisite on the
-	// host overrides the AttachmentType's Prerequisite when it is non-empty.
+	auto const& prereqs = (this->Data && !this->Data->Prerequisite.empty())
+		? this->Data->Prerequisite
+		: this->GetType()->Prerequisite;
+
+	if (prereqs.empty())
+		return true;
+
+	auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
+	if (!pOwner)
+		return false;
+
+	for (auto const pBld : prereqs)
 	{
-		auto const& prereqs = (this->Data && !this->Data->Prerequisite.empty())
-			? this->Data->Prerequisite
-			: this->GetType()->Prerequisite;
-
-		if (!prereqs.empty())
-		{
-			auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
-			if (!pOwner)
-				return;
-
-			for (auto const pBld : prereqs)
-			{
-				if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
-					return; // prerequisite not satisfied — don't spawn
-			}
-		}
+		if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
+			return false;
 	}
 
+	return true;
+}
+
+void AttachmentClass::CreateChild()
+{
 	if (auto const pChildType = this->GetChildType())
 	{
 		// Standalone extension (beyond PR #352, which was UnitType-only):
@@ -125,10 +128,19 @@ void AttachmentClass::AI()
 
 	if (this->Child)
 	{
-		if (this->Child->InLimbo && !this->Parent->InLimbo)
+		// Hide the child (limbo) while the host is in limbo OR the prerequisite
+		// is unmet; show it again otherwise. This makes the prerequisite dynamic:
+		// build the required building and the child appears, sell it and it hides.
+		bool const hide = this->Parent->InLimbo || !this->PrerequisitesMet();
+
+		if (this->Child->InLimbo && !hide)
 			this->Unlimbo();
-		else if (!this->Child->InLimbo && this->Parent->InLimbo)
+		else if (!this->Child->InLimbo && hide)
 			this->Limbo();
+
+		// Don't position/sync a hidden (limbo'd) child.
+		if (this->Child->InLimbo)
+			return;
 
 		this->Child->SetLocation(this->GetChildLocation());
 

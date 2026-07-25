@@ -13,11 +13,32 @@
 #include <TechnoClass.h>
 #include <FootClass.h>
 #include <BuildingClass.h>
+#include <AbstractClass.h>
 
 #include <Utilities/Macro.h>
 
 #include <Ext/Techno/Body.h>
+#include <Ext/TechnoType/Body.h>
 #include <New/Entity/AttachmentClass.h>
+
+// ============================================================================
+// Pointer invalidation — CRITICAL. When any AbstractClass is freed, the game
+// broadcasts it here (0x7258D0) so everyone clears references to it. Our
+// attachments hold raw Parent/Child techno pointers; without this, a child
+// consumed/killed (e.g. by a terror drone) leaves a dangling pointer and the
+// next attachment AI tick calls a virtual on freed memory -> crash.
+// Phobos hooks the same address for its own containers; Syringe chains both.
+// ============================================================================
+DEFINE_HOOK(0x7258D0, TechnoAttachmentExt_AnnounceInvalidPointer, 0x6)
+{
+	GET(void* const, pInvalid, ECX);
+	GET(bool const, removed, EDX);
+
+	TechnoExt::ExtMap.InvalidateExtDataPointer(pInvalid, removed);
+	TechnoTypeExt::ExtMap.InvalidateExtDataPointer(pInvalid, removed);
+
+	return 0;
+}
 
 // ============================================================================
 // Init — create a parent's child attachments when the techno initialises.
