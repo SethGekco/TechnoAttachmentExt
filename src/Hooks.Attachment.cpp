@@ -61,8 +61,11 @@ DEFINE_HOOK(0x6F42F7, TechnoClass_Init_InitAttachments, 0x2)
 // Foot parents: FootClass update after locomotor process, ESI = this.
 // Building parents: BuildingClass::AI, ESI = this.
 // ============================================================================
+extern void TAExt_FreezeHeartbeat();
+
 DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 {
+	TAExt_FreezeHeartbeat();
 	GET(FootClass* const, pThis, ESI);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
@@ -89,6 +92,7 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 
 DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 {
+	TAExt_FreezeHeartbeat();
 	GET(BuildingClass*, pThis, ESI);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
