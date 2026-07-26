@@ -319,6 +319,7 @@ bool AttachmentLocomotionClass::Is_Piggybacking()
 
 AttachmentClass* AttachmentLocomotionClass::GetAttachment()
 {
+	TAEXT_DIAG_COUNT("loco::GetAttachment");
 	AttachmentClass* result = nullptr;
 
 	if (this->LinkedTo)

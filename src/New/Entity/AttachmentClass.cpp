@@ -12,6 +12,8 @@
 #include <Ext/Techno/Body.h>
 #include <Locomotion/AttachmentLocomotionClass.h>
 
+#include <TAExtDiag.h>
+
 std::vector<AttachmentClass*> AttachmentClass::Array;
 
 AttachmentTypeClass* AttachmentClass::GetType()
@@ -110,6 +112,7 @@ void AttachmentClass::CreateChild()
 
 void AttachmentClass::AI()
 {
+	TAEXT_DIAG_COUNT("AttachmentClass::AI");
 	AttachmentTypeClass* pType = this->GetType();
 
 	if (!this->Child)
