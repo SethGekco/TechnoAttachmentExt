@@ -42,6 +42,9 @@ public:
 	// Standalone extension: the child is only (re)spawned while the host's owner
 	// house has ALL of these buildings present. Empty = no prerequisite.
 	ValueableVector<BuildingTypeClass*> Prerequisite;
+	// yes = child hides/shows live as the prerequisite is gained/lost.
+	// no  = prerequisite is only checked at spawn (static gate; no live toggle).
+	Valueable<bool> Prerequisite_Dynamic;
 
 	AttachmentTypeClass(const char* pTitle = NONE_STR) : Enumerable<AttachmentTypeClass>(pTitle)
 		, RespawnAtCreation { true }
@@ -63,6 +66,7 @@ public:
 		, ParentDestructionMission { }
 		, ParentDetachmentMission { }
 		, Prerequisite { }
+		, Prerequisite_Dynamic { true }
 	{ }
 
 	virtual ~AttachmentTypeClass() = default;

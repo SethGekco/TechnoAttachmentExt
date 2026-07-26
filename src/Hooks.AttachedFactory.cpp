@@ -68,9 +68,11 @@ DEFINE_HOOK(0x44EFD8, BuildingClass_FindExitCell_AttachedFactory, 0x6)
 	// beside a building.
 	CellStruct const anchor = pParent->GetMapCoords();
 
+	// disallowOverlay=true (8th arg) so the search skips cells blocked by
+	// overlays (rocks, walls, etc.) that a unit would get stuck on.
 	CellStruct const exitCell = MapClass::Instance.NearByLocation(
 		anchor, pType->SpeedType, -1, pType->MovementZone,
-		false, 1, 1, false, false, false, true, anchor, false, false);
+		false, 1, 1, true, false, false, true, anchor, false, false);
 
 	if (MapClass::Instance.CoordinatesLegal(exitCell))
 	{

@@ -84,6 +84,12 @@ bool AttachmentClass::PrerequisitesMet()
 
 void AttachmentClass::CreateChild()
 {
+	// Static prerequisite (Prerequisite.Dynamic=no): gate creation on the
+	// prerequisite being currently satisfied. Dynamic prerequisites create
+	// unconditionally and are hidden/shown in AI() instead.
+	if (!this->GetType()->Prerequisite_Dynamic && !this->PrerequisitesMet())
+		return;
+
 	if (auto const pChildType = this->GetChildType())
 	{
 		// Standalone extension (beyond PR #352, which was UnitType-only):
@@ -128,10 +134,11 @@ void AttachmentClass::AI()
 
 	if (this->Child)
 	{
-		// Hide the child (limbo) while the host is in limbo OR the prerequisite
-		// is unmet; show it again otherwise. This makes the prerequisite dynamic:
-		// build the required building and the child appears, sell it and it hides.
-		bool const hide = this->Parent->InLimbo || !this->PrerequisitesMet();
+		// Hide the child (limbo) while the host is in limbo OR (for a dynamic
+		// prerequisite) the prerequisite is unmet; show it again otherwise.
+		// Static prerequisites don't hide/show live (handled at create time).
+		bool const prereqHide = this->GetType()->Prerequisite_Dynamic && !this->PrerequisitesMet();
+		bool const hide = this->Parent->InLimbo || prereqHide;
 
 		if (this->Child->InLimbo && !hide)
 			this->Unlimbo();

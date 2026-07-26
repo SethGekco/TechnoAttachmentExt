@@ -34,6 +34,7 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->ParentDestructionMission.Read(exINI, section, "ParentDestructionMission");
 	this->ParentDetachmentMission.Read(exINI, section, "ParentDetachmentMission");
 	this->Prerequisite.Read(exINI, section, "Prerequisite");
+	this->Prerequisite_Dynamic.Read(exINI, section, "Prerequisite.Dynamic");
 }
 
 template <typename T>
@@ -59,6 +60,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->ParentDestructionMission)
 		.Process(this->ParentDetachmentMission)
 		.Process(this->Prerequisite)
+		.Process(this->Prerequisite_Dynamic)
 		;
 }
 
