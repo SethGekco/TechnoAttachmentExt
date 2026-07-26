@@ -5,6 +5,7 @@
 #include <Matrix3D.h>
 #include <BuildingTypeClass.h>
 #include <HouseTypeClass.h>
+#include <Utilities/Debug.h>
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -58,9 +59,14 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		if (!type.isset())
 			continue;
 
+		Debug::Log("[TAExt-trace] TechnoType [%s] Attachment%d: Type set (idx=%d), reading fields...\n",
+			pSection, (int)i, type.Get());
+
 		NullableIdx<TechnoTypeClass> technoType;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.TechnoType", static_cast<int>(i));
 		technoType.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   TechnoType read (isset=%d idx=%d)\n",
+			(int)technoType.isset(), technoType.isset() ? technoType.Get() : -1);
 
 		Valueable<CoordStruct> flh;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.FLH", static_cast<int>(i));
@@ -98,11 +104,14 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Dynamic", static_cast<int>(i));
 		prereqDynamic.Read(exINI, pSection, tempBuffer);
 
+		Debug::Log("[TAExt-trace]   all fields read, building entry (slot %d, curSize=%u)\n",
+			(int)i, (unsigned)this->AttachmentData.size());
 		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
 			this->AttachmentData[i] = entry;
+		Debug::Log("[TAExt-trace]   entry stored for [%s] slot %d\n", pSection, (int)i);
 	}
 
 	// Validate attachment ID uniqueness

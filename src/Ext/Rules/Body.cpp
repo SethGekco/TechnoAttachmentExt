@@ -1,5 +1,6 @@
 #include "Body.h"
 
+#include <Utilities/Debug.h>
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -12,11 +13,15 @@ RulesExt::ExtData RulesExt::Data {};
 // resolve and so per-type layer heights can inherit these globals.
 void RulesExt::LoadBeforeTypeData(RulesClass* pThis, CCINIClass* pINI)
 {
+	Debug::Log("[TAExt-trace] LoadBeforeTypeData: AttachmentTypeClass::LoadFromINIList begin\n");
 	AttachmentTypeClass::LoadFromINIList(pINI);
+	Debug::Log("[TAExt-trace] LoadBeforeTypeData: LoadFromINIList end (count=%u)\n",
+		(unsigned)AttachmentTypeClass::Array.size());
 
 	INI_EX exINI(pINI);
 	Data.AttachmentTopLayerMinHeight.Read(exINI, "General", "AttachmentTopLayerMinHeight");
 	Data.AttachmentUndergroundLayerMaxHeight.Read(exINI, "General", "AttachmentUndergroundLayerMaxHeight");
+	Debug::Log("[TAExt-trace] LoadBeforeTypeData end\n");
 }
 
 // ============================================================================
