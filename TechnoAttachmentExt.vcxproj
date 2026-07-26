@@ -40,6 +40,7 @@
     <ClCompile Include="src\Hooks.Attachment.cpp" />
     <ClCompile Include="src\Hooks.AttachedFactory.cpp" />
     <ClCompile Include="src\Hooks.AttachedMovement.cpp" />
+    <ClCompile Include="src\Hooks.CellTransparency.cpp" />
   </ItemGroup>
 
   <!-- Header files -->
