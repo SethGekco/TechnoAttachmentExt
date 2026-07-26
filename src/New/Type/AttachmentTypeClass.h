@@ -6,6 +6,7 @@
 #include <TechnoTypeClass.h>
 
 class BuildingTypeClass;
+class HouseTypeClass;
 
 // NOTE (standalone port): the upstream PR added AttachmentYSortPosition to
 // Phobos's <Utilities/Enum.h>. We are a standalone DLL and must not shadow
@@ -42,6 +43,13 @@ public:
 	// Standalone extension: the child is only (re)spawned while the host's owner
 	// house has ALL of these buildings present. Empty = no prerequisite.
 	ValueableVector<BuildingTypeClass*> Prerequisite;
+	// Negative prerequisite: the child is blocked while ANY of these buildings
+	// is present (opposite of Prerequisite).
+	ValueableVector<BuildingTypeClass*> Prerequisite_Negative;
+	// Owner-country gating. RequiredHouses (if non-empty): host owner's country
+	// must be listed. ForbiddenHouses: host owner's country must NOT be listed.
+	ValueableVector<HouseTypeClass*> RequiredHouses;
+	ValueableVector<HouseTypeClass*> ForbiddenHouses;
 	// yes = child hides/shows live as the prerequisite is gained/lost.
 	// no  = prerequisite is only checked at spawn (static gate; no live toggle).
 	Valueable<bool> Prerequisite_Dynamic;
@@ -66,6 +74,9 @@ public:
 		, ParentDestructionMission { }
 		, ParentDetachmentMission { }
 		, Prerequisite { }
+		, Prerequisite_Negative { }
+		, RequiredHouses { }
+		, ForbiddenHouses { }
 		, Prerequisite_Dynamic { true }
 	{ }
 

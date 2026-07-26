@@ -50,6 +50,9 @@ public:
 	// each frame so the child hides/shows as the prerequisite is gained/lost.
 	bool PrerequisitesMet();
 
+	// Effective Prerequisite.Dynamic: per-slot override (if set) else the type's.
+	bool PrerequisiteDynamic();
+
 	void OnCreated();
 	void CreateChild();
 	void AI();

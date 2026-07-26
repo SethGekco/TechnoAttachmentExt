@@ -4,6 +4,7 @@
 
 #include <Matrix3D.h>
 #include <BuildingTypeClass.h>
+#include <HouseTypeClass.h>
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -81,7 +82,23 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite", static_cast<int>(i));
 		prereq.Read(exINI, pSection, tempBuffer);
 
-		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq };
+		ValueableVector<BuildingTypeClass*> prereqNeg;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Negative", static_cast<int>(i));
+		prereqNeg.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<HouseTypeClass*> reqHouses;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiredHouses", static_cast<int>(i));
+		reqHouses.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<HouseTypeClass*> forbHouses;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ForbiddenHouses", static_cast<int>(i));
+		forbHouses.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> prereqDynamic;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Dynamic", static_cast<int>(i));
+		prereqDynamic.Read(exINI, pSection, tempBuffer);
+
+		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -153,6 +170,10 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->RotationAdjust)
 		.Process(this->ID)
 		.Process(this->Prerequisite)
+		.Process(this->Prerequisite_Negative)
+		.Process(this->RequiredHouses)
+		.Process(this->ForbiddenHouses)
+		.Process(this->Prerequisite_Dynamic)
 		.Success();
 }
 

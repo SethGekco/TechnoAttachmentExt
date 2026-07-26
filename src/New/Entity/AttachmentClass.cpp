@@ -6,6 +6,7 @@
 #include <WarheadTypeClass.h>
 #include <HouseClass.h>
 #include <BuildingTypeClass.h>
+#include <HouseTypeClass.h>
 
 #include <ObjBase.h>
 
@@ -64,24 +65,58 @@ void AttachmentClass::OnCreated()
 // shown again once it is regained.
 bool AttachmentClass::PrerequisitesMet()
 {
-	auto const& prereqs = (this->Data && !this->Data->Prerequisite.empty())
-		? this->Data->Prerequisite
-		: this->GetType()->Prerequisite;
+	auto const pType = this->GetType();
 
-	if (prereqs.empty())
-		return true;
+	// Resolve each gate: per-slot override (when set) else the AttachmentType's.
+	auto const& prereq = (this->Data && !this->Data->Prerequisite.empty())
+		? this->Data->Prerequisite : pType->Prerequisite;
+	auto const& prereqNeg = (this->Data && !this->Data->Prerequisite_Negative.empty())
+		? this->Data->Prerequisite_Negative : pType->Prerequisite_Negative;
+	auto const& reqHouses = (this->Data && !this->Data->RequiredHouses.empty())
+		? this->Data->RequiredHouses : pType->RequiredHouses;
+	auto const& forbHouses = (this->Data && !this->Data->ForbiddenHouses.empty())
+		? this->Data->ForbiddenHouses : pType->ForbiddenHouses;
+
+	if (prereq.empty() && prereqNeg.empty() && reqHouses.empty() && forbHouses.empty())
+		return true; // no gating at all
 
 	auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
 	if (!pOwner)
 		return false;
 
-	for (auto const pBld : prereqs)
-	{
+	// Required buildings: ALL must be present.
+	for (auto const pBld : prereq)
 		if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
+			return false;
+
+	// Negative buildings: NONE may be present.
+	for (auto const pBld : prereqNeg)
+		if (pBld && pOwner->CountOwnedAndPresent(pBld) > 0)
+			return false;
+
+	// Required houses: owner's country must be listed.
+	if (!reqHouses.empty())
+	{
+		bool listed = false;
+		for (auto const pHT : reqHouses)
+			if (pHT && pHT == pOwner->Type) { listed = true; break; }
+		if (!listed)
 			return false;
 	}
 
+	// Forbidden houses: owner's country must NOT be listed.
+	for (auto const pHT : forbHouses)
+		if (pHT && pHT == pOwner->Type)
+			return false;
+
 	return true;
+}
+
+bool AttachmentClass::PrerequisiteDynamic()
+{
+	return (this->Data && this->Data->Prerequisite_Dynamic.isset())
+		? this->Data->Prerequisite_Dynamic.Get()
+		: this->GetType()->Prerequisite_Dynamic;
 }
 
 void AttachmentClass::CreateChild()
@@ -89,7 +124,7 @@ void AttachmentClass::CreateChild()
 	// Static prerequisite (Prerequisite.Dynamic=no): gate creation on the
 	// prerequisite being currently satisfied. Dynamic prerequisites create
 	// unconditionally and are hidden/shown in AI() instead.
-	if (!this->GetType()->Prerequisite_Dynamic && !this->PrerequisitesMet())
+	if (!this->PrerequisiteDynamic() && !this->PrerequisitesMet())
 		return;
 
 	if (auto const pChildType = this->GetChildType())
@@ -140,7 +175,7 @@ void AttachmentClass::AI()
 		// Hide the child (limbo) while the host is in limbo OR (for a dynamic
 		// prerequisite) the prerequisite is unmet; show it again otherwise.
 		// Static prerequisites don't hide/show live (handled at create time).
-		bool const prereqHide = this->GetType()->Prerequisite_Dynamic && !this->PrerequisitesMet();
+		bool const prereqHide = this->PrerequisiteDynamic() && !this->PrerequisitesMet();
 		bool const hide = this->Parent->InLimbo || prereqHide;
 
 		if (this->Child->InLimbo && !hide)
