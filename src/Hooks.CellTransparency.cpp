@@ -18,6 +18,9 @@
 #include <CellClass.h>
 #include <BuildingClass.h>
 #include <TechnoClass.h>
+#include <UnitClass.h>
+
+#include <Utilities/Debug.h>
 
 #include <Utilities/Macro.h>
 #include <Helpers/Macro.h>
@@ -120,5 +123,49 @@ DEFINE_HOOK(0x4495F7, BuildingClass_ClearFactoryBib_SkipCreatedUnitAttachments_T
 
 	return NotClear;
 }
+
+// ============================================================================
+// Occupation-flag skip for attached children.
+//
+// The CellTechno wrappers above only hide children from techno *lookups*. The
+// freeze (building host + active vehicle child) is driven by the cell's
+// occupation *flag* (0x20 on OccupationFlags/AltOccupationFlags): the child
+// sets it via UnitClass::SetOccupyBit, then the building's clear-cell logic
+// spins trying to relocate an occupier that can't move (do-nothing loco).
+//
+// Skip setting/clearing the flag for a child that DoesntOccupyCellAsChild;
+// otherwise defer to the original engine function. A one-time log confirms the
+// wrapper actually runs (Ares is known to override these vtable slots).
+//
+// vtable 0x7F5D60 -> SetOccupyBit (code 0x7441B0)
+// vtable 0x7F5D64 -> ClearOccupyBit (code 0x744210)
+// ============================================================================
+
+static bool TAExt_LoggedOccupyWrap = false;
+
+void __fastcall UnitClass_SetOccupyBit_TAExt(UnitClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (!TAExt_LoggedOccupyWrap)
+	{
+		TAExt_LoggedOccupyWrap = true;
+		Debug::Log("[TAExt] SetOccupyBit wrapper is live (Ares did not override it)\n");
+	}
+
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return; // attached child: don't mark the cell occupied
+
+	reinterpret_cast<void(__thiscall*)(UnitClass*, CoordStruct*)>(0x7441B0)(pThis, pCrd);
+}
+
+void __fastcall UnitClass_ClearOccupyBit_TAExt(UnitClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return; // never set the bit as a child, so nothing to clear
+
+	reinterpret_cast<void(__thiscall*)(UnitClass*, CoordStruct*)>(0x744210)(pThis, pCrd);
+}
+
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7F5D60, UnitClass_SetOccupyBit_TAExt);
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7F5D64, UnitClass_ClearOccupyBit_TAExt);
 
 #endif // TAEXT_ENABLE_CELLTRANSPARENCY
