@@ -71,38 +71,47 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		Valueable<CoordStruct> flh;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.FLH", static_cast<int>(i));
 		flh.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read FLH ok\n");
 
 		Valueable<bool> isOnTurret;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.IsOnTurret", static_cast<int>(i));
 		isOnTurret.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read IsOnTurret ok\n");
 
 		Valueable<DirType> rotationAdjust;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RotationAdjust", static_cast<int>(i));
 		rotationAdjust.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read RotationAdjust ok\n");
 
 		PhobosFixedString<32> id;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ID", static_cast<int>(i));
 		id.Read(pINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read ID ok\n");
 
 		ValueableVector<BuildingTypeClass*> prereq;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite", static_cast<int>(i));
 		prereq.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read Prerequisite ok (n=%u)\n", (unsigned)prereq.size());
 
 		ValueableVector<BuildingTypeClass*> prereqNeg;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Negative", static_cast<int>(i));
 		prereqNeg.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read Prerequisite.Negative ok (n=%u)\n", (unsigned)prereqNeg.size());
 
 		ValueableVector<HouseTypeClass*> reqHouses;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiredHouses", static_cast<int>(i));
 		reqHouses.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read RequiredHouses ok (n=%u)\n", (unsigned)reqHouses.size());
 
 		ValueableVector<HouseTypeClass*> forbHouses;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ForbiddenHouses", static_cast<int>(i));
 		forbHouses.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read ForbiddenHouses ok (n=%u)\n", (unsigned)forbHouses.size());
 
 		Nullable<bool> prereqDynamic;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Dynamic", static_cast<int>(i));
 		prereqDynamic.Read(exINI, pSection, tempBuffer);
+		Debug::Log("[TAExt-trace]   read Prerequisite.Dynamic ok\n");
 
 		Debug::Log("[TAExt-trace]   all fields read, building entry (slot %d, curSize=%u)\n",
 			(int)i, (unsigned)this->AttachmentData.size());
