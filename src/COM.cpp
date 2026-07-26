@@ -37,6 +37,8 @@ DEFINE_HOOK(0x6BD68D, WinMain_RegisterAttachmentLoco, 0x6)
 	// mapped back to functions via the linker .map (RVA = addr - base).
 	Debug::Log("[TechnoAttachmentExt] Module base: 0x%X\n",
 		(unsigned int)(size_t)GetModuleHandleA("TechnoAttachmentExt.dll"));
+	// Build stamp so a debug.log unambiguously identifies which DLL build ran.
+	Debug::Log("[TechnoAttachmentExt] Build: " __DATE__ " " __TIME__ "\n");
 	Debug::Log("[TechnoAttachmentExt] Registering attachment locomotor COM factory...\n");
 	RegisterFactoryForClass<AttachmentLocomotionClass>();
 	return 0;
