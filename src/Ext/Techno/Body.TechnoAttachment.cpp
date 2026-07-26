@@ -264,12 +264,35 @@ bool TechnoExt::DoesntOccupyCellAsChild(TechnoClass* pThis)
 
 bool TechnoExt::IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep)
 {
-	auto const pThisExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pThis || !pParent)  // sanity check, sometimes crashes because ext is null - Kerbiter
+		return false;
 
-	return pThis && pThisExt && pParent  // sanity check, sometimes crashes because ext is null - Kerbiter
-		&& pThisExt->ParentAttachment
-		&& (pThisExt->ParentAttachment->Parent == pParent
-			|| (deep && TechnoExt::IsChildOf(pThisExt->ParentAttachment->Parent, pParent)));
+	// Iterative walk up the parent chain with a hard depth cap. The original PR
+	// recursed here; with the standalone allowing *any* TechnoType (including
+	// buildings) as a child, an accidental parent cycle (A child-of B, B child-of
+	// A, or a self-attach) turns that recursion into unbounded stack growth ->
+	// stack overflow -> the game closes with no exception dump. Bounding the walk
+	// makes a cycle a no-match instead of a crash.
+	constexpr int MaxDepth = 64;
+
+	TechnoClass* pCurrent = pThis;
+	for (int depth = 0; depth < MaxDepth; ++depth)
+	{
+		auto const pCurExt = TechnoExt::ExtMap.Find(pCurrent);
+		if (!pCurExt || !pCurExt->ParentAttachment)
+			return false;
+
+		TechnoClass* pNextParent = pCurExt->ParentAttachment->Parent;
+		if (pNextParent == pParent)
+			return true;
+
+		if (!deep || !pNextParent || pNextParent == pCurrent)
+			return false;  // shallow check, chain end, or self-cycle
+
+		pCurrent = pNextParent;
+	}
+
+	return false;  // depth cap hit (likely a cycle) -> treat as not a child
 }
 
 bool TechnoExt::AreRelatives(TechnoClass* pThis, TechnoClass* pThat)
