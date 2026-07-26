@@ -15,6 +15,7 @@
 #include <Utilities/Macro.h>
 
 #include <Ext/Techno/Body.h>
+#include <TAExtDiag.h>
 
 // UnitClass::Mission_Move — force an attached unit idle instead of moving.
 DEFINE_HOOK(0x740A93, TechnoAttachmentExt_Mission_Move_ForceIdle, 0x6)
@@ -22,6 +23,8 @@ DEFINE_HOOK(0x740A93, TechnoAttachmentExt_Mission_Move_ForceIdle, 0x6)
 	enum { ReturnTrue = 0x740AFD };
 
 	GET(UnitClass*, pThis, ESI);
+
+	TAEXT_DIAG_COUNT("Mission_Move");
 
 	if (TechnoExt::HasAttachmentLoco(pThis))
 	{
@@ -39,6 +42,8 @@ DEFINE_HOOK(0x741AA7, TechnoAttachmentExt_AssignDestination_Clear, 0x6)
 
 	GET(UnitClass*, pThis, EBP);
 
+	TAEXT_DIAG_COUNT("AssignDestination");
+
 	return TechnoExt::HasAttachmentLoco(pThis) ? ClearNavComsAndReturn : 0;
 }
 
@@ -48,6 +53,8 @@ DEFINE_HOOK(0x743B4B, TechnoAttachmentExt_Scatter_Release, 0x6)
 	enum { ReleaseReturn = 0x74408E };
 
 	GET(UnitClass*, pThis, EBP);
+
+	TAEXT_DIAG_COUNT("Scatter");
 
 	return TechnoExt::HasAttachmentLoco(pThis) ? ReleaseReturn : 0;
 }

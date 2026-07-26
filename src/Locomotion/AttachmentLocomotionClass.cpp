@@ -16,6 +16,8 @@
 #include <New/Entity/AttachmentClass.h>
 #include <New/Type/AttachmentTypeClass.h>
 
+#include <TAExtDiag.h>
+
 #include <cmath>
 
 bool AttachmentLocomotionClass::Is_Moving()
@@ -90,6 +92,8 @@ ZGradient AttachmentLocomotionClass::Z_Gradient()
 
 bool AttachmentLocomotionClass::Process()
 {
+	TAEXT_DIAG_COUNT("loco::Process");
+
 	if (this->LinkedTo->IsAlive)
 	{
 		Layer newLayer = this->In_Which_Layer();
@@ -179,6 +183,7 @@ Layer AttachmentLocomotionClass::In_Which_Layer()
 
 bool AttachmentLocomotionClass::Is_Moving_Now()
 {
+	TAEXT_DIAG_COUNT("loco::Is_Moving_Now");
 	ILocomotionPtr pParentLoco = this->GetAttachmentParentLoco();
 	return pParentLoco && pParentLoco->Is_Moving_Now();
 }
@@ -217,6 +222,7 @@ bool AttachmentLocomotionClass::Is_Surfacing()
 
 bool AttachmentLocomotionClass::Is_Really_Moving_Now()
 {
+	TAEXT_DIAG_COUNT("loco::Is_Really_Moving_Now");
 	ILocomotionPtr pParentLoco = this->GetAttachmentParentLoco();
 	return pParentLoco && pParentLoco->Is_Really_Moving_Now();
 }
