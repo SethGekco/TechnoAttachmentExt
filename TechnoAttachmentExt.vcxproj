@@ -39,6 +39,7 @@
     <ClCompile Include="src\COM.cpp" />
     <ClCompile Include="src\Hooks.Attachment.cpp" />
     <ClCompile Include="src\Hooks.AttachedFactory.cpp" />
+    <ClCompile Include="src\Hooks.AttachedMovement.cpp" />
   </ItemGroup>
 
   <!-- Header files -->
