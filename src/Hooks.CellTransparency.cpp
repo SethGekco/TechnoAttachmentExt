@@ -27,7 +27,7 @@
 // BISECT TOGGLE: set to 0 to compile out the entire cell-transparency system.
 // Used to determine whether these hooks are responsible for the load-time close.
 #ifndef TAEXT_ENABLE_CELLTRANSPARENCY
-#define TAEXT_ENABLE_CELLTRANSPARENCY 0
+#define TAEXT_ENABLE_CELLTRANSPARENCY 1
 #endif
 
 #if TAEXT_ENABLE_CELLTRANSPARENCY
