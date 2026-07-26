@@ -1,6 +1,5 @@
 #include "AttachmentTypeClass.h"
 
-#include <Utilities/Debug.h>
 #include <BuildingTypeClass.h>
 #include <HouseTypeClass.h>
 
@@ -14,7 +13,6 @@ const char* Enumerable<AttachmentTypeClass>::GetMainSection()
 void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 {
 	const char* section = this->Name;
-	Debug::Log("[TAExt-trace] AttachmentType [%s] LoadFromINI begin\n", section);
 
 	INI_EX exINI(pINI);
 
@@ -41,7 +39,6 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->RequiredHouses.Read(exINI, section, "RequiredHouses");
 	this->ForbiddenHouses.Read(exINI, section, "ForbiddenHouses");
 	this->Prerequisite_Dynamic.Read(exINI, section, "Prerequisite.Dynamic");
-	Debug::Log("[TAExt-trace] AttachmentType [%s] LoadFromINI end\n", section);
 }
 
 template <typename T>

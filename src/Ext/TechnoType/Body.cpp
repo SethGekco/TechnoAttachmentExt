@@ -5,7 +5,6 @@
 #include <Matrix3D.h>
 #include <BuildingTypeClass.h>
 #include <HouseTypeClass.h>
-#include <Utilities/Debug.h>
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -51,7 +50,11 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	// vector contents can be properly overriden via scenario rules - Kerbiter
 	for (size_t i = 0; i <= this->AttachmentData.size(); ++i)
 	{
-		char tempBuffer[32];
+		// Must fit the longest key we format below, e.g.
+		// "Attachment0.Prerequisite.Negative" (33 chars + null). A 32-byte buffer
+		// overflowed here: _snprintf_s then invokes the CRT invalid-parameter
+		// handler, terminating the process instantly with no exception dump.
+		char tempBuffer[64];
 		NullableIdx<AttachmentTypeClass> type;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Type", static_cast<int>(i));
 		type.Read(exINI, pSection, tempBuffer);
@@ -59,68 +62,51 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		if (!type.isset())
 			continue;
 
-		Debug::Log("[TAExt-trace] TechnoType [%s] Attachment%d: Type set (idx=%d), reading fields...\n",
-			pSection, (int)i, type.Get());
-
 		NullableIdx<TechnoTypeClass> technoType;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.TechnoType", static_cast<int>(i));
 		technoType.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   TechnoType read (isset=%d idx=%d)\n",
-			(int)technoType.isset(), technoType.isset() ? technoType.Get() : -1);
 
 		Valueable<CoordStruct> flh;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.FLH", static_cast<int>(i));
 		flh.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read FLH ok\n");
 
 		Valueable<bool> isOnTurret;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.IsOnTurret", static_cast<int>(i));
 		isOnTurret.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read IsOnTurret ok\n");
 
 		Valueable<DirType> rotationAdjust;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RotationAdjust", static_cast<int>(i));
 		rotationAdjust.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read RotationAdjust ok\n");
 
 		PhobosFixedString<32> id;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ID", static_cast<int>(i));
 		id.Read(pINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read ID ok\n");
 
 		ValueableVector<BuildingTypeClass*> prereq;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite", static_cast<int>(i));
 		prereq.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read Prerequisite ok (n=%u)\n", (unsigned)prereq.size());
 
 		ValueableVector<BuildingTypeClass*> prereqNeg;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Negative", static_cast<int>(i));
 		prereqNeg.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read Prerequisite.Negative ok (n=%u)\n", (unsigned)prereqNeg.size());
 
 		ValueableVector<HouseTypeClass*> reqHouses;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiredHouses", static_cast<int>(i));
 		reqHouses.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read RequiredHouses ok (n=%u)\n", (unsigned)reqHouses.size());
 
 		ValueableVector<HouseTypeClass*> forbHouses;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ForbiddenHouses", static_cast<int>(i));
 		forbHouses.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read ForbiddenHouses ok (n=%u)\n", (unsigned)forbHouses.size());
 
 		Nullable<bool> prereqDynamic;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Dynamic", static_cast<int>(i));
 		prereqDynamic.Read(exINI, pSection, tempBuffer);
-		Debug::Log("[TAExt-trace]   read Prerequisite.Dynamic ok\n");
 
-		Debug::Log("[TAExt-trace]   all fields read, building entry (slot %d, curSize=%u)\n",
-			(int)i, (unsigned)this->AttachmentData.size());
 		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
 			this->AttachmentData[i] = entry;
-		Debug::Log("[TAExt-trace]   entry stored for [%s] slot %d\n", pSection, (int)i);
 	}
 
 	// Validate attachment ID uniqueness
