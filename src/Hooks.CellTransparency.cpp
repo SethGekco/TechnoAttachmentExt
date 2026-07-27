@@ -134,23 +134,14 @@ DEFINE_HOOK(0x4495F7, BuildingClass_ClearFactoryBib_SkipCreatedUnitAttachments_T
 // spins trying to relocate an occupier that can't move (do-nothing loco).
 //
 // Skip setting/clearing the flag for a child that DoesntOccupyCellAsChild;
-// otherwise defer to the original engine function. A one-time log confirms the
-// wrapper actually runs (Ares is known to override these vtable slots).
+// otherwise defer to the original engine function.
 //
 // vtable 0x7F5D60 -> SetOccupyBit (code 0x7441B0)
 // vtable 0x7F5D64 -> ClearOccupyBit (code 0x744210)
 // ============================================================================
 
-static bool TAExt_LoggedOccupyWrap = false;
-
 void __fastcall UnitClass_SetOccupyBit_TAExt(UnitClass* pThis, void*, CoordStruct* pCrd)
 {
-	if (!TAExt_LoggedOccupyWrap)
-	{
-		TAExt_LoggedOccupyWrap = true;
-		Debug::Log("[TAExt] SetOccupyBit wrapper is live (Ares did not override it)\n");
-	}
-
 	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
 		return; // attached child: don't mark the cell occupied
 

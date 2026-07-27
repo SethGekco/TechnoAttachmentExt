@@ -1,10 +1,35 @@
 # Vehicle-child-on-building freeze — investigation log
 
-Living document for the one unsolved problem in TechnoAttachmentExt: when an
-**active vehicle (UnitType) child is attached to a building host**, the game
-hangs in a single-frame infinite loop ("freeze"). Everything else works:
-loading, all child types on vehicle hosts, **building** children on buildings,
-infantry/vehicle children on vehicles, and the full prerequisite suite.
+## STATUS: SOLVED (2026-07-27)
+
+**Root cause:** during placement, `FootClass::Mark` (`0x4D37A2`) and
+`MapClass::PickUp` (`0x568831`) run a locomotion **layer check** —
+`call [vtable+0x78]; cmp eax,2`. For a unit riding the attachment locomotor,
+`vtable[0x78]` (the layer query) resolves through the parent and the
+Mark/PickUp → building-foundation traversal recurses forever. `vtable[0x78]`
+is the exact recursion driver the watchdog caught inside the foundation visitor.
+
+**Fix (`src/Hooks.AttachedLayer.cpp`):** two unconditional static jumps that
+skip the layer check — `DEFINE_JUMP(LJMP, 0x4D37A2, 0x4D37AE)` and
+`DEFINE_JUMP(LJMP, 0x568831, 0x568841)` — ported verbatim from PR #352. A
+*conditional* `DEFINE_HOOK` is not viable here: the target instructions are
+2–3 bytes, smaller than Syringe's 5-byte patch, so a small-size hook corrupts
+the following `call [eax+0x78]` (that attempt crashed at `0x4D37AB`, C0000005
+reading `0x10C`). The PR skips it unconditionally for the same reason.
+
+Confirmed in-game: `GAPOWR` host + active `HTNK` child loads, renders, and does
+not freeze. Remaining polish: the `SortY` render-sort wrapper (draw order of the
+child relative to its host) is not yet ported.
+
+The history below is retained as a record of the (mostly wrong) path taken.
+
+---
+
+Original framing: when an **active vehicle (UnitType) child is attached to a
+building host**, the game hangs in a single-frame infinite loop ("freeze").
+Everything else works: loading, all child types on vehicle hosts, **building**
+children on buildings, infantry/vehicle children on vehicles, and the full
+prerequisite suite.
 
 This file records what the freeze is, how it was localized, every hypothesis
 tried (including the wrong ones), and the remaining plan — so the work survives
