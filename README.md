@@ -1,5 +1,6 @@
 Stolen from:
 https://github.com/Phobos-developers/Phobos/pull/352
+It is made stand-alone with intentions of making it easier to debug possible serious issues while also making it easy to update your Phobos without rebuilding your own dll. 
 
 Almost all of the ground work is in great debt to Kerbiter. See his Phobos PR for all "supported" (lul, not fully tested, something prob broked) tags. 
 
