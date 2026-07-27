@@ -43,6 +43,7 @@
     <ClCompile Include="src\Hooks.AttachedMovement.cpp" />
     <ClCompile Include="src\Hooks.CellTransparency.cpp" />
     <ClCompile Include="src\Hooks.FreezeWatchdog.cpp" />
+    <ClCompile Include="src\Hooks.RecursionProbe.cpp" />
   </ItemGroup>
 
   <!-- Header files -->
