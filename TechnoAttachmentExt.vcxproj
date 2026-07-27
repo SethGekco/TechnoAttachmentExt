@@ -39,6 +39,7 @@
     <ClCompile Include="src\COM.cpp" />
     <ClCompile Include="src\Hooks.Attachment.cpp" />
     <ClCompile Include="src\Hooks.AttachedFactory.cpp" />
+    <ClCompile Include="src\Hooks.AttachedScatter.cpp" />
     <ClCompile Include="src\Hooks.AttachedMovement.cpp" />
     <ClCompile Include="src\Hooks.CellTransparency.cpp" />
     <ClCompile Include="src\Hooks.FreezeWatchdog.cpp" />
