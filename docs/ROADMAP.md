@@ -2,6 +2,21 @@
 
 Status legend: ✅ done · 🔷 planned/spec'd · 💡 idea (needs design) · ❓ open question
 
+## Project-wide constraints (apply to EVERY feature below)
+- **🔒 ONLINE / MULTIPLAYER SAFE (hard requirement).** Rex requires online play.
+  Therefore all new logic must be **deterministic and lockstep-safe**:
+  - Every new bit of runtime state must be serialized in save/load (and stay in
+    sync across peers) — attachments, ammo/spawn modifiers, power state,
+    veterancy-driven changes, gunner state, etc.
+  - No per-machine randomness or wall-clock timing in **synced game logic**
+    (render-only randomness is fine, but keep it strictly separated — this is
+    exactly the KratosPP shared-RNG desync lesson).
+  - Any RNG in synced logic must use the game's synced RNG (`ScenarioClass::
+    Random`), never `rand()`/std RNG/time.
+  - Prefer game-frame counters over real time for delays/timers.
+  - Test plan for each feature: a 2-player skirmish that exercises it must not
+    desync.
+
 ## Shipped
 - ✅ Standalone Syringe DLL coexisting with base Phobos (+Ares).
 - ✅ Any TechnoType as a child (vehicle / infantry / aircraft / **building**).
@@ -61,7 +76,10 @@ this system generalized:
   "Unpowered" mirrors the ROBO behavior — dark: no move, no fire, ignores orders
   (EMP-like).
 - 💡 **C1b. `PowersUnits.Count=N`** — cap how many units a powerer sustains.
-  ❓ overflow policy: all go offline, or only the (N+1)th? (both worth exposing.)
+  Overflow policy (this is a gameplay rule, NOT about netcode): **expose both**
+  — a mode where exceeding N shuts the whole group down, and a mode where only
+  the (N+1)th-onward stay unpowered. Ordering for "which is the extra one" ties
+  into the same priority scheme as sibling stacking (below).
 - Needs F0 (slot-occupancy) + the relationship resolver for parent-powering.
 
 ### D. Targeting  (PARKED — last; Rex to organize thoughts)
@@ -96,9 +114,56 @@ Parent.AddAmmo=3    ; add 3 to parent's ammo
 - 💡 **G2. Attachment modifies parent's ammo/spawns.** `Parent.Ammo=` (override)
   and `Parent.AddAmmo=` on the child adjust the parent while attached; spawn
   equivalents too. Uses F0b (relationship resolver → parent).
-- ❓ override vs current-vs-capacity semantics; ❓ revert on detach / de-vet;
-  ❓ stacking of multiple ammo-modifying siblings. Touches Techno `Ammo` +
+- **Decided:** support **both capacity and current** modes — usually you want
+  capacity (`Vet.Ammo` raises the max), but allow setting current ammo on
+  level-up too (so a slow-firing unit doesn't suddenly become full/instant-fire
+  on rank-up). Two tag variants or a mode flag.
+- **Decided:** `Parent.AddAmmo` **reverts on detach / de-vet.** (A far-future
+  "unit picks up & keeps attachments" mode — the original AttachmentTypes
+  author's larger vision — is explicitly out of scope for now.)
+- **Decided:** sibling stacking **sums by default**, with a modder opt-out. For
+  the non-stacking case use a **priority/fallback order**: lowest slot
+  (Attachment0/1…) wins; if it's disabled/destroyed, the next takes over. Same
+  ordering reused by C1b's overflow "extra one". Touches Techno `Ammo` +
   `SpawnManagerClass`.
+
+### H. Spawner extensions  (this DLL now touches ammo/spawns)
+- 💡 **H1. Instant spawn on self or target**, with an animation on the firer
+  and/or the spawn location. (Vanilla spawns launch from a bay over time; this
+  is an immediate placement with configurable anims.)
+- 💡 **H2. Spawn count driven by attachments** — number of spawns = f(which/how
+  many attachment slots are active). Uses F0 (slot-occupancy).
+- 💡 **H3. Spawn count driven by ammo** — spawn count scales with current ammo.
+  Pairs with G1 (veterancy/attachment ammo scaling) for combos.
+- ❓ synced-RNG for any random spawn placement; ❓ overlaps PayloadExt
+  spawner/bay design — build the shared spawner primitive here.
+
+### I. Advanced gunner system  (big; heavy PayloadExt overlap)
+Vanilla IFV: `WeaponN=` picks a weapon by the passenger's gunner index. Rex
+wants each index to carry a **full profile**, not just a weapon — so entering
+infantry can grant designators, attachments, superweapons, cash production, a
+gap generator, etc.
+```
+Gunner.Inheritance.1=GUNNER01IN
+[GUNNER01IN]
+Strength=
+Speed=
+Primary=
+...
+```
+- 💡 **I1. Per-index inheritance profile** — gunner index N inherits a named
+  pseudo-type's stats/weapons/abilities onto the host while that passenger is
+  aboard.
+- 💡 **I2. Multiple gunner slots** (`Gunner=yes` on more than one slot).
+  Scope for v1: **assume all gunner vehicles use cargo index 1** to keep the
+  infantry-interaction model simple; generalize later.
+- 💡 **I3. Cargo-count-driven evolution** — the host changes progressively as
+  more infantry board (an attachment-like transform per passenger count). Rex
+  notes this is "very similar / maybe the same" as B1 (activate-if-slot-occupied)
+  and the attachment-per-cargo idea — likely one unified mechanic.
+- This is squarely **PayloadExt gunner/open-topped territory**; per the
+  convergence plan it lands here. Needs F0/F0b + the cargo primitive. Define the
+  gunner state carefully for save/load + online sync.
 
 ### F. Inheritance
 - 💡 **F1. AttachmentType force-inheritance profile.** A profile that forces a
@@ -123,7 +188,11 @@ are different primitives; the XP/open-topped bits are where they meet.
    contained, high flavor).
 4. **C1** PoweredUnit/PowersUnit extension (concrete, well-defined mechanic;
    C1b count cap is a cheap add-on).
-5. **B1 / A2** (cargo-touching — build the shared cargo primitive here per the
-   convergence plan).
-6. **D1** targeting — PARKED, last, pending Rex's design.
-7. Earlier backlog: SortY render-sort; walk-anim toggle; hold-fire-while-moving.
+5. **G1/G2** ammo/spawn counts (ride the veterancy + relationship foundations).
+6. **H1–H3** spawner extensions (shared spawner primitive; synced RNG).
+7. **B1 / A2 / I (gunner)** — the cargo cluster; build the shared cargo/gunner
+   primitive here per the convergence plan. B1 and I3 are likely one mechanic.
+8. **D1** targeting — PARKED, last, pending Rex's design.
+9. Earlier backlog: SortY render-sort; walk-anim toggle; hold-fire-while-moving.
+
+Every item above must satisfy the online/multiplayer constraint at the top.
