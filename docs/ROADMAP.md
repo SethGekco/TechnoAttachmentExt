@@ -16,6 +16,18 @@ Status legend: ✅ done · 🔷 planned/spec'd · 💡 idea (needs design) · �
   - Prefer game-frame counters over real time for delays/timers.
   - Test plan for each feature: a 2-player skirmish that exercises it must not
     desync.
+- **🧰 Toolchain = Antares, not Ares.** Target/reference **Antares** (open-source
+  Ares superset) for all new work; when in doubt, ask rather than assume Ares.
+  Runtime to-do: this DLL was verified coexisting with **Ares**; **re-verify
+  under Antares.** Watch `0x6F3283` (CanScatter) — per the hook encyclopedia it
+  is hooked by Antares + Ares + PR#352 (all size 0x8, chained).
+- **📖 Hook encyclopedia workflow (mandatory).** Before hooking any gamemd.exe
+  address, check `~/Claude/YR-Hook-Encyclopedia` (registry for who-hooks-it +
+  conflicts, Tier-2 for does/does-not). After using a hook, contribute a Tier-2
+  entry. Findings so far → `encyclopedia/Attachment-Cell-Placement.md`.
+  Registry-validated: our freeze-fix jumps `0x4D37A2`/`0x568831` are
+  collision-free; DisallowMoving addrs (`0x740A93`/`0x744103`/`0x7414E0`) chain
+  with base **Phobos release** (our returns win when Phobos returns 0).
 
 ## Shipped
 - ✅ Standalone Syringe DLL coexisting with base Phobos (+Ares).
