@@ -77,6 +77,29 @@ this system generalized:
   so an attachment can require a sibling slot present, or a child of type Z.
   Builds directly on the shipped prerequisite engine + F0/F0b.
 
+### G. Ammo & Spawn counts  (veterancy- and attachment-driven)
+Rex's sketch (polish later):
+```
+[ORCA]
+Ammo=1
+Vet.Ammo=2          ; ammo capacity at Veteran
+Elite.Ammo=3        ; ammo capacity at Elite
+Attachments=AMMOBOX
+
+[AMMOBOX]
+Parent.Ammo=2       ; override parent's ammo (capacity/current?)
+Parent.AddAmmo=3    ; add 3 to parent's ammo
+```
+- 💡 **G1. Veterancy-scaled ammo/spawns.** `Vet.Ammo=` / `Elite.Ammo=` (and the
+  spawn equivalents `Vet.SpawnsNumber=` / `Elite.SpawnsNumber=`) change the count
+  by rank. Pairs with A1 (veterancy engine); reverse on de-vet.
+- 💡 **G2. Attachment modifies parent's ammo/spawns.** `Parent.Ammo=` (override)
+  and `Parent.AddAmmo=` on the child adjust the parent while attached; spawn
+  equivalents too. Uses F0b (relationship resolver → parent).
+- ❓ override vs current-vs-capacity semantics; ❓ revert on detach / de-vet;
+  ❓ stacking of multiple ammo-modifying siblings. Touches Techno `Ammo` +
+  `SpawnManagerClass`.
+
 ### F. Inheritance
 - 💡 **F1. AttachmentType force-inheritance profile.** A profile that forces a
   set of inheritance/behavior flags — non-selectable, no cargo, etc. — so a
