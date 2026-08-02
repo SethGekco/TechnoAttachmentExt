@@ -76,10 +76,11 @@ this system generalized:
   "Unpowered" mirrors the ROBO behavior — dark: no move, no fire, ignores orders
   (EMP-like).
 - 💡 **C1b. `PowersUnits.Count=N`** — cap how many units a powerer sustains.
-  Overflow policy (this is a gameplay rule, NOT about netcode): **expose both**
-  — a mode where exceeding N shuts the whole group down, and a mode where only
-  the (N+1)th-onward stay unpowered. Ordering for "which is the extra one" ties
-  into the same priority scheme as sibling stacking (below).
+  Overflow policy is **per-powerer, modder-configurable** (a tag on the powering
+  unit, e.g. `PowersUnits.OverflowMode=all|excess`): `all` shuts the whole group
+  down past N, `excess` leaves only the (N+1)th-onward unpowered. Ordering for
+  "which is the excess one" reuses the slot-priority scheme from sibling
+  stacking (below). Default TBD.
 - Needs F0 (slot-occupancy) + the relationship resolver for parent-powering.
 
 ### D. Targeting  (PARKED — last; Rex to organize thoughts)
