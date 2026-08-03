@@ -44,6 +44,22 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Prerequisite_Sibling_Type.Read(exINI, section, "Prerequisite.Sibling.Type");
 	this->Prerequisite_Siblings_Index.Read(exINI, section, "Prerequisite.Siblings.Index");
 	this->Prerequisite_Siblings_Type.Read(exINI, section, "Prerequisite.Siblings.Type");
+
+	// E1b: alternative OR building lists Prerequisite[0], Prerequisite[1], ...
+	// read contiguously; the first unset (empty) index ends the list.
+	this->Prerequisite_Lists.clear();
+	for (int i = 0; ; ++i)
+	{
+		char key[32];
+		_snprintf_s(key, sizeof(key), "Prerequisite[%d]", i);
+
+		ValueableVector<BuildingTypeClass*> list;
+		list.Read(exINI, section, key);
+		if (list.empty())
+			break;
+
+		this->Prerequisite_Lists.emplace_back(std::move(list));
+	}
 }
 
 template <typename T>

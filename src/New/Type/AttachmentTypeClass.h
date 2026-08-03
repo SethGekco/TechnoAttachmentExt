@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <Utilities/Enumerable.h>
 #include <Utilities/Template.h>
 
@@ -64,6 +66,14 @@ public:
 	ValueableVector<int> Prerequisite_Siblings_Index;
 	ValueableVector<TechnoTypeClass*> Prerequisite_Siblings_Type;
 
+	// E1b: alternative OR building lists Prerequisite[0], Prerequisite[1], ...
+	// (Ares-style). The building requirement is met if the primary Prerequisite
+	// OR any of these lists is fully present; each list is AND-within. Negative/
+	// Houses/Sibling gates stay global (always AND). INI-derived config, not
+	// serialized (type globals aren't hooked to save/load and are identical
+	// across peers -> online-safe).
+	std::vector<ValueableVector<BuildingTypeClass*>> Prerequisite_Lists;
+
 	AttachmentTypeClass(const char* pTitle = NONE_STR) : Enumerable<AttachmentTypeClass>(pTitle)
 		, RespawnAtCreation { true }
 		, RespawnDelay { -1 }
@@ -92,6 +102,7 @@ public:
 		, Prerequisite_Sibling_Type { }
 		, Prerequisite_Siblings_Index { }
 		, Prerequisite_Siblings_Type { }
+		, Prerequisite_Lists { }
 	{ }
 
 	virtual ~AttachmentTypeClass() = default;

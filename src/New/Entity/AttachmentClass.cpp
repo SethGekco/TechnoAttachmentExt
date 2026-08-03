@@ -86,7 +86,8 @@ bool AttachmentClass::PrerequisitesMet()
 	bool const anySibling = !sibIdxAny.empty() || !sibTypeAny.empty()
 		|| !sibIdxAll.empty() || !sibTypeAll.empty();
 
-	if (prereq.empty() && prereqNeg.empty() && reqHouses.empty() && forbHouses.empty()
+	if (prereq.empty() && pType->Prerequisite_Lists.empty()
+		&& prereqNeg.empty() && reqHouses.empty() && forbHouses.empty()
 		&& !anySibling)
 		return true; // no gating at all
 
@@ -146,16 +147,36 @@ bool AttachmentClass::PrerequisitesMet()
 	}
 
 	// ---- owner-based building / house gates ----
-	if (!prereq.empty() || !prereqNeg.empty() || !reqHouses.empty() || !forbHouses.empty())
+	auto const& prereqLists = pType->Prerequisite_Lists;
+	bool const hasBuildingReq = !prereq.empty() || !prereqLists.empty();
+
+	if (hasBuildingReq || !prereqNeg.empty() || !reqHouses.empty() || !forbHouses.empty())
 	{
 		auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
 		if (!pOwner)
 			return false;
 
-		// Required buildings: ALL must be present.
-		for (auto const pBld : prereq)
-			if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
+		// Building requirement (Ares-style): satisfy the primary Prerequisite OR
+		// any Prerequisite[N] alternative list. Each list is AND-within.
+		if (hasBuildingReq)
+		{
+			auto const listPresent = [pOwner](const ValueableVector<BuildingTypeClass*>& list) -> bool
+			{
+				if (list.empty())
+					return false; // empty = not a real alternative
+				for (auto const pBld : list)
+					if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
+						return false;
+				return true;
+			};
+
+			bool met = listPresent(prereq);
+			if (!met)
+				for (auto const& list : prereqLists)
+					if (listPresent(list)) { met = true; break; }
+			if (!met)
 				return false;
+		}
 
 		// Negative buildings: NONE may be present.
 		for (auto const pBld : prereqNeg)
