@@ -311,3 +311,178 @@ TechnoClass* TechnoExt::GetTopLevelParent(TechnoClass* pThis)
 		? TechnoExt::GetTopLevelParent(pThisExt->ParentAttachment->Parent)
 		: pThis;
 }
+
+// ============================================================================
+// F0 — slot-occupancy query
+// ============================================================================
+
+AttachmentClass* TechnoExt::GetChildSlot(TechnoClass* pParent, size_t index)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pParent);
+	if (!pExt || index >= pExt->ChildAttachments.size())
+		return nullptr;
+	return pExt->ChildAttachments[index].get();
+}
+
+int TechnoExt::GetChildSlotIndexById(TechnoClass* pParent, const char* id)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pParent);
+	if (!pExt || !id || !*id)
+		return -1;
+
+	for (size_t i = 0; i < pExt->ChildAttachments.size(); ++i)
+	{
+		auto const& pSlot = pExt->ChildAttachments[i];
+		if (pSlot && pSlot->Data && !_strcmpi(pSlot->Data->ID, id))
+			return static_cast<int>(i);
+	}
+	return -1;
+}
+
+AttachmentClass* TechnoExt::GetChildSlotById(TechnoClass* pParent, const char* id)
+{
+	int const idx = TechnoExt::GetChildSlotIndexById(pParent, id);
+	return idx < 0 ? nullptr : TechnoExt::GetChildSlot(pParent, static_cast<size_t>(idx));
+}
+
+// A child is "active" when it exists, is alive, and is really on the field
+// (not limbo'd by a dynamic prerequisite or by the parent being in limbo).
+static bool TAExt_ChildActive(AttachmentClass* pSlot)
+{
+	auto const pChild = pSlot ? pSlot->Child : nullptr;
+	return pChild && pChild->IsAlive && !pChild->InLimbo;
+}
+
+bool TechnoExt::IsSlotFilled(TechnoClass* pParent, size_t index)
+{
+	auto const pSlot = TechnoExt::GetChildSlot(pParent, index);
+	return pSlot && pSlot->Child;
+}
+
+bool TechnoExt::IsSlotActive(TechnoClass* pParent, size_t index)
+{
+	return TAExt_ChildActive(TechnoExt::GetChildSlot(pParent, index));
+}
+
+bool TechnoExt::IsSlotActiveById(TechnoClass* pParent, const char* id)
+{
+	return TAExt_ChildActive(TechnoExt::GetChildSlotById(pParent, id));
+}
+
+size_t TechnoExt::CountFilledSlots(TechnoClass* pParent)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pParent);
+	if (!pExt)
+		return 0;
+
+	size_t n = 0;
+	for (auto const& pSlot : pExt->ChildAttachments)
+		if (pSlot && pSlot->Child)
+			++n;
+	return n;
+}
+
+size_t TechnoExt::CountActiveSlots(TechnoClass* pParent)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pParent);
+	if (!pExt)
+		return 0;
+
+	size_t n = 0;
+	for (auto const& pSlot : pExt->ChildAttachments)
+		if (TAExt_ChildActive(pSlot.get()))
+			++n;
+	return n;
+}
+
+// ============================================================================
+// F0b — relationship resolver
+// ============================================================================
+
+static TechnoClass* TAExt_ParentOf(TechnoClass* pThis)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	return (pExt && pExt->ParentAttachment) ? pExt->ParentAttachment->Parent : nullptr;
+}
+
+TechnoClass* TechnoExt::ResolveRelative(TechnoClass* pThis, AttachmentRelation rel,
+	int slot, const char* id)
+{
+	if (!pThis)
+		return nullptr;
+
+	switch (rel)
+	{
+	case AttachmentRelation::Self:
+		return pThis;
+
+	case AttachmentRelation::Parent:
+		return TAExt_ParentOf(pThis);
+
+	case AttachmentRelation::TopLevelParent:
+	{
+		auto const pTop = TechnoExt::GetTopLevelParent(pThis);
+		return pTop == pThis ? nullptr : pTop; // null when we have no parent
+	}
+
+	case AttachmentRelation::Child:
+	{
+		auto const pSlot = (slot < 0)
+			? TechnoExt::GetChildSlotById(pThis, id)
+			: TechnoExt::GetChildSlot(pThis, static_cast<size_t>(slot));
+		return pSlot ? pSlot->Child : nullptr;
+	}
+
+	case AttachmentRelation::Sibling:
+	{
+		auto const pParent = TAExt_ParentOf(pThis);
+		if (!pParent)
+			return nullptr;
+		auto const pSlot = (slot < 0)
+			? TechnoExt::GetChildSlotById(pParent, id)
+			: TechnoExt::GetChildSlot(pParent, static_cast<size_t>(slot));
+		auto const pSib = pSlot ? pSlot->Child : nullptr;
+		return pSib == pThis ? nullptr : pSib; // never resolve to self
+	}
+
+	default: // AllChildren / AllSiblings are multi-target
+		return nullptr;
+	}
+}
+
+std::vector<TechnoClass*> TechnoExt::ResolveRelatives(TechnoClass* pThis, AttachmentRelation rel,
+	int slot, const char* id)
+{
+	std::vector<TechnoClass*> out;
+	if (!pThis)
+		return out;
+
+	auto const pushChildren = [&out](TechnoClass* pOf, TechnoClass* pExclude)
+	{
+		auto const pExt = TechnoExt::ExtMap.Find(pOf);
+		if (!pExt)
+			return;
+		for (auto const& pSlot : pExt->ChildAttachments)
+			if (pSlot && pSlot->Child && pSlot->Child != pExclude)
+				out.push_back(pSlot->Child);
+	};
+
+	switch (rel)
+	{
+	case AttachmentRelation::AllChildren:
+		pushChildren(pThis, nullptr);
+		break;
+
+	case AttachmentRelation::AllSiblings:
+		if (auto const pParent = TAExt_ParentOf(pThis))
+			pushChildren(pParent, pThis);
+		break;
+
+	default: // single-target relations -> 0 or 1 element
+		if (auto const pOne = TechnoExt::ResolveRelative(pThis, rel, slot, id))
+			out.push_back(pOne);
+		break;
+	}
+
+	return out;
+}

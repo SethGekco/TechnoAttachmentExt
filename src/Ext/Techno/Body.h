@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include <TechnoClass.h>
 #include <FootClass.h>
@@ -14,6 +15,20 @@
 #include <Ext/TechnoType/Body.h>
 
 class WeaponTypeClass;
+
+// F0b relationship descriptor: how to address a techno relative to an
+// attachment graph. Child/Sibling take a slot (index or ID); the others
+// ignore it. Shared foundation for prerequisites, targeting, XP/power passing.
+enum class AttachmentRelation
+{
+	Self,             // the techno itself
+	Parent,           // its immediate attachment parent
+	TopLevelParent,   // the root of its parent chain
+	Child,            // one child slot (by index/ID)
+	Sibling,          // one co-slot on the same parent (by index/ID), excluding self
+	AllChildren,      // every child slot
+	AllSiblings,      // every co-slot on the same parent, excluding self
+};
 
 // Standalone port of Phobos's TechnoExt, stripped to ONLY the attachment
 // state and helpers. Uses Container<T> in unordered_map mode (Canary defined,
@@ -96,6 +111,34 @@ public:
 	static bool IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep = true);
 	static bool AreRelatives(TechnoClass* pThis, TechnoClass* pThat);
 	static TechnoClass* GetTopLevelParent(TechnoClass* pThis);
+
+	// ====================================================================
+	// F0 — slot-occupancy query. A "slot" is an attachment position on a
+	// parent (ChildAttachments[index], corresponding to Attachment<index>.*,
+	// also addressable by AttachmentX.ID). "Filled" = a child instance exists;
+	// "Active" = that child exists, is alive, and is not in limbo (i.e. it is
+	// really present on the field, not hidden by a dynamic prerequisite or the
+	// parent being in limbo). Pure reads of synced state — online-safe.
+	// ====================================================================
+	static AttachmentClass* GetChildSlot(TechnoClass* pParent, size_t index);
+	static AttachmentClass* GetChildSlotById(TechnoClass* pParent, const char* id);
+	static int GetChildSlotIndexById(TechnoClass* pParent, const char* id);
+	static bool IsSlotFilled(TechnoClass* pParent, size_t index);
+	static bool IsSlotActive(TechnoClass* pParent, size_t index);
+	static bool IsSlotActiveById(TechnoClass* pParent, const char* id);
+	static size_t CountFilledSlots(TechnoClass* pParent);
+	static size_t CountActiveSlots(TechnoClass* pParent);
+
+	// ====================================================================
+	// F0b — relationship resolver. Address technos relative to the attachment
+	// graph (see AttachmentRelation). Single-target relations resolve to one
+	// techno (or null); AllChildren/AllSiblings resolve to a set. `slot` selects
+	// the Child/Sibling position (negative index = treat `id` as a slot ID).
+	// ====================================================================
+	static TechnoClass* ResolveRelative(TechnoClass* pThis, AttachmentRelation rel,
+		int slot = 0, const char* id = nullptr);
+	static std::vector<TechnoClass*> ResolveRelatives(TechnoClass* pThis, AttachmentRelation rel,
+		int slot = 0, const char* id = nullptr);
 
 	// Kill helpers used by destruction weapons/missions.
 	static void Kill(TechnoClass* pThis, ObjectClass* pAttacker, HouseClass* pAttackingHouse);
