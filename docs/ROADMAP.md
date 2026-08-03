@@ -59,10 +59,13 @@ Grouped by mechanism. "Sibling" = another attachment on the same parent.
 Several items need two shared primitives first (see Foundations).
 
 ### Foundations these build on
-- **F0. Slot-occupancy query** — "is slot X on parent occupied / active?" A
-  clean predicate many items below reuse (B1, C1, E1, A1).
-- **F0b. Relationship resolver** — address a target as parent / child(slot) /
-  sibling(slot) / all-siblings. Reused by targeting (D1), XP (A2), prereq (E1).
+- ✅ **F0. Slot-occupancy query** (shipped) — `TechnoExt::GetChildSlot`,
+  `IsSlotFilled`/`IsSlotActive`(+`ById`), `Count{Filled,Active}Slots`. "Active" =
+  child exists, alive, not in limbo. Reused by B1, C1, E1, A1, G.
+- ✅ **F0b. Relationship resolver** (shipped) — `AttachmentRelation` enum +
+  `ResolveRelative`/`ResolveRelatives` (parent / top-level / child(slot) /
+  sibling(slot) / all-children / all-siblings, by index or ID). Reused by D1,
+  A2, E1, targeting. Both pure/deterministic → online-safe, no new state.
 
 ### A. Veterancy & experience
 - 💡 **A1. Veterancy-driven attach/detach.** `EliteAbilities=Attachment0`,
