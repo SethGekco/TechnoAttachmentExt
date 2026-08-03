@@ -109,9 +109,22 @@ this system generalized:
   design is clearer. Needs F0b. ❓ redirect at fire-time vs bullet-detonate.
 
 ### E. Prerequisite extension
-- 💡 **E1. Sibling/child prerequisite.** Extend the existing prerequisite suite
-  so an attachment can require a sibling slot present, or a child of type Z.
-  Builds directly on the shipped prerequisite engine + F0/F0b.
+- ✅ **E1a. Sibling prerequisite** (shipped) — `Prerequisite.Sibling.Index/.Type`
+  (ANY of list, OR) and `Prerequisite.Siblings.Index/.Type` (ALL of list, AND);
+  `.Index` = sibling slot index, `.Type` = sibling child TechnoType (excludes
+  self). Folded into the dynamic `PrerequisitesMet()`. AttachmentType-level.
+- ❌ **"Child" prerequisite — dropped (paradox).** An attachment IS a child;
+  gating it on its own child is a bootstrap cycle (the child can't exist until
+  the attachment is active, which is gated on the child), and gating on the
+  parent's other children is just a sibling. Siblings cover the real cases.
+- 🔷 **E1b. Numbered prerequisite groups** — `Prerequisite[N].*` (brackets,
+  per Rex). Model: gate met if the un-numbered **base** (always AND-required) and
+  **any one** numbered group are satisfied → `base AND (group0 OR group1 …)`.
+  Within a group all conditions AND. Each group carries its own building
+  `Prerequisite[N]=`, `.Negative`, houses, and `.Sibling(s).*`. Unifies with the
+  planned Ares-style `Prerequisite.Lists` (former batch-2 item).
+- 🔷 **E1c. Per-slot sibling override** — mirror the existing per-slot building
+  prereq override (`AttachmentX.Prerequisite.Sibling.*`), later.
 
 ### G. Ammo & Spawn counts  (veterancy- and attachment-driven)
 Rex's sketch (polish later):
