@@ -18,9 +18,11 @@ Status legend: ✅ done · 🔷 planned/spec'd · 💡 idea (needs design) · �
     desync.
 - **🧰 Toolchain = Antares, not Ares.** Target/reference **Antares** (open-source
   Ares superset) for all new work; when in doubt, ask rather than assume Ares.
-  Runtime to-do: this DLL was verified coexisting with **Ares**; **re-verify
-  under Antares.** Watch `0x6F3283` (CanScatter) — per the hook encyclopedia it
-  is hooked by Antares + Ares + PR#352 (all size 0x8, chained).
+  ✅ **Re-verified coexisting with Antares (2026-08-01):** loads clean, the
+  freeze fix holds, and the shared `0x6F3283` (CanScatter) chained hook behaves
+  (that was the one flagged coexistence risk). NOTE: Antares presents the
+  "Ares 3.0p1" identity, so Phobos logs it as `Module Ares.dll` even though the
+  injected file is `Antares.dll` — don't mistake that label for real Ares.
 - **📖 Hook encyclopedia workflow (mandatory).** Before hooking any gamemd.exe
   address, check `~/Claude/YR-Hook-Encyclopedia` (registry for who-hooks-it +
   conflicts, Tier-2 for does/does-not). After using a hook, contribute a Tier-2
