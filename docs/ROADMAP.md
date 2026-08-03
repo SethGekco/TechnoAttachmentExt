@@ -117,12 +117,13 @@ this system generalized:
   gating it on its own child is a bootstrap cycle (the child can't exist until
   the attachment is active, which is gated on the child), and gating on the
   parent's other children is just a sibling. Siblings cover the real cases.
-- 🔷 **E1b. Numbered prerequisite groups** — `Prerequisite[N].*` (brackets,
-  per Rex). Model: gate met if the un-numbered **base** (always AND-required) and
-  **any one** numbered group are satisfied → `base AND (group0 OR group1 …)`.
-  Within a group all conditions AND. Each group carries its own building
-  `Prerequisite[N]=`, `.Negative`, houses, and `.Sibling(s).*`. Unifies with the
-  planned Ares-style `Prerequisite.Lists` (former batch-2 item).
+- ✅ **E1b. Alternative building prerequisite lists** (shipped) — Ares model
+  (per Rex): `Prerequisite` is the primary list, `Prerequisite[0]`,
+  `Prerequisite[1]`, … are alternatives; building requirement met if the primary
+  OR **any one** bracket list is fully present (each list AND-within). The
+  brackets add **building** alternatives ONLY. `RequiredHouses` / `ForbiddenHouses`
+  / `Prerequisite.Negative` / the sibling gates stay **global (always AND'd)** on
+  top. Backward-compatible; unifies the old batch-2 `Prerequisite.Lists` idea.
 - 🔷 **E1c. Per-slot sibling override** — mirror the existing per-slot building
   prereq override (`AttachmentX.Prerequisite.Sibling.*`), later.
 
