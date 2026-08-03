@@ -54,6 +54,16 @@ public:
 	// no  = prerequisite is only checked at spawn (static gate; no live toggle).
 	Valueable<bool> Prerequisite_Dynamic;
 
+	// Sibling prerequisites (E1). A "sibling" is another attachment slot on the
+	// same parent. Singular "Sibling" = ANY listed one satisfies (OR); plural
+	// "Siblings" = ALL listed must be satisfied (AND). ".Index" keys on the
+	// sibling slot index, ".Type" on the sibling child's TechnoType. Inherently
+	// runtime, so meaningful only with Prerequisite.Dynamic (the default).
+	ValueableVector<int> Prerequisite_Sibling_Index;
+	ValueableVector<TechnoTypeClass*> Prerequisite_Sibling_Type;
+	ValueableVector<int> Prerequisite_Siblings_Index;
+	ValueableVector<TechnoTypeClass*> Prerequisite_Siblings_Type;
+
 	AttachmentTypeClass(const char* pTitle = NONE_STR) : Enumerable<AttachmentTypeClass>(pTitle)
 		, RespawnAtCreation { true }
 		, RespawnDelay { -1 }
@@ -78,6 +88,10 @@ public:
 		, RequiredHouses { }
 		, ForbiddenHouses { }
 		, Prerequisite_Dynamic { true }
+		, Prerequisite_Sibling_Index { }
+		, Prerequisite_Sibling_Type { }
+		, Prerequisite_Siblings_Index { }
+		, Prerequisite_Siblings_Type { }
 	{ }
 
 	virtual ~AttachmentTypeClass() = default;

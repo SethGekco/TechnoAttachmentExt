@@ -77,37 +77,106 @@ bool AttachmentClass::PrerequisitesMet()
 	auto const& forbHouses = (this->Data && !this->Data->ForbiddenHouses.empty())
 		? this->Data->ForbiddenHouses : pType->ForbiddenHouses;
 
-	if (prereq.empty() && prereqNeg.empty() && reqHouses.empty() && forbHouses.empty())
+	// Sibling gates (E1) come from the AttachmentType. Singular ".Sibling" =
+	// ANY of the list satisfies; plural ".Siblings" = ALL must be satisfied.
+	auto const& sibIdxAny  = pType->Prerequisite_Sibling_Index;
+	auto const& sibTypeAny = pType->Prerequisite_Sibling_Type;
+	auto const& sibIdxAll  = pType->Prerequisite_Siblings_Index;
+	auto const& sibTypeAll = pType->Prerequisite_Siblings_Type;
+	bool const anySibling = !sibIdxAny.empty() || !sibTypeAny.empty()
+		|| !sibIdxAll.empty() || !sibTypeAll.empty();
+
+	if (prereq.empty() && prereqNeg.empty() && reqHouses.empty() && forbHouses.empty()
+		&& !anySibling)
 		return true; // no gating at all
 
-	auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
-	if (!pOwner)
-		return false;
-
-	// Required buildings: ALL must be present.
-	for (auto const pBld : prereq)
-		if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
-			return false;
-
-	// Negative buildings: NONE may be present.
-	for (auto const pBld : prereqNeg)
-		if (pBld && pOwner->CountOwnedAndPresent(pBld) > 0)
-			return false;
-
-	// Required houses: owner's country must be listed.
-	if (!reqHouses.empty())
+	// ---- sibling gates: siblings are the parent's other active child slots ----
+	if (anySibling)
 	{
-		bool listed = false;
-		for (auto const pHT : reqHouses)
-			if (pHT && pHT == pOwner->Type) { listed = true; break; }
-		if (!listed)
+		TechnoClass* const pParent = this->Parent;
+		auto const pParentExt = pParent ? TechnoExt::ExtMap.Find(pParent) : nullptr;
+		if (!pParentExt)
+			return false; // sibling gate set but no parent context
+
+		// Is there an active sibling of this exact type? (excludes our own child)
+		auto const activeSiblingOfType = [&](TechnoTypeClass* pWanted) -> bool
+		{
+			if (!pWanted)
+				return false;
+			for (auto const& pSlot : pParentExt->ChildAttachments)
+			{
+				auto const pSib = pSlot ? pSlot->Child : nullptr;
+				if (pSib && pSib != this->Child && pSib->IsAlive && !pSib->InLimbo
+					&& pSib->GetTechnoType() == pWanted)
+					return true;
+			}
 			return false;
+		};
+
+		// Sibling.Index (ANY): at least one listed slot active.
+		if (!sibIdxAny.empty())
+		{
+			bool ok = false;
+			for (int const idx : sibIdxAny)
+				if (idx >= 0 && TechnoExt::IsSlotActive(pParent, static_cast<size_t>(idx)))
+				{ ok = true; break; }
+			if (!ok)
+				return false;
+		}
+
+		// Sibling.Type (ANY): at least one active sibling of a listed type.
+		if (!sibTypeAny.empty())
+		{
+			bool ok = false;
+			for (auto const pT : sibTypeAny)
+				if (activeSiblingOfType(pT)) { ok = true; break; }
+			if (!ok)
+				return false;
+		}
+
+		// Siblings.Index (ALL): every listed slot must be active.
+		for (int const idx : sibIdxAll)
+			if (!(idx >= 0 && TechnoExt::IsSlotActive(pParent, static_cast<size_t>(idx))))
+				return false;
+
+		// Siblings.Type (ALL): every listed type must be present among siblings.
+		for (auto const pT : sibTypeAll)
+			if (!activeSiblingOfType(pT))
+				return false;
 	}
 
-	// Forbidden houses: owner's country must NOT be listed.
-	for (auto const pHT : forbHouses)
-		if (pHT && pHT == pOwner->Type)
+	// ---- owner-based building / house gates ----
+	if (!prereq.empty() || !prereqNeg.empty() || !reqHouses.empty() || !forbHouses.empty())
+	{
+		auto const pOwner = this->Parent ? this->Parent->Owner : nullptr;
+		if (!pOwner)
 			return false;
+
+		// Required buildings: ALL must be present.
+		for (auto const pBld : prereq)
+			if (pBld && pOwner->CountOwnedAndPresent(pBld) <= 0)
+				return false;
+
+		// Negative buildings: NONE may be present.
+		for (auto const pBld : prereqNeg)
+			if (pBld && pOwner->CountOwnedAndPresent(pBld) > 0)
+				return false;
+
+		// Required houses: owner's country must be listed.
+		if (!reqHouses.empty())
+		{
+			bool listed = false;
+			for (auto const pHT : reqHouses)
+				if (pHT && pHT == pOwner->Type) { listed = true; break; }
+			if (!listed)
+				return false;
+		}
+
+		// Forbidden houses: owner's country must NOT be listed.
+		for (auto const pHT : forbHouses)
+			if (pHT && pHT == pOwner->Type)
+				return false;
+	}
 
 	return true;
 }

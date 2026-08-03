@@ -39,6 +39,11 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->RequiredHouses.Read(exINI, section, "RequiredHouses");
 	this->ForbiddenHouses.Read(exINI, section, "ForbiddenHouses");
 	this->Prerequisite_Dynamic.Read(exINI, section, "Prerequisite.Dynamic");
+
+	this->Prerequisite_Sibling_Index.Read(exINI, section, "Prerequisite.Sibling.Index");
+	this->Prerequisite_Sibling_Type.Read(exINI, section, "Prerequisite.Sibling.Type");
+	this->Prerequisite_Siblings_Index.Read(exINI, section, "Prerequisite.Siblings.Index");
+	this->Prerequisite_Siblings_Type.Read(exINI, section, "Prerequisite.Siblings.Type");
 }
 
 template <typename T>
@@ -68,6 +73,10 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->RequiredHouses)
 		.Process(this->ForbiddenHouses)
 		.Process(this->Prerequisite_Dynamic)
+		.Process(this->Prerequisite_Sibling_Index)
+		.Process(this->Prerequisite_Sibling_Type)
+		.Process(this->Prerequisite_Siblings_Index)
+		.Process(this->Prerequisite_Siblings_Type)
 		;
 }
 
