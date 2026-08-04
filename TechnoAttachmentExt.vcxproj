@@ -42,6 +42,7 @@
     <ClCompile Include="src\Hooks.AttachedScatter.cpp" />
     <ClCompile Include="src\Hooks.AttachedPathfinding.cpp" />
     <ClCompile Include="src\Hooks.AttachedLayer.cpp" />
+    <ClCompile Include="src\Hooks.AttachedRender.cpp" />
     <ClCompile Include="src\Hooks.AttachedMovement.cpp" />
     <ClCompile Include="src\Hooks.CellTransparency.cpp" />
     <ClCompile Include="src\Hooks.FreezeWatchdog.cpp" />
