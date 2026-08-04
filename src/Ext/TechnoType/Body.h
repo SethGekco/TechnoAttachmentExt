@@ -50,6 +50,9 @@ public:
 			ValueableVector<HouseTypeClass*> RequiredHouses;
 			ValueableVector<HouseTypeClass*> ForbiddenHouses;
 			Nullable<bool> Prerequisite_Dynamic;
+			// Per-slot draw-order override; takes precedence over the
+			// AttachmentType's YSortPosition when set.
+			Nullable<AttachmentYSortPosition> YSortPosition;
 
 			bool Load(PhobosStreamReader& stm, bool registerForChange);
 			bool Save(PhobosStreamWriter& stm) const;

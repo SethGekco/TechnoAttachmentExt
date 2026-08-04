@@ -32,8 +32,12 @@ int __fastcall TechnoClass_SortY_Wrapper_TAExt(ObjectClass* pThis)
 		auto const pExt = TechnoExt::ExtMap.Find(pTechno);
 		if (pExt && pExt->ParentAttachment)
 		{
-			auto const ySort = pExt->ParentAttachment->GetType()->YSortPosition.Get();
-			auto const pParent = pExt->ParentAttachment->Parent;
+			auto const pAtt = pExt->ParentAttachment;
+			// Per-slot Attachment<N>.YSortPosition overrides the AttachmentType's.
+			auto const ySort = (pAtt->Data && pAtt->Data->YSortPosition.isset())
+				? pAtt->Data->YSortPosition.Get()
+				: pAtt->GetType()->YSortPosition.Get();
+			auto const pParent = pAtt->Parent;
 
 			if (ySort != AttachmentYSortPosition::Default && pParent)
 			{

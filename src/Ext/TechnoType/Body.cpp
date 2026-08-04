@@ -102,7 +102,11 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Dynamic", static_cast<int>(i));
 		prereqDynamic.Read(exINI, pSection, tempBuffer);
 
-		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic };
+		Nullable<AttachmentYSortPosition> ySortPosition;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.YSortPosition", static_cast<int>(i));
+		ySortPosition.Read(exINI, pSection, tempBuffer);
+
+		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic, ySortPosition };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -178,6 +182,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->RequiredHouses)
 		.Process(this->ForbiddenHouses)
 		.Process(this->Prerequisite_Dynamic)
+		.Process(this->YSortPosition)
 		.Success();
 }
 
