@@ -86,7 +86,7 @@ public:
 		, InheritHeightStatus { true }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
-		, PassSelection { true }
+		, PassSelection { false }
 		, TransparentToMouse { false }
 		, YSortPosition { AttachmentYSortPosition::Default }
 		, DestructionWeapon_Child { }
