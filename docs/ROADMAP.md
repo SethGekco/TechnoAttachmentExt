@@ -99,10 +99,30 @@ units-power-units, count caps and radius scope are additive.
   reactivation. Resolver (`TechnoExt::UpdateAttachmentPower`) written as the
   general "does this consumer have a live source?" query. Deployed; awaiting
   in-game test. **v1 scope = unit hosts** (building-host consumers not yet ticked).
+- ✅ **C1 sibling powering (done, 2026-08-08, commit ac51ecd).** Consumer:
+  `Powered=yes` (dark unless powered) + `Powered.Type=<types>` (restrict which
+  source child-types satisfy it). Source: `PowersSiblings=yes` /
+  `PowersSiblings.Type=<types>` / `PowersSiblings.Index=<indices>`, unioned
+  (singular `PowersSibling[.Type]` accepted as alias). Reconciled PER UNIT from its
+  own tick (host role AND sibling role), single `AttachmentPowerOff` owner,
+  EMP-guarded, detach-safe. Deployed; awaiting in-game test.
+- 💡 **Building-host consumers (deferred, Rex 2026-08-08).** PowersParent works on
+  unit hosts; building hosts don't power down yet (only FootClass ticked). Add a
+  reconcile call in the building-AI hook (0x43FE69), verifying Deactivate/Reactivate
+  behave sanely on a BuildingClass.
 - 💡 **C1 (next). `PowersUnit=` on UNITS generally** (not just attachment children):
   a unit powers other units by selection — the reverse (parent-powers-child), and
-  the springboard to **radius/regional** powering (source powers consumers within
-  a radius). Reuses the same resolver + reconciliation.
+  the springboard to **radius/regional** powering, then a graph that "travels
+  between links" (power lines, capacity) applying to regular buildings+units too
+  (Rex 2026-08-08). DECISION: keep this UNIFIED under one power arbiter (one
+  `Deactivated` owner) — reuse this resolver + reconciliation; do NOT build a second
+  independent power DLL that would fight over the flag. If the unified module grows
+  large, lift the whole thing into its own DLL as one cohesive unit later.
+- 💡 **Attachment convert-in-place (future, Rex 2026-08-08).** Let an attachment
+  swap to another TechnoType while staying adopted by the parent at the SAME slot
+  index — for upgrades and for showing a "damaged"/"destroyed" variant. Relates to
+  the existing HandleAttachmentConversion path + task-#7 "upgrade attachments"
+  (0x440951). Not needed now.
 - 💡 **C1b. `PowersUnits.Count=N`** — cap how many units a powerer sustains.
   Overflow policy is **per-powerer, modder-configurable** (a tag on the powering
   unit, e.g. `PowersUnits.OverflowMode=all|excess`): `all` shuts the whole group
