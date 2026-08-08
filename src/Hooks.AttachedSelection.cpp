@@ -29,14 +29,23 @@
 
 // ---- PassSelection ---------------------------------------------------------
 
+// The real ObjectClass::Select. NOTE: YRpp declares ObjectClass::Select() as an
+// R0 stub ({ return 0; }) -- unlike most virtuals it has NO JMP_THIS trampoline.
+// So a qualified non-virtual call (pThis->TechnoClass::Select()) binds to that
+// stub and silently no-ops: the unit never actually selects. We must invoke the
+// game function at its address directly.
 bool __fastcall TechnoClass_Select_Wrapper_TAExt(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
 	auto const pAtt = pExt ? pExt->ParentAttachment : nullptr;
 
-	return (pAtt && pAtt->GetType()->PassSelection && pAtt->Parent)
-		? pAtt->Parent->Select()               // cascades up the chain
-		: pThis->TechnoClass::Select();         // non-virtual: no self-recursion
+	// PassSelection: select the host instead. Virtual call re-enters this wrapper
+	// for the parent and cascades up; the base case (non-attached ancestor) lands
+	// on the real Select below. The parent chain is acyclic by construction.
+	if (pAtt && pAtt->GetType()->PassSelection && pAtt->Parent)
+		return pAtt->Parent->Select();
+
+	return reinterpret_cast<bool(__thiscall*)(TechnoClass*)>(0x6FBFA0)(pThis);
 }
 
 DEFINE_FUNCTION_JUMP(VTABLE, 0x7F5DBC, TechnoClass_Select_Wrapper_TAExt); // UnitClass
