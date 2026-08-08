@@ -26,6 +26,16 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->InheritDestruction.Read(exINI, section, "InheritDestruction");
 	this->InheritHeightStatus.Read(exINI, section, "InheritHeightStatus");
 	this->PowersParent.Read(exINI, section, "PowersParent");
+	// Sibling powering -- accept both singular and plural spellings (plural wins if
+	// both present, since it is read last).
+	this->PowersSiblings.Read(exINI, section, "PowersSibling");
+	this->PowersSiblings.Read(exINI, section, "PowersSiblings");
+	this->PowersSiblings_Type.Read(exINI, section, "PowersSibling.Type");
+	this->PowersSiblings_Type.Read(exINI, section, "PowersSiblings.Type");
+	this->PowersSiblings_Index.Read(exINI, section, "PowersSibling.Index");
+	this->PowersSiblings_Index.Read(exINI, section, "PowersSiblings.Index");
+	this->Powered.Read(exINI, section, "Powered");
+	this->Powered_Type.Read(exINI, section, "Powered.Type");
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
 	this->LowSelectionPriority.Read(exINI, section, "LowSelectionPriority");
 	this->PassSelection.Read(exINI, section, "PassSelection");
@@ -77,6 +87,11 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->InheritDestruction)
 		.Process(this->InheritHeightStatus)
 		.Process(this->PowersParent)
+		.Process(this->PowersSiblings)
+		.Process(this->PowersSiblings_Type)
+		.Process(this->PowersSiblings_Index)
+		.Process(this->Powered)
+		.Process(this->Powered_Type)
 		.Process(this->OccupiesCell)
 		.Process(this->LowSelectionPriority)
 		.Process(this->PassSelection)

@@ -41,6 +41,23 @@ public:
 	// general power-source -> power-consumer primitive (units-power-units, count
 	// caps and radius scope are planned expansions).
 	Valueable<bool> PowersParent;
+	// C1 sibling powering. A "sibling" is another attachment slot on the same
+	// parent. SOURCE side (on the powering attachment): while this attachment's
+	// child is active it powers eligible sibling consumers --
+	//   PowersSiblings=yes            -> powers all NON-picky sibling consumers
+	//   PowersSiblings.Type=<types>   -> powers sibling consumers of these child types
+	//   PowersSiblings.Index=<idx>    -> powers sibling consumers at these slot indices
+	// When several are set they union (a sibling is powered if it matches any).
+	Valueable<bool> PowersSiblings;
+	ValueableVector<TechnoTypeClass*> PowersSiblings_Type;
+	ValueableVector<int> PowersSiblings_Index;
+	// CONSUMER side (on the attachment that can go dark). Powered=yes -> this
+	// attachment child is Deactivated unless an eligible sibling source powers it.
+	// Powered.Type restricts which source CHILD types satisfy it ("defines a type
+	// that powers them"); when set, the vague PowersSiblings=yes no longer counts
+	// and only a source that both targets it and is of an accepted type powers it.
+	Valueable<bool> Powered;
+	ValueableVector<TechnoTypeClass*> Powered_Type;
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
 	Valueable<bool> PassSelection;
@@ -93,6 +110,11 @@ public:
 		, InheritDestruction { true }
 		, InheritHeightStatus { true }
 		, PowersParent { false }
+		, PowersSiblings { false }
+		, PowersSiblings_Type { }
+		, PowersSiblings_Index { }
+		, Powered { false }
+		, Powered_Type { }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
 		, PassSelection { false }

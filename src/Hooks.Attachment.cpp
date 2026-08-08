@@ -87,8 +87,9 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
 
-	// C1: resolve attachment power after children ticked (their active state is
-	// now current for this frame). No-op unless this host has PowersParent slots.
+	// C1: reconcile THIS unit's attachment-power state (host role via its
+	// PowersParent children, sibling role if it is a Powered child). Runs after the
+	// child AI so source active-state is current. No-op unless pThis is a consumer.
 	TechnoExt::UpdateAttachmentPower(pThis);
 
 	return 0;

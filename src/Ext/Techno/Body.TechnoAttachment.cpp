@@ -355,56 +355,150 @@ static bool TAExt_ChildActive(AttachmentClass* pSlot)
 	return pChild && pChild->IsAlive && !pChild->InLimbo;
 }
 
-// C1 -- attachment power. A host with >=1 PowersParent slot is a "power consumer":
-// it is Deactivated (dark: no move/fire/orders -- the vanilla Robot-Tank state)
-// whenever none of those slots has an active child, and reactivated when one
-// returns. Deliberately SEPARATE from vanilla PoweredUnit/PowersUnit (house/
-// building/type-based): a unit should use one system or the other, which removes
-// any fight over the shared Deactivated flag. We touch Deactivated only for units
-// we own (AttachmentPowerOff) and never revive one still under EMP.
+// C1 -- attachment power. Deliberately SEPARATE from vanilla PoweredUnit/PowersUnit
+// (house/building/type-based): a unit uses one system or the other, so nothing
+// fights over the shared Deactivated flag. A "consumer" is Deactivated (dark: no
+// move/fire/orders -- the vanilla Robot-Tank state) while unpowered and reactivated
+// when powered again. We own only what we turned off (AttachmentPowerOff) and never
+// revive a unit still under EMP.
 //
-// v1 is presence-based (one active source powers the host). The scan is written as
-// the general "does this consumer have a valid live source?" question so the
-// planned expansions -- power amount/count caps, units-power-units, radius scope --
-// slot in here without changing the call site or the reconciliation below.
-void TechnoExt::UpdateAttachmentPower(TechnoClass* pHost)
+// Reconciled PER UNIT from that unit's own tick (not the parent's), so a consumer
+// that stops being managed -- detached, roles removed -- still gets released. Two
+// consumer roles, both applicable requirements must be met (AND):
+//   * Host role  (PowersParent): pThis has >=1 PowersParent slot; powered while any
+//                 such slot holds an active child (child-powers-parent).
+//   * Sibling role (Powered):    pThis is a Powered child of a parent; powered while
+//                 an eligible active sibling source powers it.
+//
+// v1 is presence-based (one live source powers the consumer). The source scan is
+// written as the general "does this consumer have a valid live source?" query so the
+// planned expansions -- count caps, units-power-units, radius scope -- slot in here.
+
+// Does active sibling source pSrc power the active sibling consumer pCon (which has
+// Powered=yes, sits at slot cIndex; both children of the same parent; pSrc != pCon)?
+static bool TAExt_SiblingSourcePowers(
+	AttachmentClass* pSrc, AttachmentTypeClass* pSrcType,
+	AttachmentClass* pCon, AttachmentTypeClass* pConType, size_t cIndex)
 {
-	auto const pExt = TechnoExt::ExtMap.Find(pHost);
+	auto const pConChild = pCon->Child;
+	auto const pSrcChild = pSrc->Child;
+	auto const conChildType = pConChild ? pConChild->GetTechnoType() : nullptr;
+	auto const srcChildType = pSrcChild ? pSrcChild->GetTechnoType() : nullptr;
+
+	auto const& sTypes = pSrcType->PowersSiblings_Type;
+	auto const& sIdx = pSrcType->PowersSiblings_Index;
+
+	bool const byType = conChildType
+		&& std::find(sTypes.begin(), sTypes.end(), conChildType) != sTypes.end();
+	bool const byIndex =
+		std::find(sIdx.begin(), sIdx.end(), static_cast<int>(cIndex)) != sIdx.end();
+	bool const specific = byType || byIndex;
+
+	if (!pConType->Powered_Type.empty())
+	{
+		// Picky consumer: only a source of an accepted child type that targets it
+		// specifically -- the vague PowersSiblings=yes does not power picky consumers.
+		auto const& acc = pConType->Powered_Type;
+		bool const accepted = srcChildType
+			&& std::find(acc.begin(), acc.end(), srcChildType) != acc.end();
+		return specific && accepted;
+	}
+
+	// Non-picky consumer: any targeting mode powers it.
+	return pSrcType->PowersSiblings || specific;
+}
+
+void TechnoExt::UpdateAttachmentPower(TechnoClass* pThis)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
 	if (!pExt)
 		return;
 
 	bool isConsumer = false;
-	bool hasPower = false;
-	for (auto const& pSlot : pExt->ChildAttachments)
-	{
-		auto const pType = pSlot ? pSlot->GetType() : nullptr;
-		if (!pType || !pType->PowersParent)
-			continue;
+	bool powered = true; // AND across whichever roles apply
 
-		isConsumer = true;
-		if (TAExt_ChildActive(pSlot.get()))
+	// --- Host role: pThis has PowersParent slots -> needs an active such child. ---
+	{
+		bool hostRole = false;
+		bool hostPowered = false;
+		for (auto const& pSlot : pExt->ChildAttachments)
 		{
-			hasPower = true;
-			break; // one active source is enough (v1); cap/amount logic lands here
+			auto const pType = pSlot ? pSlot->GetType() : nullptr;
+			if (!pType || !pType->PowersParent)
+				continue;
+			hostRole = true;
+			if (TAExt_ChildActive(pSlot.get()))
+			{
+				hostPowered = true;
+				break;
+			}
+		}
+		if (hostRole)
+		{
+			isConsumer = true;
+			powered = powered && hostPowered;
 		}
 	}
 
-	if (!isConsumer)
-		return; // not managed by the attachment-power system
-
-	if (!hasPower)
+	// --- Sibling role: pThis is a Powered child -> needs an eligible sibling source. ---
+	if (auto const pSelfSlot = pExt->ParentAttachment)
 	{
-		if (!pHost->Deactivated)
-			pHost->Deactivate();
+		auto const pSelfType = pSelfSlot->GetType();
+		if (pSelfType && pSelfType->Powered)
+		{
+			isConsumer = true;
+			bool sibPowered = false;
+			auto const pParent = pSelfSlot->Parent;
+			auto const pParExt = pParent ? TechnoExt::ExtMap.Find(pParent) : nullptr;
+			if (pParExt)
+			{
+				auto const& sibs = pParExt->ChildAttachments;
+				size_t selfIdx = sibs.size(); // invalid sentinel
+				for (size_t k = 0; k < sibs.size(); ++k)
+					if (sibs[k].get() == pSelfSlot) { selfIdx = k; break; }
+
+				for (size_t j = 0; j < sibs.size() && !sibPowered; ++j)
+				{
+					auto const& pSrc = sibs[j];
+					if (pSrc.get() == pSelfSlot)
+						continue;
+					auto const pSrcType = pSrc ? pSrc->GetType() : nullptr;
+					if (!pSrcType || !TAExt_ChildActive(pSrc.get()))
+						continue;
+					if (TAExt_SiblingSourcePowers(pSrc.get(), pSrcType, pSelfSlot, pSelfType, selfIdx))
+						sibPowered = true;
+				}
+			}
+			powered = powered && sibPowered;
+		}
+	}
+
+	// --- Reconcile (single owner; EMP-guarded reactivation). ---
+	if (!isConsumer)
+	{
+		// No longer managed (detached / roles gone): release any power-off we set.
+		if (pExt->AttachmentPowerOff)
+		{
+			pExt->AttachmentPowerOff = false;
+			if (pThis->Deactivated && pThis->EMPLockRemaining == 0)
+				pThis->Reactivate();
+		}
+		return;
+	}
+
+	if (!powered)
+	{
+		if (!pThis->Deactivated)
+			pThis->Deactivate();
 		pExt->AttachmentPowerOff = true;
 	}
 	else if (pExt->AttachmentPowerOff)
 	{
 		pExt->AttachmentPowerOff = false;
-		// Only revive what we turned off, and never revive an EMP'd unit -- if EMP
-		// still holds it, the game's own EMP recovery reactivates it later.
-		if (pHost->Deactivated && pHost->EMPLockRemaining == 0)
-			pHost->Reactivate();
+		// Revive only what we turned off, never a unit still under EMP -- the game's
+		// own EMP recovery reactivates that later.
+		if (pThis->Deactivated && pThis->EMPLockRemaining == 0)
+			pThis->Reactivate();
 	}
 }
 
