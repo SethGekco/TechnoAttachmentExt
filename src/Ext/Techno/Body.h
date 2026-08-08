@@ -57,12 +57,19 @@ public:
 		// the exit cell, freeing that cell for the next produced unit.
 		bool PendingExitScatter;
 
+		// C1 (attachment power): true iff WE deactivated this host because it lost
+		// attachment power. Ownership flag so we only ever Reactivate() a unit we
+		// turned off (never one EMP or another system shut down). Serialized so the
+		// off-state survives save/load deterministically (online-safe).
+		bool AttachmentPowerOff;
+
 		ExtData(TechnoClass* OwnerObject) : Extension<TechnoClass>(OwnerObject)
 			, ParentAttachment {}
 			, ChildAttachments {}
 			, DormantAttachments {}
 			, AltOccupation {}
 			, PendingExitScatter { false }
+			, AttachmentPowerOff { false }
 		{ }
 
 		virtual ~ExtData() override;
@@ -95,6 +102,11 @@ public:
 	// ---- Attachment API (defined in Body.TechnoAttachment.cpp / hooks) ----
 	static bool AttachTo(TechnoClass* pThis, TechnoClass* pParent);
 	static bool DetachFromParent(TechnoClass* pThis);
+
+	// C1 (attachment power): resolve a host's power state from its PowersParent
+	// attachment slots and Deactivate/Reactivate it accordingly. Runs each frame
+	// from the host's tick; deterministic + EMP-aware. No-op for non-consumers.
+	static void UpdateAttachmentPower(TechnoClass* pHost);
 
 	static void InitializeAttachments(TechnoClass* pThis);
 	static void DestroyAttachments(TechnoClass* pThis, TechnoClass* pSource);

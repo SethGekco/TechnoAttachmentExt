@@ -33,6 +33,14 @@ public:
 	Valueable<bool> InheritStateEffects; // phasing out, stealth etc.
 	Valueable<bool> InheritDestruction;
 	Valueable<bool> InheritHeightStatus;
+	// C1 (attachment power): while this attachment's child is active, it powers
+	// the host. A host with >=1 PowersParent slot is a "power consumer" and goes
+	// dark (Deactivated) whenever it has no active powering child. Kept separate
+	// from vanilla PoweredUnit/PowersUnit (house/building/type-based) on purpose;
+	// see docs/ROADMAP.md C. This is the first, attachment-scoped case of a more
+	// general power-source -> power-consumer primitive (units-power-units, count
+	// caps and radius scope are planned expansions).
+	Valueable<bool> PowersParent;
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
 	Valueable<bool> PassSelection;
@@ -84,6 +92,7 @@ public:
 		, InheritStateEffects { true }
 		, InheritDestruction { true }
 		, InheritHeightStatus { true }
+		, PowersParent { false }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
 		, PassSelection { false }

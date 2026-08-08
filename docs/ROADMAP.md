@@ -204,6 +204,33 @@ Primary=
   behaving like a standalone unit. Extends the existing `Inherit*` options into
   a reusable named profile.
 
+### J. Cosmetic / visual (Rex request 2026-08-08)
+Not attachment-only — most go on Infantry/Vehicle/Building/Aircraft **and**
+AttachmentTypes **and** per-attachment tags. Must support **both voxels and SHPs**.
+All cosmetic-only where possible, but any state that affects hit-testing or is
+visible to opponents must stay deterministic/synced (translucency is render-only
+→ safe; spin phase must derive from a synced frame counter, not wall-clock).
+
+- 💡 **J1. Continuous rotation.** `TurretSpins` (turret), `BodySpins` (body — units
+  *and* attachments), `BarrelSpin` (voxel barrel only). Attachment forms:
+  `AttachmentSpins=` under `[AttachmentType]` and per-slot `AttachmentN.Spins=`.
+  Also want **center-of-rotation control** (pivot offset) and non-uniform motion:
+  **wobble / jiggle / shake** for both body and turret. Spin phase MUST come from
+  a synced frame counter (Unsorted.CurrentFrame / ScenarioClass), never real time,
+  or online desyncs. Cosmetic otherwise.
+- 💡 **J2. Per-relation translucency (0=opaque default … 100=fully invisible).**
+  Three parts each: `.Body`, `.Turret`, `.Barrel`. Base `Translucency.Body=` plus
+  viewer-relative overrides `Translucent.Owner.*`, `Translucent.Team.*`,
+  `Translucent.Ally.*` (ally that isn't team), `Translucent.Enemy.*`. Goes on all
+  four TechnoType kinds + AttachmentTypes + per-attachment (`AttachmentN.Translucent.
+  Body=`, `AttachmentN.Translucent.Enemy.Body=`, …). **Order of precedence (last
+  wins): TechnoType → AttachmentType → Attachment tag.** Infantry have no
+  turret/barrel in vanilla — expose the tags anyway for completeness/future compat
+  but they simply don't apply. Turret/barrel on AttachmentTypes likely never
+  needed — still expose for parity. Render-only → online-safe. Needs a draw-time
+  hook that maps 0–100 to the engine's translucency levels (25/50/75 + the
+  "invisible" path) for both voxel and SHP draw paths.
+
 ---
 
 ## Cross-project note (PayloadExt overlap)

@@ -4,6 +4,8 @@
 
 #include <Helpers/Cast.h>
 #include <Locomotion/AttachmentLocomotionClass.h>
+#include <New/Entity/AttachmentClass.h>
+#include <New/Type/AttachmentTypeClass.h>
 
 #include <algorithm>
 #include <ranges>
@@ -351,6 +353,59 @@ static bool TAExt_ChildActive(AttachmentClass* pSlot)
 {
 	auto const pChild = pSlot ? pSlot->Child : nullptr;
 	return pChild && pChild->IsAlive && !pChild->InLimbo;
+}
+
+// C1 -- attachment power. A host with >=1 PowersParent slot is a "power consumer":
+// it is Deactivated (dark: no move/fire/orders -- the vanilla Robot-Tank state)
+// whenever none of those slots has an active child, and reactivated when one
+// returns. Deliberately SEPARATE from vanilla PoweredUnit/PowersUnit (house/
+// building/type-based): a unit should use one system or the other, which removes
+// any fight over the shared Deactivated flag. We touch Deactivated only for units
+// we own (AttachmentPowerOff) and never revive one still under EMP.
+//
+// v1 is presence-based (one active source powers the host). The scan is written as
+// the general "does this consumer have a valid live source?" question so the
+// planned expansions -- power amount/count caps, units-power-units, radius scope --
+// slot in here without changing the call site or the reconciliation below.
+void TechnoExt::UpdateAttachmentPower(TechnoClass* pHost)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pHost);
+	if (!pExt)
+		return;
+
+	bool isConsumer = false;
+	bool hasPower = false;
+	for (auto const& pSlot : pExt->ChildAttachments)
+	{
+		auto const pType = pSlot ? pSlot->GetType() : nullptr;
+		if (!pType || !pType->PowersParent)
+			continue;
+
+		isConsumer = true;
+		if (TAExt_ChildActive(pSlot.get()))
+		{
+			hasPower = true;
+			break; // one active source is enough (v1); cap/amount logic lands here
+		}
+	}
+
+	if (!isConsumer)
+		return; // not managed by the attachment-power system
+
+	if (!hasPower)
+	{
+		if (!pHost->Deactivated)
+			pHost->Deactivate();
+		pExt->AttachmentPowerOff = true;
+	}
+	else if (pExt->AttachmentPowerOff)
+	{
+		pExt->AttachmentPowerOff = false;
+		// Only revive what we turned off, and never revive an EMP'd unit -- if EMP
+		// still holds it, the game's own EMP recovery reactivates it later.
+		if (pHost->Deactivated && pHost->EMPLockRemaining == 0)
+			pHost->Reactivate();
+	}
 }
 
 bool TechnoExt::IsSlotFilled(TechnoClass* pParent, size_t index)
