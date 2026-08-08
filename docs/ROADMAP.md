@@ -87,11 +87,22 @@ Several items need two shared primitives first (see Foundations).
 ### C. Powered state  (extend PoweredUnit / PowersUnit)
 Base game: `[ROBO] PoweredUnit=yes` + `[GAROBO] PowersUnit=ROBO` — if GAROBO is
 lost or loses power, ROBO tanks go EMP-dark (no move/attack/orders). Rex wants
-this system generalized:
-- 💡 **C1. `PowersUnit=` on UNITS (incl. attached technos), not just buildings.**
-  Especially: an attached child powers **its parent** (and/or the reverse).
-  "Unpowered" mirrors the ROBO behavior — dark: no move, no fire, ignores orders
-  (EMP-like).
+this system generalized. **Decision (2026-08-08): build SEPARATE from vanilla**
+PoweredUnit/PowersUnit — one system per unit, so nothing fights over the shared
+`Deactivated` flag. Internally a general power-source → power-consumer resolver so
+units-power-units, count caps and radius scope are additive.
+- ✅ **C1 (v1 done, 2026-08-08, commit cbbd123).** `[AttachmentType] PowersParent=yes`
+  — while the attachment's child is active it powers its host; a host with ≥1
+  PowersParent slot goes EMP-dark (`Deactivate`) when it has no active powering
+  child and reactivates when one returns. Runs in the synced FootClass tick;
+  ownership flag `TechnoExt::AttachmentPowerOff` (serialized), EMP-aware
+  reactivation. Resolver (`TechnoExt::UpdateAttachmentPower`) written as the
+  general "does this consumer have a live source?" query. Deployed; awaiting
+  in-game test. **v1 scope = unit hosts** (building-host consumers not yet ticked).
+- 💡 **C1 (next). `PowersUnit=` on UNITS generally** (not just attachment children):
+  a unit powers other units by selection — the reverse (parent-powers-child), and
+  the springboard to **radius/regional** powering (source powers consumers within
+  a radius). Reuses the same resolver + reconciliation.
 - 💡 **C1b. `PowersUnits.Count=N`** — cap how many units a powerer sustains.
   Overflow policy is **per-powerer, modder-configurable** (a tag on the powering
   unit, e.g. `PowersUnits.OverflowMode=all|excess`): `all` shuts the whole group
