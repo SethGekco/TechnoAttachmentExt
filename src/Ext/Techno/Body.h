@@ -41,6 +41,7 @@ enum TAExtDeactivateReason : int
 	TAExtDeactivate_None            = 0,
 	TAExtDeactivate_AttachmentPower = 1 << 0, // lost attachment/sibling/parent power
 	TAExtDeactivate_SlotRequirement = 1 << 1, // required parent slot / passengers missing
+	TAExtDeactivate_NetworkPower    = 1 << 2, // PowerConsumer not reached by the network
 };
 
 // Standalone port of Phobos's TechnoExt, stripped to ONLY the attachment
@@ -77,6 +78,11 @@ public:
 		// of fighting. Serialized so the state survives save/load deterministically.
 		int DeactivationReasons;
 
+		// Power-network result for this techno, republished every frame by the
+		// solver (Hooks.PowerNetwork.cpp). Derived state -- deliberately NOT
+		// serialized; it is recomputed on the first frame after a load.
+		bool NetworkPowered;
+
 		ExtData(TechnoClass* OwnerObject) : Extension<TechnoClass>(OwnerObject)
 			, ParentAttachment {}
 			, ChildAttachments {}
@@ -84,6 +90,7 @@ public:
 			, AltOccupation {}
 			, PendingExitScatter { false }
 			, DeactivationReasons { 0 }
+			, NetworkPowered { false }
 		{ }
 
 		virtual ~ExtData() override;

@@ -7,6 +7,8 @@
 #include <New/Entity/AttachmentClass.h>
 #include <New/Type/AttachmentTypeClass.h>
 
+namespace TAExtPowerNetwork { extern bool Solved; }
+
 #include <algorithm>
 #include <ranges>
 #include <cassert>
@@ -559,6 +561,16 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 
 	if (isConsumer && !powered)
 		reasons |= TAExtDeactivate_AttachmentPower;
+
+	// --- Power-network gate (radius / relay chains), solved once per frame. ---
+	// Only applied once the solver has actually run, so a solver that never runs
+	// fails SAFE (powered) rather than darkening every consumer on the map.
+	if (TAExtPowerNetwork::Solved)
+	{
+		auto const pTypeExt = TechnoTypeExt::ExtMap.Find(pThis->GetTechnoType());
+		if (pTypeExt && pTypeExt->PowerConsumer && !pExt->NetworkPowered)
+			reasons |= TAExtDeactivate_NetworkPower;
+	}
 
 	// --- Reconcile: single owner of Deactivated, EMP-guarded reactivation. ---
 	int const previous = pExt->DeactivationReasons;

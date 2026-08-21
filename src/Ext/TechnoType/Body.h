@@ -35,6 +35,24 @@ public:
 		// Read from the art INI [Image]TurretOffset= (same as Phobos).
 		Valueable<PartialVector3D<int>> TurretOffset;
 
+		// ---- Power network (regular TechnoTypes, not just attachments) ----
+		// A source powers consumers within Range cells. Relays that are themselves
+		// powered re-broadcast, so a chain of relays carries power across the map
+		// ("power lines"). Capacity: a source sustains at most Count consumers;
+		// past that, OverflowMode decides whether the whole group drops (all) or
+		// only the ones past the cap (excess).
+		Valueable<bool> PowerSource;
+		Valueable<int> PowerSource_Range;              // in cells
+		ValueableVector<TechnoTypeClass*> PowerSource_Types; // empty = powers any consumer
+		Valueable<int> PowerSource_Count;              // 0 = unlimited
+		Valueable<bool> PowerSource_OverflowAll;       // OverflowMode: all(yes) / excess(no)
+		// Relay: extends the network. Range defaults to the source range when unset.
+		Valueable<bool> PowerRelay;
+		Valueable<int> PowerRelay_Range;
+		// Consumer: dark unless the network reaches it.
+		Valueable<bool> PowerConsumer;
+		ValueableVector<TechnoTypeClass*> PowerConsumer_Types; // empty = any source satisfies
+
 		struct AttachmentDataEntry
 		{
 			ValueableIdx<AttachmentTypeClass> Type;
@@ -68,6 +86,15 @@ public:
 			, AttachmentTopLayerMinHeight { RulesExt::Global()->AttachmentTopLayerMinHeight }
 			, AttachmentUndergroundLayerMaxHeight { RulesExt::Global()->AttachmentUndergroundLayerMaxHeight }
 			, TurretOffset { { 0, 0, 0 } }
+			, PowerSource { false }
+			, PowerSource_Range { 0 }
+			, PowerSource_Types { }
+			, PowerSource_Count { 0 }
+			, PowerSource_OverflowAll { false }
+			, PowerRelay { false }
+			, PowerRelay_Range { -1 }
+			, PowerConsumer { false }
+			, PowerConsumer_Types { }
 			, AttachmentData {}
 		{ }
 

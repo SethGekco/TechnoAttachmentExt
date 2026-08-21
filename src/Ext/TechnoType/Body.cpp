@@ -46,6 +46,22 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	this->AttachmentTopLayerMinHeight.Read(exINI, pSection, "AttachmentTopLayerMinHeight");
 	this->AttachmentUndergroundLayerMaxHeight.Read(exINI, pSection, "AttachmentUndergroundLayerMaxHeight");
 
+	// ---- power network ----
+	this->PowerSource.Read(exINI, pSection, "PowerSource");
+	this->PowerSource_Range.Read(exINI, pSection, "PowerSource.Range");
+	this->PowerSource_Types.Read(exINI, pSection, "PowerSource.Types");
+	this->PowerSource_Count.Read(exINI, pSection, "PowerSource.Count");
+	this->PowerRelay.Read(exINI, pSection, "PowerRelay");
+	this->PowerRelay_Range.Read(exINI, pSection, "PowerRelay.Range");
+	this->PowerConsumer.Read(exINI, pSection, "PowerConsumer");
+	this->PowerConsumer_Types.Read(exINI, pSection, "PowerConsumer.Types");
+
+	// OverflowMode=all|excess -- "all" drops the whole group past the cap,
+	// "excess" (default) drops only the ones past it.
+	char overflowBuffer[32];
+	if (pINI->ReadString(pSection, "PowerSource.OverflowMode", "", overflowBuffer, sizeof(overflowBuffer)) > 0)
+		this->PowerSource_OverflowAll = (_strcmpi(overflowBuffer, "all") == 0);
+
 	// The following loop iterates over size + 1 INI entries so that the
 	// vector contents can be properly overriden via scenario rules - Kerbiter
 	for (size_t i = 0; i <= this->AttachmentData.size(); ++i)
@@ -137,6 +153,15 @@ void TechnoTypeExt::ExtData::Serialize(T& Stm)
 		.Process(this->AttachmentTopLayerMinHeight)
 		.Process(this->AttachmentUndergroundLayerMaxHeight)
 		.Process(this->TurretOffset)
+		.Process(this->PowerSource)
+		.Process(this->PowerSource_Range)
+		.Process(this->PowerSource_Types)
+		.Process(this->PowerSource_Count)
+		.Process(this->PowerSource_OverflowAll)
+		.Process(this->PowerRelay)
+		.Process(this->PowerRelay_Range)
+		.Process(this->PowerConsumer)
+		.Process(this->PowerConsumer_Types)
 		.Process(this->AttachmentData)
 		;
 }
