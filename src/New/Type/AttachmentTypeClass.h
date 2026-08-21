@@ -103,7 +103,10 @@ public:
 	//   ExperienceTo.Drain=no          -> yes = the earner loses what it passed on
 	// Detected by watching the child's veterancy each synced tick, so it needs no
 	// new game hook and stays deterministic.
-	ValueableVector<AttachmentRelation> ExperienceTo;
+	// Parsed by hand (Phobos's ValueableVector parser assumes an AbstractType with
+	// a Find(), which an enum has no way to provide). INI-derived config, identical
+	// across peers, so it is not serialized -- same treatment as Prerequisite_Lists.
+	std::vector<AttachmentRelation> ExperienceTo;
 	Valueable<int> ExperienceTo_Share;
 	Valueable<bool> ExperienceTo_Drain;
 

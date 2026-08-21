@@ -41,7 +41,25 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->RequiresSlot_Index.Read(exINI, section, "RequiresSlot.Index");
 	this->RequiresSlot_Type.Read(exINI, section, "RequiresSlot.Type");
 	this->Decorative.Read(exINI, section, "Decorative");
-	this->ExperienceTo.Read(exINI, section, "ExperienceTo");
+	// ExperienceTo is a comma-separated relation list, tokenized by hand.
+	this->ExperienceTo.clear();
+	{
+		char relBuffer[128];
+		if (pINI->ReadString(section, "ExperienceTo", "", relBuffer, sizeof(relBuffer)) > 0)
+		{
+			char* context = nullptr;
+			for (char* tok = strtok_s(relBuffer, ",", &context); tok; tok = strtok_s(nullptr, ",", &context))
+			{
+				while (*tok == ' ') ++tok;
+				AttachmentRelation rel;
+				if (TAExt_ParseRelation(tok, rel))
+					this->ExperienceTo.push_back(rel);
+				else
+					Debug::INIParseFailed(section, "ExperienceTo", tok,
+						"Expected relations (self/parent/root/child/sibling/children/siblings)");
+			}
+		}
+	}
 	this->ExperienceTo_Share.Read(exINI, section, "ExperienceTo.Share");
 	this->ExperienceTo_Drain.Read(exINI, section, "ExperienceTo.Drain");
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
@@ -120,7 +138,6 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->RequiresSlot_Index)
 		.Process(this->RequiresSlot_Type)
 		.Process(this->Decorative)
-		.Process(this->ExperienceTo)
 		.Process(this->ExperienceTo_Share)
 		.Process(this->ExperienceTo_Drain)
 		.Process(this->OccupiesCell)
