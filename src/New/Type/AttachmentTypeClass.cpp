@@ -54,6 +54,10 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Prerequisite_Negative.Read(exINI, section, "Prerequisite.Negative");
 	this->RequiredHouses.Read(exINI, section, "RequiredHouses");
 	this->ForbiddenHouses.Read(exINI, section, "ForbiddenHouses");
+	this->Prerequisite_MinRank.Read(exINI, section, "Prerequisite.MinRank");
+	this->Prerequisite_MaxRank.Read(exINI, section, "Prerequisite.MaxRank");
+	this->Prerequisite_MinHealth.Read(exINI, section, "Prerequisite.MinHealth");
+	this->Prerequisite_MaxHealth.Read(exINI, section, "Prerequisite.MaxHealth");
 	this->Prerequisite_Dynamic.Read(exINI, section, "Prerequisite.Dynamic");
 
 	this->Prerequisite_Sibling_Index.Read(exINI, section, "Prerequisite.Sibling.Index");
@@ -126,6 +130,10 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Prerequisite_Negative)
 		.Process(this->RequiredHouses)
 		.Process(this->ForbiddenHouses)
+		.Process(this->Prerequisite_MinRank)
+		.Process(this->Prerequisite_MaxRank)
+		.Process(this->Prerequisite_MinHealth)
+		.Process(this->Prerequisite_MaxHealth)
 		.Process(this->Prerequisite_Dynamic)
 		.Process(this->Prerequisite_Sibling_Index)
 		.Process(this->Prerequisite_Sibling_Type)

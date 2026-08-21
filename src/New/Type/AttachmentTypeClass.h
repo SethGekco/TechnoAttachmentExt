@@ -98,6 +98,19 @@ public:
 	// must be listed. ForbiddenHouses: host owner's country must NOT be listed.
 	ValueableVector<HouseTypeClass*> RequiredHouses;
 	ValueableVector<HouseTypeClass*> ForbiddenHouses;
+	// A1-lite: veterancy gating. The child is only present while the HOST's rank is
+	// within [MinRank, MaxRank]. Combined with Prerequisite.Dynamic (default yes)
+	// this gives veterancy-driven attach/detach -- an attachment that appears on
+	// promotion to veteran/elite and disappears on de-vet -- without a separate
+	// attach/detach mechanism.
+	Nullable<Rank> Prerequisite_MinRank;
+	Nullable<Rank> Prerequisite_MaxRank;
+	// Damaged/destroyed-variant gating: the child is only present while the host's
+	// health percentage is within [MinHealth, MaxHealth] (0-100). Lets one host show
+	// a pristine piece at high HP and a wrecked one at low HP.
+	Nullable<int> Prerequisite_MinHealth;
+	Nullable<int> Prerequisite_MaxHealth;
+
 	// yes = child hides/shows live as the prerequisite is gained/lost.
 	// no  = prerequisite is only checked at spawn (static gate; no live toggle).
 	Valueable<bool> Prerequisite_Dynamic;
@@ -154,6 +167,10 @@ public:
 		, Prerequisite_Negative { }
 		, RequiredHouses { }
 		, ForbiddenHouses { }
+		, Prerequisite_MinRank { }
+		, Prerequisite_MaxRank { }
+		, Prerequisite_MinHealth { }
+		, Prerequisite_MaxHealth { }
 		, Prerequisite_Dynamic { true }
 		, Prerequisite_Sibling_Index { }
 		, Prerequisite_Sibling_Type { }

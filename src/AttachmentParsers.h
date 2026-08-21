@@ -14,6 +14,29 @@
 
 namespace detail
 {
+	// Rank (rookie/veteran/elite) has no parser in Phobos's TemplateDef either, so
+	// veterancy gates get the same treatment. Accepts the INI-friendly names.
+	template <>
+	inline bool read<Rank>(Rank& value, INI_EX& parser, const char* pSection, const char* pKey)
+	{
+		if (parser.ReadString(pSection, pKey))
+		{
+			if (_strcmpi(parser.value(), "rookie") == 0 || _strcmpi(parser.value(), "green") == 0)
+				value = Rank::Rookie;
+			else if (_strcmpi(parser.value(), "veteran") == 0)
+				value = Rank::Veteran;
+			else if (_strcmpi(parser.value(), "elite") == 0)
+				value = Rank::Elite;
+			else
+			{
+				Debug::INIParseFailed(pSection, pKey, parser.value(), "Expected a rank (rookie/veteran/elite)");
+				return false;
+			}
+			return true;
+		}
+		return false;
+	}
+
 	template <>
 	inline bool read<AttachmentYSortPosition>(AttachmentYSortPosition& value, INI_EX& parser, const char* pSection, const char* pKey)
 	{

@@ -86,9 +86,16 @@ bool AttachmentClass::PrerequisitesMet()
 	bool const anySibling = !sibIdxAny.empty() || !sibTypeAny.empty()
 		|| !sibIdxAll.empty() || !sibTypeAll.empty();
 
+	// Host rank / health gates (checked at the end, but they count as gating here
+	// or the early-out below would skip them entirely).
+	bool const anyHostState = pType->Prerequisite_MinRank.isset()
+		|| pType->Prerequisite_MaxRank.isset()
+		|| pType->Prerequisite_MinHealth.isset()
+		|| pType->Prerequisite_MaxHealth.isset();
+
 	if (prereq.empty() && pType->Prerequisite_Lists.empty()
 		&& prereqNeg.empty() && reqHouses.empty() && forbHouses.empty()
-		&& !anySibling)
+		&& !anySibling && !anyHostState)
 		return true; // no gating at all
 
 	// ---- sibling gates: siblings are the parent's other active child slots ----
@@ -197,6 +204,32 @@ bool AttachmentClass::PrerequisitesMet()
 		for (auto const pHT : forbHouses)
 			if (pHT && pHT == pOwner->Type)
 				return false;
+	}
+
+	// ---- host rank / health gates (A1-lite veterancy + damaged-variant) ----
+	if (auto const pParent = this->Parent)
+	{
+		if (pType->Prerequisite_MinRank.isset() || pType->Prerequisite_MaxRank.isset())
+		{
+			auto const rank = pParent->Veterancy.GetRemainingLevel();
+
+			if (pType->Prerequisite_MinRank.isset()
+				&& static_cast<int>(rank) < static_cast<int>(pType->Prerequisite_MinRank.Get()))
+				return false;
+			if (pType->Prerequisite_MaxRank.isset()
+				&& static_cast<int>(rank) > static_cast<int>(pType->Prerequisite_MaxRank.Get()))
+				return false;
+		}
+
+		if (pType->Prerequisite_MinHealth.isset() || pType->Prerequisite_MaxHealth.isset())
+		{
+			int const hp = static_cast<int>(pParent->GetHealthPercentage() * 100.0);
+
+			if (pType->Prerequisite_MinHealth.isset() && hp < pType->Prerequisite_MinHealth.Get())
+				return false;
+			if (pType->Prerequisite_MaxHealth.isset() && hp > pType->Prerequisite_MaxHealth.Get())
+				return false;
+		}
 	}
 
 	return true;
