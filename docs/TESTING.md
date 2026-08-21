@@ -105,6 +105,17 @@ Setup: one parent, slot A = source, slot B = consumer.
       selects the **host**, it isn't mouse-solid, and it doesn't block cells.
 - [ ] It doesn't accidentally turn a child you *want* selectable into a decoration.
 
+## 8b. Experience passing (`ExperienceTo`)
+- [ ] `ExperienceTo=parent`: kill things with the **child** → the **host** gains
+      veterancy (watch for the promotion chevron).
+- [ ] `ExperienceTo=siblings`: other attachments on the same parent gain instead.
+- [ ] `ExperienceTo.Share=50` → recipients gain roughly half of what the child earned.
+- [ ] `ExperienceTo.Drain=yes` → the child's own rank stops climbing (it hands the
+      XP over); with `Drain=no` (default) the XP is **duplicated**, not moved.
+- [ ] XP from a **crate** or script, not just kills, also propagates.
+- [ ] Save/load mid-game does **not** cause a phantom XP payout on the next frame.
+- [ ] Bad relation name (`ExperienceTo=nonsense`) logs a parse error, no crash.
+
 ## 9. Interaction / safety (where bugs hide)
 - [ ] **EMP a dark consumer**, then restore its power while EMP is still active →
       it must **stay dark** until EMP expires (we must not revive an EMP'd unit).

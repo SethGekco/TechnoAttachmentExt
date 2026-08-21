@@ -290,6 +290,21 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   distance, fails SAFE. Consumers darken through the shared arbiter.
   NOT YET PLAY-TESTED — see docs/TESTING.md.
 
+- ✅ **A2 experience passing (2026-08-21, commit 083284c).** `ExperienceTo=` +
+  `.Share=` + `.Drain=`, using the F0b resolver. Implemented by polling veterancy in
+  the synced tick — no new game hook, catches XP from any source. NOT PLAY-TESTED.
+- ⏸ **J2 translucency — investigated, NOT built (2026-08-21).** The blitter flags are
+  only fully assembled at the instant base Phobos overwrites: `0x73B2A2`
+  (UnitClass::DrawObject, EDI=BlitterFlags) is a Phobos *release* hook that skips
+  ~33 bytes, and the tint seats `0x43D386`/`0x73BF95`/`0x518FC8` are likewise
+  full-region replacements (jumping 200-350 bytes). YRpp exposes no blitter-flags
+  virtual to wrap, and the engine's own flags-modifier call
+  (`call [vtable+0x43C]` at 0x73B29A) is reached only on the cloak path. So
+  translucency means either contesting Phobos's skip-sites (multi-hook return
+  semantics at a skip site are the exact thing that broke rendering before) or
+  per-class upstream seats for 4 classes x SHP/voxel x body/turret/barrel. Deferred
+  as its own project — do it when it can be eyeballed in-game frame by frame.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already

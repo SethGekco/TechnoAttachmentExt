@@ -142,6 +142,19 @@ Prerequisite.MinRank=veteran
 Prerequisite.MaxHealth=49
 ```
 
+### Experience passing
+```ini
+[SomeAttachmentType]
+ExperienceTo=parent,siblings   ; who receives XP this child earns. Relations:
+                               ; self | parent | root | child | sibling |
+                               ; children | siblings
+ExperienceTo.Share=100         ; percent of the gain each recipient gets
+ExperienceTo.Drain=no          ; yes = the earner keeps only what it didn't pass on
+```
+Detected by watching the child's veterancy each synced tick, so it catches XP from
+**any** source (kills, crates, script). De-vet is not propagated. Drain is applied
+once per gain regardless of how many relatives received it.
+
 ---
 
 ## Presentation / behaviour
