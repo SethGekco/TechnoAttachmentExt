@@ -594,6 +594,74 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 	}
 }
 
+// A2 -- experience passing. Watches this techno's veterancy each synced tick; a
+// positive delta is newly-earned XP, and a share of it is routed to whichever
+// relatives its AttachmentType names (F0b relations). Polling instead of hooking
+// the game's XP grant means no new hook, no ordering hazard with other DLLs, and
+// it catches XP from every source (kills, crates, script) uniformly.
+//
+// Only attached children carry the config (the tag lives on AttachmentType), so
+// this is a cheap early-out for everything else.
+void TechnoExt::UpdateExperienceSharing(TechnoClass* pThis)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
+
+	float const current = pThis->Veterancy.Veterancy;
+
+	// First observation (fresh unit, or first tick after a load): record and stop,
+	// so we never treat the initial value as a gain.
+	if (!pExt->LastVeterancyValid)
+	{
+		pExt->LastVeterancy = current;
+		pExt->LastVeterancyValid = true;
+		return;
+	}
+
+	float const delta = current - pExt->LastVeterancy;
+	pExt->LastVeterancy = current;
+
+	if (delta <= 0.0f)
+		return; // no gain (or a loss -- de-vet is not propagated)
+
+	auto const pAtt = pExt->ParentAttachment;
+	auto const pType = pAtt ? pAtt->GetType() : nullptr;
+	if (!pType || pType->ExperienceTo.empty())
+		return;
+
+	int const sharePercent = pType->ExperienceTo_Share;
+	if (sharePercent <= 0)
+		return;
+
+	double const share = delta * (sharePercent / 100.0);
+	if (share <= 0.0)
+		return;
+
+	bool gaveAny = false;
+	for (auto const relation : pType->ExperienceTo)
+	{
+		for (auto const pTarget : TechnoExt::ResolveRelatives(pThis, relation))
+		{
+			if (!pTarget || pTarget == pThis || !pTarget->IsAlive)
+				continue;
+
+			pTarget->Veterancy.Add(share);
+			gaveAny = true;
+		}
+	}
+
+	// Drain: the earner keeps only what it didn't pass on. Clamped at zero, and
+	// applied once regardless of how many recipients there were, so sharing with
+	// several relatives doesn't multiply the cost.
+	if (gaveAny && pType->ExperienceTo_Drain)
+	{
+		float const kept = current - static_cast<float>(share);
+		pThis->Veterancy.Veterancy = kept > 0.0f ? kept : 0.0f;
+		pExt->LastVeterancy = pThis->Veterancy.Veterancy;
+	}
+}
+
 bool TechnoExt::IsSlotFilled(TechnoClass* pParent, size_t index)
 {
 	auto const pSlot = TechnoExt::GetChildSlot(pParent, index);

@@ -21,6 +21,21 @@ enum class AttachmentYSortPosition
 	OverParent = 2
 };
 
+// F0b relationship descriptor: how to address a techno relative to an
+// attachment graph. Child/Sibling take a slot (index or ID); the others
+// ignore it. Shared foundation for prerequisites, targeting, XP/power passing.
+enum class AttachmentRelation
+{
+	Self,             // the techno itself
+	Parent,           // its immediate attachment parent
+	TopLevelParent,   // the root of its parent chain
+	Child,            // one child slot (by index/ID)
+	Sibling,          // one co-slot on the same parent (by index/ID), excluding self
+	AllChildren,      // every child slot
+	AllSiblings,      // every co-slot on the same parent, excluding self
+};
+
+
 class AttachmentTypeClass final : public Enumerable<AttachmentTypeClass>
 {
 public:
@@ -79,6 +94,19 @@ public:
 	// occupation, low selection priority. Explicit tags still win where they
 	// tighten it; this only turns the bundle ON.
 	Valueable<bool> Decorative;
+
+	// A2 -- experience passing. When THIS attachment's child earns veterancy, route
+	// a share of the gain to the listed relatives (F0b relations):
+	//   ExperienceTo=parent,siblings   -> who receives (self/parent/root/child/
+	//                                     sibling/children/siblings)
+	//   ExperienceTo.Share=100         -> percent of the gain each recipient gets
+	//   ExperienceTo.Drain=no          -> yes = the earner loses what it passed on
+	// Detected by watching the child's veterancy each synced tick, so it needs no
+	// new game hook and stays deterministic.
+	ValueableVector<AttachmentRelation> ExperienceTo;
+	Valueable<int> ExperienceTo_Share;
+	Valueable<bool> ExperienceTo_Drain;
+
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
 	Valueable<bool> PassSelection;
@@ -154,6 +182,9 @@ public:
 		, RequiresSlot_Index { }
 		, RequiresSlot_Type { }
 		, Decorative { false }
+		, ExperienceTo { }
+		, ExperienceTo_Share { 100 }
+		, ExperienceTo_Drain { false }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
 		, PassSelection { false }

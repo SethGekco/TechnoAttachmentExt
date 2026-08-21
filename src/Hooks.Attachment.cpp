@@ -92,6 +92,9 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	// No-op unless some gate applies to pThis.
 	TechnoExt::UpdateAttachmentGates(pThis);
 
+	// A2: route any veterancy earned since the last tick to configured relatives.
+	TechnoExt::UpdateExperienceSharing(pThis);
+
 	return 0;
 }
 

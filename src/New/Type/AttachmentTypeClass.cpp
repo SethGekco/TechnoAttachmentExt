@@ -41,6 +41,9 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->RequiresSlot_Index.Read(exINI, section, "RequiresSlot.Index");
 	this->RequiresSlot_Type.Read(exINI, section, "RequiresSlot.Type");
 	this->Decorative.Read(exINI, section, "Decorative");
+	this->ExperienceTo.Read(exINI, section, "ExperienceTo");
+	this->ExperienceTo_Share.Read(exINI, section, "ExperienceTo.Share");
+	this->ExperienceTo_Drain.Read(exINI, section, "ExperienceTo.Drain");
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
 	this->LowSelectionPriority.Read(exINI, section, "LowSelectionPriority");
 	this->PassSelection.Read(exINI, section, "PassSelection");
@@ -117,6 +120,9 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->RequiresSlot_Index)
 		.Process(this->RequiresSlot_Type)
 		.Process(this->Decorative)
+		.Process(this->ExperienceTo)
+		.Process(this->ExperienceTo_Share)
+		.Process(this->ExperienceTo_Drain)
 		.Process(this->OccupiesCell)
 		.Process(this->LowSelectionPriority)
 		.Process(this->PassSelection)

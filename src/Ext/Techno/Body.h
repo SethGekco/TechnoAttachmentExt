@@ -16,19 +16,9 @@
 
 class WeaponTypeClass;
 
-// F0b relationship descriptor: how to address a techno relative to an
-// attachment graph. Child/Sibling take a slot (index or ID); the others
-// ignore it. Shared foundation for prerequisites, targeting, XP/power passing.
-enum class AttachmentRelation
-{
-	Self,             // the techno itself
-	Parent,           // its immediate attachment parent
-	TopLevelParent,   // the root of its parent chain
-	Child,            // one child slot (by index/ID)
-	Sibling,          // one co-slot on the same parent (by index/ID), excluding self
-	AllChildren,      // every child slot
-	AllSiblings,      // every co-slot on the same parent, excluding self
-};
+// NOTE: AttachmentRelation now lives in New/Type/AttachmentTypeClass.h so the
+// INI parser shim (AttachmentParsers.h) can see its enumerators without pulling
+// in this header (which would be circular).
 
 // Reasons WE may hold a techno deactivated ("dark": no move/fire/orders -- the
 // vanilla Robot-Tank state). A bitmask, so independent gates compose: ANY reason
@@ -83,6 +73,12 @@ public:
 		// serialized; it is recomputed on the first frame after a load.
 		bool NetworkPowered;
 
+		// A2 experience passing: this techno's veterancy as of the last tick. A
+		// positive delta is newly-earned XP to route to relatives. Serialized so a
+		// save/load doesn't look like a huge one-frame gain.
+		float LastVeterancy;
+		bool LastVeterancyValid;
+
 		ExtData(TechnoClass* OwnerObject) : Extension<TechnoClass>(OwnerObject)
 			, ParentAttachment {}
 			, ChildAttachments {}
@@ -91,6 +87,8 @@ public:
 			, PendingExitScatter { false }
 			, DeactivationReasons { 0 }
 			, NetworkPowered { false }
+			, LastVeterancy { 0.0f }
+			, LastVeterancyValid { false }
 		{ }
 
 		virtual ~ExtData() override;
@@ -129,6 +127,11 @@ public:
 	// frame from the techno's own tick; deterministic + EMP-aware. No-op unless some
 	// gate applies. Call site never changes as gates are added.
 	static void UpdateAttachmentGates(TechnoClass* pThis);
+
+	// A2 experience passing: detect veterancy this techno gained since the last
+	// tick and route a share to the relatives its AttachmentType lists. Polled
+	// from the synced tick, so no new game hook and no ordering hazard.
+	static void UpdateExperienceSharing(TechnoClass* pThis);
 
 	static void InitializeAttachments(TechnoClass* pThis);
 	static void DestroyAttachments(TechnoClass* pThis, TechnoClass* pSource);
