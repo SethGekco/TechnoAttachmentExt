@@ -264,6 +264,22 @@ visible to opponents must stay deterministic/synced (translucency is render-only
 
 ---
 
+- ✅ **Deactivation arbiter (2026-08-21, commit d0ca4b2).** All "goes dark" gates
+  unified behind `TechnoExt::DeactivationReasons` (bitmask) + `UpdateAttachmentGates`.
+  Any reason keeps a techno dark; it wakes only when all of OURS clear; we revive
+  only what we darkened, never during EMP. New gates cost ~10 lines + a bit.
+- ✅ **Building-host power (2026-08-21).** Building hosts now reconcile at 0x43FE69
+  too, fixing Rex's "vehicles power down, buildings don't".
+- ✅ **PoweredByParent / RequiresPassengers / RequiresSlot.Index|.Type (2026-08-21).**
+  Reverse power (darkness propagates down the subtree) + B1 open-topped gating.
+- ✅ **Decorative=yes (2026-08-21).** F1-lite profile forcing the cosmetic-piece
+  bundle (PassSelection + TransparentToMouse + LowSelectionPriority + no occupation).
+- ✅ **A1-lite veterancy + damaged-variant gates (2026-08-21, commit 37b8fc2).**
+  `Prerequisite.MinRank/.MaxRank` (rookie|veteran|elite) and
+  `Prerequisite.MinHealth/.MaxHealth` (0-100) ride the existing dynamic prerequisite
+  hide/show, so veterancy-driven attach/detach needed no new machinery.
+  Full tag reference: docs/TAGS.md.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already
