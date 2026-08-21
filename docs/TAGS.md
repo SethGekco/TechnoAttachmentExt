@@ -66,6 +66,39 @@ RequiresSlot.Type=GUNNER    ; dark unless the parent has an active child of thes
 `Index`/`Type` **union** (any match satisfies); `RequiresPassengers` is a separate
 AND gate.
 
+### Power network — radius, relay chains, capacity
+These go on **regular TechnoTypes** (infantry, vehicles, aircraft, buildings), not
+just attachments.
+
+```ini
+; --- a power source ---
+[GAPOWR]
+PowerSource=yes
+PowerSource.Range=10                ; cells
+PowerSource.Types=ROBO,SOMEUNIT     ; optional: only these consumer types
+PowerSource.Count=4                 ; optional cap; 0/unset = unlimited
+PowerSource.OverflowMode=excess     ; excess (default) = only those past the cap go
+                                    ; dark;  all = the source's WHOLE group goes dark
+
+; --- a relay ("power line" pylon): extends the network ---
+[POWERPYLON]
+PowerRelay=yes
+PowerRelay.Range=8                  ; unset = inherit the range of whatever feeds it
+
+; --- a consumer ---
+[ROBO]
+PowerConsumer=yes
+PowerConsumer.Types=GAPOWR          ; optional: only these source types satisfy it
+```
+- A relay only re-broadcasts while it is itself reached, so a chain of pylons
+  carries power outward from the source — cut one and everything past it goes dark.
+- Only **allied** networks power a techno; an enemy plant won't light up your units.
+- Capacity is counted **per source**, including consumers reached through its relays.
+- Solved once per frame; **fails safe** — if the solver never runs, consumers stay
+  powered rather than all going dark.
+
+> Keep a unit on **either** this system **or** vanilla `PoweredUnit=`, not both.
+
 ---
 
 ## Presence gating (prerequisites)

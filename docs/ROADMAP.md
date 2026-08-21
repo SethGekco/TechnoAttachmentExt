@@ -280,6 +280,16 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   hide/show, so veterancy-driven attach/detach needed no new machinery.
   Full tag reference: docs/TAGS.md.
 
+- ✅ **Power network: radius + relay chains + capacity (2026-08-21, commit 9a130da).**
+  TechnoType-level `PowerSource`/`PowerSource.Range`/`.Types`/`.Count`/`.OverflowMode`,
+  `PowerRelay`/`PowerRelay.Range`, `PowerConsumer`/`PowerConsumer.Types` — works on
+  regular units AND buildings. Relay chains carry power outward (the "power lines"
+  idea); capacity is per-source; only allied networks power a techno. Solved once per
+  frame at 0x55B6B3 (LogicClass::AI after the object loop; only PR#352 hooks it, no
+  release-framework collision), deterministic via TechnoClass::Array order + integer
+  distance, fails SAFE. Consumers darken through the shared arbiter.
+  NOT YET PLAY-TESTED — see docs/TESTING.md.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already
