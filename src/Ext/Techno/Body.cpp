@@ -37,7 +37,7 @@ void TechnoExt::ExtData::Serialize(T& Stm)
 	// the live attachment vectors are not persisted across save/load yet.
 	Stm
 		.Process(this->AltOccupation)
-		.Process(this->AttachmentPowerOff)
+		.Process(this->DeactivationReasons)
 		;
 }
 

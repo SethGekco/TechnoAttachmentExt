@@ -30,6 +30,19 @@ enum class AttachmentRelation
 	AllSiblings,      // every co-slot on the same parent, excluding self
 };
 
+// Reasons WE may hold a techno deactivated ("dark": no move/fire/orders -- the
+// vanilla Robot-Tank state). A bitmask, so independent gates compose: ANY reason
+// set keeps the techno dark, and it only wakes when ALL of ours clear. One arbiter
+// owns the shared Deactivated flag, which is what keeps these features from
+// fighting each other (and from fighting EMP / vanilla PoweredUnit). Add new gates
+// as new bits -- no new system, no new flag owner.
+enum TAExtDeactivateReason : int
+{
+	TAExtDeactivate_None            = 0,
+	TAExtDeactivate_AttachmentPower = 1 << 0, // lost attachment/sibling/parent power
+	TAExtDeactivate_SlotRequirement = 1 << 1, // required parent slot / passengers missing
+};
+
 // Standalone port of Phobos's TechnoExt, stripped to ONLY the attachment
 // state and helpers. Uses Container<T> in unordered_map mode (Canary defined,
 // no ExtPointerOffset) so we claim no pointer slot in TechnoClass.
@@ -57,11 +70,12 @@ public:
 		// the exit cell, freeing that cell for the next produced unit.
 		bool PendingExitScatter;
 
-		// C1 (attachment power): true iff WE deactivated this host because it lost
-		// attachment power. Ownership flag so we only ever Reactivate() a unit we
-		// turned off (never one EMP or another system shut down). Serialized so the
-		// off-state survives save/load deterministically (online-safe).
-		bool AttachmentPowerOff;
+		// Deactivation arbiter (see TAExtDeactivateReason). Bitmask of OUR reasons
+		// for holding this techno dark. Non-zero == we deactivated it; zero == we
+		// have no claim. Single owner for the shared Deactivated flag, so every gate
+		// (power, slot/passenger requirements, future radius power) composes instead
+		// of fighting. Serialized so the state survives save/load deterministically.
+		int DeactivationReasons;
 
 		ExtData(TechnoClass* OwnerObject) : Extension<TechnoClass>(OwnerObject)
 			, ParentAttachment {}
@@ -69,7 +83,7 @@ public:
 			, DormantAttachments {}
 			, AltOccupation {}
 			, PendingExitScatter { false }
-			, AttachmentPowerOff { false }
+			, DeactivationReasons { 0 }
 		{ }
 
 		virtual ~ExtData() override;
@@ -103,10 +117,11 @@ public:
 	static bool AttachTo(TechnoClass* pThis, TechnoClass* pParent);
 	static bool DetachFromParent(TechnoClass* pThis);
 
-	// C1 (attachment power): resolve a host's power state from its PowersParent
-	// attachment slots and Deactivate/Reactivate it accordingly. Runs each frame
-	// from the host's tick; deterministic + EMP-aware. No-op for non-consumers.
-	static void UpdateAttachmentPower(TechnoClass* pHost);
+	// Deactivation arbiter: recompute every gate for this techno (attachment power,
+	// slot/passenger requirements) and Deactivate/Reactivate accordingly. Runs each
+	// frame from the techno's own tick; deterministic + EMP-aware. No-op unless some
+	// gate applies. Call site never changes as gates are added.
+	static void UpdateAttachmentGates(TechnoClass* pThis);
 
 	static void InitializeAttachments(TechnoClass* pThis);
 	static void DestroyAttachments(TechnoClass* pThis, TechnoClass* pSource);

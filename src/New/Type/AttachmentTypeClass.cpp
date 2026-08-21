@@ -36,6 +36,11 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->PowersSiblings_Index.Read(exINI, section, "PowersSiblings.Index");
 	this->Powered.Read(exINI, section, "Powered");
 	this->Powered_Type.Read(exINI, section, "Powered.Type");
+	this->PoweredByParent.Read(exINI, section, "PoweredByParent");
+	this->RequiresPassengers.Read(exINI, section, "RequiresPassengers");
+	this->RequiresSlot_Index.Read(exINI, section, "RequiresSlot.Index");
+	this->RequiresSlot_Type.Read(exINI, section, "RequiresSlot.Type");
+	this->Decorative.Read(exINI, section, "Decorative");
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
 	this->LowSelectionPriority.Read(exINI, section, "LowSelectionPriority");
 	this->PassSelection.Read(exINI, section, "PassSelection");
@@ -71,6 +76,17 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 
 		this->Prerequisite_Lists.emplace_back(std::move(list));
 	}
+
+	// Decorative profile: force the "this is a cosmetic/functional piece, not a
+	// unit" bundle. Applied AFTER the individual reads so it wins over the
+	// defaults; it only switches the bundle on, never off.
+	if (this->Decorative)
+	{
+		this->PassSelection = true;
+		this->TransparentToMouse = true;
+		this->LowSelectionPriority = true;
+		this->OccupiesCell = false;
+	}
 }
 
 template <typename T>
@@ -92,6 +108,11 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->PowersSiblings_Index)
 		.Process(this->Powered)
 		.Process(this->Powered_Type)
+		.Process(this->PoweredByParent)
+		.Process(this->RequiresPassengers)
+		.Process(this->RequiresSlot_Index)
+		.Process(this->RequiresSlot_Type)
+		.Process(this->Decorative)
 		.Process(this->OccupiesCell)
 		.Process(this->LowSelectionPriority)
 		.Process(this->PassSelection)

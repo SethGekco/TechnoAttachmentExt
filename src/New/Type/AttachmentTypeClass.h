@@ -58,6 +58,27 @@ public:
 	// and only a source that both targets it and is of an accepted type powers it.
 	Valueable<bool> Powered;
 	ValueableVector<TechnoTypeClass*> Powered_Type;
+	// Reverse direction: this child is dark unless its PARENT is alive, on the
+	// field and not itself dark. Chains naturally (a dark parent darkens the
+	// subtree), so a powered-down host takes its decorative/functional bits with it.
+	Valueable<bool> PoweredByParent;
+
+	// B1 -- requirement gating ("activate only if ..."). The child is dark unless
+	// the parent satisfies these. Open-topped turret style:
+	//   RequiresPassengers=N     -> parent must carry at least N passengers
+	//   RequiresSlot.Index=<idx> -> those parent slots must hold an ACTIVE child
+	//   RequiresSlot.Type=<types>-> parent must have an active child of these types
+	// Index/Type union (any match satisfies); passengers is a separate AND gate.
+	Valueable<int> RequiresPassengers;
+	ValueableVector<int> RequiresSlot_Index;
+	ValueableVector<TechnoTypeClass*> RequiresSlot_Type;
+
+	// F1-lite -- "decorative" profile. Forces the behaviour bundle that makes a
+	// regular TechnoType usable as a pure cosmetic/functional piece rather than a
+	// standalone unit: click-through to the host, no mouse-solidity, no cell
+	// occupation, low selection priority. Explicit tags still win where they
+	// tighten it; this only turns the bundle ON.
+	Valueable<bool> Decorative;
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
 	Valueable<bool> PassSelection;
@@ -115,6 +136,11 @@ public:
 		, PowersSiblings_Index { }
 		, Powered { false }
 		, Powered_Type { }
+		, PoweredByParent { false }
+		, RequiresPassengers { 0 }
+		, RequiresSlot_Index { }
+		, RequiresSlot_Type { }
+		, Decorative { false }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
 		, PassSelection { false }

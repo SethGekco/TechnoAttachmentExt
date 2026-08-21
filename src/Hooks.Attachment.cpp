@@ -87,10 +87,10 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
 
-	// C1: reconcile THIS unit's attachment-power state (host role via its
-	// PowersParent children, sibling role if it is a Powered child). Runs after the
-	// child AI so source active-state is current. No-op unless pThis is a consumer.
-	TechnoExt::UpdateAttachmentPower(pThis);
+	// Reconcile THIS unit's deactivation gates (attachment power, slot/passenger
+	// requirements). Runs after the child AI so source active-state is current.
+	// No-op unless some gate applies to pThis.
+	TechnoExt::UpdateAttachmentGates(pThis);
 
 	return 0;
 }
@@ -105,6 +105,12 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 		return 0;
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
+
+	// Building hosts get the same gate reconciliation as units, so a building can
+	// be powered down by its attachments too (Deactivate/Reactivate are generic
+	// TechnoClass routines -- verified they dispatch through virtuals, no
+	// unit-only assumptions).
+	TechnoExt::UpdateAttachmentGates(pThis);
 
 	return 0;
 }

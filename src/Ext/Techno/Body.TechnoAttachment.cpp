@@ -359,16 +359,21 @@ static bool TAExt_ChildActive(AttachmentClass* pSlot)
 // (house/building/type-based): a unit uses one system or the other, so nothing
 // fights over the shared Deactivated flag. A "consumer" is Deactivated (dark: no
 // move/fire/orders -- the vanilla Robot-Tank state) while unpowered and reactivated
-// when powered again. We own only what we turned off (AttachmentPowerOff) and never
+// when powered again. We own only what we turned off (DeactivationReasons) and never
 // revive a unit still under EMP.
 //
 // Reconciled PER UNIT from that unit's own tick (not the parent's), so a consumer
-// that stops being managed -- detached, roles removed -- still gets released. Two
-// consumer roles, both applicable requirements must be met (AND):
-//   * Host role  (PowersParent): pThis has >=1 PowersParent slot; powered while any
-//                 such slot holds an active child (child-powers-parent).
-//   * Sibling role (Powered):    pThis is a Powered child of a parent; powered while
-//                 an eligible active sibling source powers it.
+// that stops being managed -- detached, roles removed -- still gets released. Every
+// applicable gate must pass (AND); each contributes a bit to DeactivationReasons:
+//   * Host role  (PowersParent):    pThis has >=1 PowersParent slot; powered while
+//                  any such slot holds an active child (child-powers-parent).
+//   * Sibling role (Powered):       pThis is a Powered child; powered while an
+//                  eligible active sibling source powers it.
+//   * Reverse (PoweredByParent):    dark while its parent is gone or itself dark,
+//                  so darkness propagates down the attachment subtree.
+//   * Requirements (RequiresPassengers / RequiresSlot.Index / .Type): dark unless
+//                  the parent carries enough passengers / has the required active
+//                  slots (open-topped turret style).
 //
 // v1 is presence-based (one live source powers the consumer). The source scan is
 // written as the general "does this consumer have a valid live source?" query so the
@@ -408,11 +413,21 @@ static bool TAExt_SiblingSourcePowers(
 	return pSrcType->PowersSiblings || specific;
 }
 
-void TechnoExt::UpdateAttachmentPower(TechnoClass* pThis)
+// Is this techno currently dark for any reason OTHER than our own claim? Used so a
+// PoweredByParent child follows its parent's darkness without us reading our own
+// bookkeeping back as an input (which would latch).
+static bool TAExt_HostIsDark(TechnoClass* pHost)
+{
+	return !pHost->IsAlive || pHost->InLimbo || pHost->Deactivated;
+}
+
+void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
 	if (!pExt)
 		return;
+
+	int reasons = TAExtDeactivate_None;
 
 	bool isConsumer = false;
 	bool powered = true; // AND across whichever roles apply
@@ -473,32 +488,97 @@ void TechnoExt::UpdateAttachmentPower(TechnoClass* pThis)
 		}
 	}
 
-	// --- Reconcile (single owner; EMP-guarded reactivation). ---
-	if (!isConsumer)
+	// --- Reverse power + requirement gates (child-side, need a parent). ---
+	if (auto const pSelfSlot = pExt->ParentAttachment)
 	{
-		// No longer managed (detached / roles gone): release any power-off we set.
-		if (pExt->AttachmentPowerOff)
+		auto const pSelfType = pSelfSlot->GetType();
+		auto const pParent = pSelfSlot->Parent;
+
+		if (pSelfType && pSelfType->PoweredByParent)
 		{
-			pExt->AttachmentPowerOff = false;
-			if (pThis->Deactivated && pThis->EMPLockRemaining == 0)
-				pThis->Reactivate();
+			isConsumer = true;
+			// Dark if the parent is gone or itself dark -- darkness propagates down
+			// the subtree. We read the parent's CURRENT flag (set by its own tick,
+			// which runs before the child's for a child that is a separate techno).
+			powered = powered && pParent && !TAExt_HostIsDark(pParent);
 		}
-		return;
+
+		if (pSelfType && pParent)
+		{
+			bool required = false;
+			bool met = true;
+
+			if (pSelfType->RequiresPassengers > 0)
+			{
+				required = true;
+				met = met && (pParent->Passengers.NumPassengers >= pSelfType->RequiresPassengers);
+			}
+
+			auto const& rIdx = pSelfType->RequiresSlot_Index;
+			auto const& rType = pSelfType->RequiresSlot_Type;
+			if (!rIdx.empty() || !rType.empty())
+			{
+				required = true;
+				bool slotMet = false;
+
+				for (auto const idx : rIdx)
+				{
+					if (idx >= 0 && TechnoExt::IsSlotActive(pParent, static_cast<size_t>(idx)))
+					{
+						slotMet = true;
+						break;
+					}
+				}
+
+				if (!slotMet && !rType.empty())
+				{
+					if (auto const pParExt = TechnoExt::ExtMap.Find(pParent))
+					{
+						for (auto const& pSlot : pParExt->ChildAttachments)
+						{
+							if (!TAExt_ChildActive(pSlot.get()))
+								continue;
+							auto const pChildType = pSlot->Child->GetTechnoType();
+							if (pChildType
+								&& std::find(rType.begin(), rType.end(), pChildType) != rType.end())
+							{
+								slotMet = true;
+								break;
+							}
+						}
+					}
+				}
+
+				met = met && slotMet;
+			}
+
+			if (required && !met)
+				reasons |= TAExtDeactivate_SlotRequirement;
+		}
 	}
 
-	if (!powered)
+	if (isConsumer && !powered)
+		reasons |= TAExtDeactivate_AttachmentPower;
+
+	// --- Reconcile: single owner of Deactivated, EMP-guarded reactivation. ---
+	int const previous = pExt->DeactivationReasons;
+	pExt->DeactivationReasons = reasons;
+
+	if (reasons != TAExtDeactivate_None)
 	{
+		// Keep the flag asserted every frame we have a claim: something else may
+		// have cleared it (e.g. EMP recovery reactivating the unit).
 		if (!pThis->Deactivated)
 			pThis->Deactivate();
-		pExt->AttachmentPowerOff = true;
 	}
-	else if (pExt->AttachmentPowerOff)
+	else if (previous != TAExtDeactivate_None
+		&& pThis->Deactivated && pThis->EMPLockRemaining == 0)
 	{
-		pExt->AttachmentPowerOff = false;
-		// Revive only what we turned off, never a unit still under EMP -- the game's
-		// own EMP recovery reactivates that later.
-		if (pThis->Deactivated && pThis->EMPLockRemaining == 0)
-			pThis->Reactivate();
+		// Every one of OUR reasons just cleared: revive it. Gated on `previous` so we
+		// only ever revive what WE turned off -- never a unit darkened by EMP or by
+		// vanilla PoweredUnit. Never revive one still under EMP either; the game's
+		// own EMP recovery handles that later.
+		pThis->Reactivate();
 	}
 }
 
