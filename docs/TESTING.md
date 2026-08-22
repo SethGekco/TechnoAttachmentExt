@@ -140,6 +140,32 @@ Setup: one parent, slot A = source, slot B = consumer.
 - [ ] A gap in the index list (`[0]` and `[2]`, no `[1]`) stops at the gap — `[2]`
       is ignored. Confirm that matches your expectation.
 
+## 8c. Convert-in-place (`Convert`)
+- [ ] `Convert=DAMAGEDHULL` + `Convert.MaxHealth=66`: damage the **host** below 66%
+      → the attachment child visibly becomes the other TechnoType at the same slot.
+- [ ] **Reverts automatically**: repair the host above 66% → the child returns to
+      its configured `AttachmentN.TechnoType`.
+- [ ] **Two-stage chain**: unindexed `MaxHealth=66` + `[0]` `MaxHealth=33` → the
+      child steps through pristine → damaged → wrecked as the host takes damage.
+- [ ] **First-match-wins ordering**: with both rules matching (host at 20%), the
+      FIRST listed rule is used. Confirm that matches your expectation.
+- [ ] Rank conditions: `Convert.MinRank[1]=veteran` swaps the child on promotion.
+- [ ] `Convert.KeepHealth=yes` (default): a damaged child stays proportionally
+      damaged after the swap; `=no` → it arrives at full health.
+- [ ] `Convert.KeepVeterancy=yes` (default): the child's rank survives the swap.
+- [ ] Converting a child of a **different Strength** doesn't produce a dead or
+      over-healed child.
+- [ ] **Quiet swap**: `DestructionWeapon.Child` on the AttachmentType does NOT fire
+      on a conversion (it is a replacement, not a death), and the host gets no kill
+      credit / no death animation.
+- [ ] Convert while the child is **hidden** by a prerequisite → no crash, correct
+      type once it reappears.
+- [ ] Convert to an **invalid/missing** TechnoType → parse error at load, no crash.
+- [ ] Rapid oscillation: park the host's health right on a threshold and let it
+      tick → no flicker storm, no crash, no leaked units piling up on the map.
+- [ ] Save/load right after a conversion → correct type, no duplicate child.
+- [ ] **Multiplayer**: conversions on both peers stay in step (no desync).
+
 ## 9. Interaction / safety (where bugs hide)
 - [ ] **EMP a dark consumer**, then restore its power while EMP is still active →
       it must **stay dark** until EMP expires (we must not revive an EMP'd unit).

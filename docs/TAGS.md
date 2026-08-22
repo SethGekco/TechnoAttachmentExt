@@ -187,6 +187,41 @@ is earned at all, Drain decides copy-vs-move per group.
 Detected by watching veterancy each synced tick, so it catches XP from **any**
 source (kills, crates, script). De-vet is not propagated.
 
+### Convert-in-place (upgrades / damaged variants)
+The slot keeps its index and its adoption by the parent while the **child swaps to
+a different TechnoType**. Same group syntax as `ExperienceTo`: an unindexed group
+plus contiguous `[0]`, `[1]`, … (separate rules, not aliases).
+
+```ini
+[SomeAttachmentType]
+Convert=DAMAGEDHULL          ; become this while the window holds
+Convert.MaxHealth=66         ; host health percentage window (0-100)
+Convert.MinHealth=
+
+Convert[0]=WRECKEDHULL       ; a second, more specific rule
+Convert.MaxHealth[0]=33
+
+Convert[1]=VETERANHULL       ; conditions can be rank instead
+Convert.MinRank[1]=veteran   ; rookie | veteran | elite
+Convert.MaxRank[1]=elite
+
+Convert.KeepHealth=yes       ; carry the damage RATIO across (default yes)
+Convert.KeepVeterancy=yes    ; carry veterancy across (default yes)
+```
+- **First matching rule wins**, so order matters — put the most specific rule
+  (lowest health) first.
+- When **no** rule matches, the slot reverts to its configured `AttachmentN.TechnoType`.
+  Reverting is automatic; there is no revert flag.
+- Conditions read the **host**, matching `Prerequisite.MinHealth`/`.MinRank`.
+- The swap is **quiet** — a replacement is not a death, so no destruction weapons,
+  no `ParentDestructionMission`, no kill credit.
+- `KeepHealth` carries a **percentage**, so a replacement with different `Strength`
+  keeps the same damage ratio (clamped so it never arrives pre-dead).
+
+> Versus the two-slot prerequisite trick (`IntactArmor` + `WreckedArmor`): converting
+> keeps **one** slot and carries state across, so use it for upgrade chains and
+> progressive damage. Use two slots when you want both variants to be able to exist.
+
 ---
 
 ## Presentation / behaviour

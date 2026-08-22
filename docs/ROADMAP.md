@@ -303,6 +303,12 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   per-class upstream seats for 4 classes x SHP/voxel x body/turret/barrel. Deferred
   as its own project — do it when it can be eyeballed in-game frame by frame.
 
+- ✅ **Attachment convert-in-place (2026-08-21, commit d0beedf).** `Convert=` +
+  `.MinHealth/.MaxHealth/.MinRank/.MaxRank` + `.KeepHealth/.KeepVeterancy`, indexed
+  groups like ExperienceTo. First match wins; no match reverts to the configured
+  type (reverting is inherent). Quiet swap (unlink first, then Limbo+UnInit -- no
+  destruction weapons/kill credit); health carried as a percentage. NOT PLAY-TESTED.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already
