@@ -104,8 +104,10 @@ units-power-units, count caps and radius scope are additive.
   source child-types satisfy it). Source: `PowersSiblings=yes` /
   `PowersSiblings.Type=<types>` / `PowersSiblings.Index=<indices>`, unioned
   (singular `PowersSibling[.Type]` accepted as alias). Reconciled PER UNIT from its
-  own tick (host role AND sibling role), single `AttachmentPowerOff` owner,
-  EMP-guarded, detach-safe. Deployed; awaiting in-game test.
+  own tick (host role AND sibling role), single owner, EMP-guarded, detach-safe.
+  **CONFIRMED IN-GAME 2026-08-21**: `Powered=yes` (consumer) and `PowersSibling=yes`
+  (vague source) both work. Still untested: `.Type`/`.Index` targeting, the picky-
+  consumer rule, and detach-safety.
 - 💡 **Building-host consumers (deferred, Rex 2026-08-08).** PowersParent works on
   unit hosts; building hosts don't power down yet (only FootClass ticked). Add a
   reconcile call in the building-AI hook (0x43FE69), verifying Deactivate/Reactivate

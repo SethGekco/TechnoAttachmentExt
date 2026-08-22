@@ -1,18 +1,23 @@
 # Test checklist — TechnoAttachmentExt
 
-Everything below is **built and deployed but never played**. Ordered so that a
-failure early on explains failures later. Tag syntax: `docs/TAGS.md`.
+Ordered so that a failure early on explains failures later. Tag syntax:
+`docs/TAGS.md`.
+
+`[x]` = confirmed working in-game (date noted). Everything still `[ ]` is built and
+deployed but **not yet played**.
 
 ## 0. Preflight (do this first — it invalidates everything else)
 
-- [ ] **The DLL is actually injected.** Launch, then check `syringe.log` in the RA2
-      folder for a `TechnoAttachmentExt.dll` "Recognized DLL" line. It was **missing
-      from the inject list** until 2026-08-21 — features silently did nothing.
-      The Linux inject list is `Resources/Compatibility/Unix/wine-game.sh`, *not*
-      `ClientDefinitions.ini`.
-- [ ] **Build stamp matches.** `debug.log` prints `[TechnoAttachmentExt] Build: <date> <time>`.
-      Confirm it's the build you meant to test before trusting any result.
-- [ ] Game loads to a skirmish with no instant close and no `except.txt`.
+- [x] **The DLL is actually injected** — proven by the §3 sibling-power result.
+      If it ever stops working, check `syringe.log` for a `TechnoAttachmentExt.dll`
+      "Recognized DLL" line: it was **missing from the inject list** until
+      2026-08-21 and features silently did nothing. The Linux inject list is
+      `Resources/Compatibility/Unix/wine-game.sh`, *not* `ClientDefinitions.ini`.
+- [ ] **Build stamp matches** — still worth checking per session. `debug.log` prints
+      `[TechnoAttachmentExt] Build: <date> <time>`. The confirmed sibling-power
+      result only proves *some* build loaded; the power network, veterancy/health
+      gates and XP passing are newer, so confirm the stamp before testing those.
+- [x] Game loads to a skirmish with no instant close and no `except.txt`.
       *(Instant close + no dump = CRT abort, usually an INI-key buffer issue.)*
 - [ ] Baseline sanity: **select an MCV and deploy it.** This broke once before
       (selection was globally dead); it is the canary for the selection hooks.
@@ -39,7 +44,9 @@ failure early on explains failures later. Tag syntax: `docs/TAGS.md`.
 
 ## 3. Sibling power (`Powered` / `PowersSiblings`)
 Setup: one parent, slot A = source, slot B = consumer.
-- [ ] `PowersSiblings=yes` + `Powered=yes`: B dark until A is active.
+- [x] `PowersSiblings=yes` + `Powered=yes`: B dark until A is active.
+      **Confirmed 2026-08-21** — consumer side (`Powered=yes`) and vague source
+      side (`PowersSibling=yes` on the AttachmentType) both work.
 - [ ] `PowersSiblings.Index=<B's index>`: powers only that slot; a third
       consumer slot NOT listed stays dark.
 - [ ] `PowersSiblings.Type=<B's child type>`: powers by type; a different-typed
@@ -49,8 +56,8 @@ Setup: one parent, slot A = source, slot B = consumer.
 - [ ] **Picky consumer:** B with `Powered.Type=<A's type>` — a vague
       `PowersSiblings=yes` source of a *different* type must NOT power it; one of
       the accepted type must.
-- [ ] Singular aliases parse: `PowersSibling=`, `PowersSibling.Type=`,
-      `PowersSibling.Index=`.
+- [x] Singular alias `PowersSibling=` parses. **Confirmed 2026-08-21.**
+- [ ] Remaining singular aliases: `PowersSibling.Type=`, `PowersSibling.Index=`.
 - [ ] **Detach safety:** detach a dark consumer child from its parent → it must
       wake up, not stay dark forever.
 
