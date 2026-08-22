@@ -130,6 +130,37 @@ public:
 	};
 	std::vector<ExperienceRule> ExperienceRules;
 
+	// Convert-in-place. The slot keeps its index and its adoption by the parent
+	// while the CHILD swaps to a different TechnoType -- for upgrades and for
+	// damaged/wrecked variants. Same group syntax as ExperienceTo: one unindexed
+	// group plus contiguous [0], [1], ... (unindexed and [0] are separate rules):
+	//
+	//   Convert=DAMAGEDHULL          ; become this type while the window holds
+	//   Convert.MaxHealth=66
+	//   Convert[0]=WRECKEDHULL
+	//   Convert.MaxHealth[0]=33
+	//
+	// Rules are evaluated in order and the FIRST match wins, so list the most
+	// specific (lowest health / highest rank) last-to-first as needed. When NO rule
+	// matches, the slot reverts to its configured TechnoType -- reverting is
+	// inherent, there is no separate revert flag.
+	//
+	// Conditions read the HOST's health percentage / rank, matching
+	// Prerequisite.MinHealth and Prerequisite.MinRank.
+	struct ConvertRule
+	{
+		TechnoTypeClass* To = nullptr;
+		int MinHealth = -1; // -1 = unset. Percentages, 0-100.
+		int MaxHealth = -1;
+		int MinRank = -1;   // -1 = unset. Rank as int (rookie 0 / veteran 1 / elite 2).
+		int MaxRank = -1;
+	};
+	std::vector<ConvertRule> ConvertRules;
+	// Carry state across a conversion. Health is carried as a PERCENTAGE, so the
+	// replacement keeps the same damage ratio even with a different Strength.
+	Valueable<bool> Convert_KeepHealth;
+	Valueable<bool> Convert_KeepVeterancy;
+
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
 	Valueable<bool> PassSelection;
@@ -206,6 +237,9 @@ public:
 		, RequiresSlot_Type { }
 		, Decorative { false }
 		, ExperienceRules { }
+		, ConvertRules { }
+		, Convert_KeepHealth { true }
+		, Convert_KeepVeterancy { true }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
 		, PassSelection { false }

@@ -105,6 +105,60 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 				break;
 		}
 	}
+	// ---- convert-in-place rules -----------------------------------------------
+	// Same group shape as ExperienceTo: unindexed group, then contiguous [0], [1]...
+	// First matching rule wins; no match reverts to the slot's configured type.
+	this->ConvertRules.clear();
+	this->Convert_KeepHealth.Read(exINI, section, "Convert.KeepHealth");
+	this->Convert_KeepVeterancy.Read(exINI, section, "Convert.KeepVeterancy");
+	{
+		char key[64];
+
+		auto const readConvertGroup = [&](const char* suffix) -> bool
+		{
+			Nullable<TechnoTypeClass*> to;
+			_snprintf_s(key, sizeof(key), "Convert%s", suffix);
+			to.Read(exINI, section, key);
+			if (!to.isset())
+				return false; // no such group -> stop scanning
+
+			ConvertRule rule;
+			rule.To = to.Get();
+
+			Nullable<int> minHealth, maxHealth;
+			_snprintf_s(key, sizeof(key), "Convert.MinHealth%s", suffix);
+			minHealth.Read(exINI, section, key);
+			_snprintf_s(key, sizeof(key), "Convert.MaxHealth%s", suffix);
+			maxHealth.Read(exINI, section, key);
+
+			Nullable<Rank> minRank, maxRank;
+			_snprintf_s(key, sizeof(key), "Convert.MinRank%s", suffix);
+			minRank.Read(exINI, section, key);
+			_snprintf_s(key, sizeof(key), "Convert.MaxRank%s", suffix);
+			maxRank.Read(exINI, section, key);
+
+			rule.MinHealth = minHealth.isset() ? minHealth.Get() : -1;
+			rule.MaxHealth = maxHealth.isset() ? maxHealth.Get() : -1;
+			rule.MinRank = minRank.isset() ? static_cast<int>(minRank.Get()) : -1;
+			rule.MaxRank = maxRank.isset() ? static_cast<int>(maxRank.Get()) : -1;
+
+			if (rule.To)
+				this->ConvertRules.emplace_back(rule);
+
+			return true;
+		};
+
+		readConvertGroup(""); // unindexed group
+
+		for (int i = 0; ; ++i)
+		{
+			char suffix[16];
+			_snprintf_s(suffix, sizeof(suffix), "[%d]", i);
+			if (!readConvertGroup(suffix))
+				break;
+		}
+	}
+
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
 	this->LowSelectionPriority.Read(exINI, section, "LowSelectionPriority");
 	this->PassSelection.Read(exINI, section, "PassSelection");
@@ -181,6 +235,8 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->RequiresSlot_Index)
 		.Process(this->RequiresSlot_Type)
 		.Process(this->Decorative)
+		.Process(this->Convert_KeepHealth)
+		.Process(this->Convert_KeepVeterancy)
 		.Process(this->OccupiesCell)
 		.Process(this->LowSelectionPriority)
 		.Process(this->PassSelection)

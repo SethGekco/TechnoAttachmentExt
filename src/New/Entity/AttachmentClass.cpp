@@ -268,6 +268,98 @@ void AttachmentClass::CreateChild()
 	}
 }
 
+// ---- convert-in-place ------------------------------------------------------
+
+TechnoTypeClass* AttachmentClass::ResolveDesiredChildType()
+{
+	auto const pType = this->GetType();
+	if (!pType || pType->ConvertRules.empty())
+		return nullptr; // feature unused by this AttachmentType
+
+	auto const pHost = this->Parent;
+	if (!pHost)
+		return nullptr;
+
+	// Conditions read the HOST, matching Prerequisite.MinHealth/.MinRank.
+	int const hp = static_cast<int>(pHost->GetHealthPercentage() * 100.0);
+	int const rank = static_cast<int>(pHost->Veterancy.GetRemainingLevel());
+
+	for (auto const& rule : pType->ConvertRules)
+	{
+		if (!rule.To)
+			continue;
+		if (rule.MinHealth >= 0 && hp < rule.MinHealth)
+			continue;
+		if (rule.MaxHealth >= 0 && hp > rule.MaxHealth)
+			continue;
+		if (rule.MinRank >= 0 && rank < rule.MinRank)
+			continue;
+		if (rule.MaxRank >= 0 && rank > rule.MaxRank)
+			continue;
+
+		return rule.To; // first match wins
+	}
+
+	// Nothing matches -> back to the slot's configured type. This is what makes
+	// reverting automatic, so there is no separate revert flag.
+	return this->GetChildType();
+}
+
+void AttachmentClass::ConvertChildTo(TechnoTypeClass* pNewType)
+{
+	auto const pOld = this->Child;
+	if (!pOld || !pNewType)
+		return;
+
+	auto const pType = this->GetType();
+
+	// Capture carry-over state before the old instance goes away.
+	double const healthPercent = pOld->GetHealthPercentage();
+	float const veterancy = pOld->Veterancy.Veterancy;
+	HouseClass* const pOwner = pOld->Owner ? pOld->Owner : this->Parent->Owner;
+
+	// Unlink FIRST so removing the old child cannot re-enter this slot through the
+	// destruction path (HandleDestructionAsChild -> ChildDestroyed), then remove it
+	// quietly: this is a replacement, not a death, so no destruction weapons, no
+	// ParentDestructionMission, no kill credit.
+	this->DetachChildCore();
+	pOld->Limbo();   // virtual: dispatches to the real per-class Limbo
+	pOld->UnInit();
+
+	auto const pNew = abstract_cast<TechnoClass*>(pNewType->CreateObject(pOwner));
+	if (!pNew)
+	{
+		Debug::Log("[" __FUNCTION__ "] Failed to create converted child %s for parent %s!\n",
+			pNewType->ID, this->Parent->GetTechnoType()->ID);
+		return; // slot is now empty; the respawn path will refill it
+	}
+
+	if (!this->AttachChild(pNew))
+	{
+		pNew->UnInit(); // could not adopt it -- don't leak an orphan on the map
+		return;
+	}
+
+	if (pType->Convert_KeepHealth)
+	{
+		// Carried as a PERCENTAGE so the replacement keeps the same damage ratio
+		// even when the two types have different Strength.
+		int const strength = pNew->GetTechnoType()->Strength;
+		int hp = static_cast<int>(strength * healthPercent);
+		if (hp < 1)
+			hp = 1; // never spawn it pre-dead
+		if (hp > strength)
+			hp = strength;
+		pNew->Health = hp;
+	}
+
+	if (pType->Convert_KeepVeterancy)
+		pNew->Veterancy.Veterancy = veterancy;
+
+	// The new child is left for the next AI tick to unlimbo and position, exactly
+	// as a freshly created one is.
+}
+
 void AttachmentClass::AI()
 {
 	TAEXT_DIAG_COUNT("AttachmentClass::AI");
@@ -295,6 +387,18 @@ void AttachmentClass::AI()
 
 	if (this->Child)
 	{
+		// Convert-in-place: if the child should currently be a different TechnoType
+		// (damaged/wrecked variant, upgrade), swap it now and let the next tick
+		// unlimbo and position the replacement -- exactly like a fresh child.
+		if (auto const pDesired = this->ResolveDesiredChildType())
+		{
+			if (this->Child->GetTechnoType() != pDesired)
+			{
+				this->ConvertChildTo(pDesired);
+				return;
+			}
+		}
+
 		// Hide the child (limbo) while the host is in limbo OR (for a dynamic
 		// prerequisite) the prerequisite is unmet; show it again otherwise.
 		// Static prerequisites don't hide/show live (handled at create time).

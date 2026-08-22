@@ -55,6 +55,15 @@ public:
 
 	void OnCreated();
 	void CreateChild();
+
+	// Convert-in-place: which TechnoType SHOULD this slot's child be right now?
+	// Returns null when the feature is unused. Otherwise the first matching
+	// ConvertRule's target, or the slot's configured type when none match (that is
+	// what makes reverting automatic).
+	TechnoTypeClass* ResolveDesiredChildType();
+	// Swap the existing child for a fresh one of pNewType, keeping this slot and
+	// its adoption by the parent. Quiet: no destruction weapons, no death effects.
+	void ConvertChildTo(TechnoTypeClass* pNewType);
 	void AI();
 	void Destroy(TechnoClass* pSource);
 	void ChildDestroyed();
