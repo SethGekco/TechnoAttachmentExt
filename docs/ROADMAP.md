@@ -94,11 +94,11 @@ units-power-units, count caps and radius scope are additive.
 - ✅ **C1 (v1 done, 2026-08-08, commit cbbd123).** `[AttachmentType] PowersParent=yes`
   — while the attachment's child is active it powers its host; a host with ≥1
   PowersParent slot goes EMP-dark (`Deactivate`) when it has no active powering
-  child and reactivates when one returns. Runs in the synced FootClass tick;
-  ownership flag `TechnoExt::AttachmentPowerOff` (serialized), EMP-aware
-  reactivation. Resolver (`TechnoExt::UpdateAttachmentPower`) written as the
-  general "does this consumer have a live source?" query. Deployed; awaiting
-  in-game test. **v1 scope = unit hosts** (building-host consumers not yet ticked).
+  child and reactivates when one returns. Runs in the synced tick; ownership via
+  `TechnoExt::DeactivationReasons` (serialized), EMP-aware reactivation. Resolver
+  (`TechnoExt::UpdateAttachmentGates`) written as the general "does this consumer
+  have a live source?" query. **CONFIRMED IN-GAME for vehicle hosts**; building
+  hosts added 2026-08-21 and not yet play-tested.
 - ✅ **C1 sibling powering (done, 2026-08-08, commit ac51ecd).** Consumer:
   `Powered=yes` (dark unless powered) + `Powered.Type=<types>` (restrict which
   source child-types satisfy it). Source: `PowersSiblings=yes` /
@@ -108,10 +108,6 @@ units-power-units, count caps and radius scope are additive.
   **CONFIRMED IN-GAME 2026-08-21**: `Powered=yes` (consumer) and `PowersSibling=yes`
   (vague source) both work. Still untested: `.Type`/`.Index` targeting, the picky-
   consumer rule, and detach-safety.
-- 💡 **Building-host consumers (deferred, Rex 2026-08-08).** PowersParent works on
-  unit hosts; building hosts don't power down yet (only FootClass ticked). Add a
-  reconcile call in the building-AI hook (0x43FE69), verifying Deactivate/Reactivate
-  behave sanely on a BuildingClass.
 - 💡 **C1 (next). `PowersUnit=` on UNITS generally** (not just attachment children):
   a unit powers other units by selection — the reverse (parent-powers-child), and
   the springboard to **radius/regional** powering, then a graph that "travels
