@@ -46,6 +46,8 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	this->AttachmentTopLayerMinHeight.Read(exINI, pSection, "AttachmentTopLayerMinHeight");
 	this->AttachmentUndergroundLayerMaxHeight.Read(exINI, pSection, "AttachmentUndergroundLayerMaxHeight");
 
+	this->Experience_Multiplier.Read(exINI, pSection, "Experience.Multiplier");
+
 	// ---- power network ----
 	this->PowerSource.Read(exINI, pSection, "PowerSource");
 	this->PowerSource_Range.Read(exINI, pSection, "PowerSource.Range");
@@ -153,6 +155,7 @@ void TechnoTypeExt::ExtData::Serialize(T& Stm)
 		.Process(this->AttachmentTopLayerMinHeight)
 		.Process(this->AttachmentUndergroundLayerMaxHeight)
 		.Process(this->TurretOffset)
+		.Process(this->Experience_Multiplier)
 		.Process(this->PowerSource)
 		.Process(this->PowerSource_Range)
 		.Process(this->PowerSource_Types)

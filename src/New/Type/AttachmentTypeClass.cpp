@@ -41,27 +41,70 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->RequiresSlot_Index.Read(exINI, section, "RequiresSlot.Index");
 	this->RequiresSlot_Type.Read(exINI, section, "RequiresSlot.Type");
 	this->Decorative.Read(exINI, section, "Decorative");
-	// ExperienceTo is a comma-separated relation list, tokenized by hand.
-	this->ExperienceTo.clear();
+	// ---- A2 experience rules -------------------------------------------------
+	// One unindexed group plus contiguous [0], [1], ... groups. The unindexed group
+	// and [0] are INDEPENDENT rules (deliberately not aliases), so a modder can use
+	// both. The [N] scan stops at the first index with no ExperienceTo key.
+	this->ExperienceRules.clear();
 	{
-		char relBuffer[128];
-		if (pINI->ReadString(section, "ExperienceTo", "", relBuffer, sizeof(relBuffer)) > 0)
+		// Longest key formatted below is "ExperienceTo.Share[NN]" -- 64 bytes is
+		// ample. (An undersized buffer here is what once caused a silent CRT abort
+		// at load, so keep the headroom.)
+		char key[64];
+		char buffer[256];
+
+		auto const readGroup = [&](const char* suffix) -> bool
 		{
+			_snprintf_s(key, sizeof(key), "ExperienceTo%s", suffix);
+			if (pINI->ReadString(section, key, "", buffer, sizeof(buffer)) <= 0)
+				return false; // no such group
+
+			ExperienceRule rule;
+
 			char* context = nullptr;
-			for (char* tok = strtok_s(relBuffer, ",", &context); tok; tok = strtok_s(nullptr, ",", &context))
+			for (char* tok = strtok_s(buffer, ",", &context); tok; tok = strtok_s(nullptr, ",", &context))
 			{
-				while (*tok == ' ') ++tok;
+				while (*tok == ' ')
+					++tok;
+
 				AttachmentRelation rel;
 				if (TAExt_ParseRelation(tok, rel))
-					this->ExperienceTo.push_back(rel);
+					rule.To.push_back(rel);
 				else
-					Debug::INIParseFailed(section, "ExperienceTo", tok,
-						"Expected relations (self/parent/root/child/sibling/children/siblings)");
+					Debug::INIParseFailed(section, key, tok,
+						"Expected relations (parent/root/child/sibling/children/siblings)");
 			}
+
+			_snprintf_s(key, sizeof(key), "ExperienceTo.Share%s", suffix);
+			rule.Share = pINI->ReadInteger(section, key, 100);
+
+			_snprintf_s(key, sizeof(key), "ExperienceTo.Drain%s", suffix);
+			rule.Drain = pINI->ReadBool(section, key, false);
+
+			_snprintf_s(key, sizeof(key), "ExperienceTo.Slot%s", suffix);
+			rule.Slot = pINI->ReadInteger(section, key, 0);
+
+			char idBuffer[64];
+			_snprintf_s(key, sizeof(key), "ExperienceTo.ID%s", suffix);
+			if (pINI->ReadString(section, key, "", idBuffer, sizeof(idBuffer)) > 0)
+				rule.ID = idBuffer;
+
+			if (!rule.To.empty())
+				this->ExperienceRules.emplace_back(std::move(rule));
+
+			return true; // key existed: keep scanning further indices
+		};
+
+		readGroup(""); // the unindexed group
+
+		for (int i = 0; ; ++i)
+		{
+			char suffix[16];
+			_snprintf_s(suffix, sizeof(suffix), "[%d]", i);
+			if (!readGroup(suffix))
+				break;
 		}
 	}
-	this->ExperienceTo_Share.Read(exINI, section, "ExperienceTo.Share");
-	this->ExperienceTo_Drain.Read(exINI, section, "ExperienceTo.Drain");
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
 	this->LowSelectionPriority.Read(exINI, section, "LowSelectionPriority");
 	this->PassSelection.Read(exINI, section, "PassSelection");
@@ -138,8 +181,6 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->RequiresSlot_Index)
 		.Process(this->RequiresSlot_Type)
 		.Process(this->Decorative)
-		.Process(this->ExperienceTo_Share)
-		.Process(this->ExperienceTo_Drain)
 		.Process(this->OccupiesCell)
 		.Process(this->LowSelectionPriority)
 		.Process(this->PassSelection)

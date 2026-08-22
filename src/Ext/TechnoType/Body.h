@@ -35,6 +35,13 @@ public:
 		// Read from the art INI [Image]TurretOffset= (same as Phobos).
 		Valueable<PartialVector3D<int>> TurretOffset;
 
+		// Experience income multiplier for ANY techno (attachments included, since an
+		// attachment child is just a TechnoType). Scales veterancy the moment it is
+		// gained, BEFORE any attachment experience-sharing distributes it -- so
+		// "earns half XP" means everything downstream works from the halved figure.
+		// 1.0 = vanilla, 0 = earns nothing.
+		Valueable<double> Experience_Multiplier;
+
 		// ---- Power network (regular TechnoTypes, not just attachments) ----
 		// A source powers consumers within Range cells. Relays that are themselves
 		// powered re-broadcast, so a chain of relays carries power across the map
@@ -86,6 +93,7 @@ public:
 			, AttachmentTopLayerMinHeight { RulesExt::Global()->AttachmentTopLayerMinHeight }
 			, AttachmentUndergroundLayerMaxHeight { RulesExt::Global()->AttachmentUndergroundLayerMaxHeight }
 			, TurretOffset { { 0, 0, 0 } }
+			, Experience_Multiplier { 1.0 }
 			, PowerSource { false }
 			, PowerSource_Range { 0 }
 			, PowerSource_Types { }

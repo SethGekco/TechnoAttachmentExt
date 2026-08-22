@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include <Utilities/Enumerable.h>
 #include <Utilities/Template.h>
@@ -96,19 +97,38 @@ public:
 	Valueable<bool> Decorative;
 
 	// A2 -- experience passing. When THIS attachment's child earns veterancy, route
-	// a share of the gain to the listed relatives (F0b relations):
-	//   ExperienceTo=parent,siblings   -> who receives (self/parent/root/child/
-	//                                     sibling/children/siblings)
-	//   ExperienceTo.Share=100         -> percent of the gain each recipient gets
-	//   ExperienceTo.Drain=no          -> yes = the earner loses what it passed on
-	// Detected by watching the child's veterancy each synced tick, so it needs no
-	// new game hook and stays deterministic.
-	// Parsed by hand (Phobos's ValueableVector parser assumes an AbstractType with
-	// a Find(), which an enum has no way to provide). INI-derived config, identical
-	// across peers, so it is not serialized -- same treatment as Prerequisite_Lists.
-	std::vector<AttachmentRelation> ExperienceTo;
-	Valueable<int> ExperienceTo_Share;
-	Valueable<bool> ExperienceTo_Drain;
+	// shares of the gain to relatives (F0b relations). Config comes in independent
+	// GROUPS: one unindexed group plus contiguous [0], [1], ... groups. The
+	// unindexed group and [0] are SEPARATE rules, not aliases, so both can be used
+	// together:
+	//
+	//   ExperienceTo=parent            ; unindexed group
+	//   ExperienceTo.Share=100
+	//   ExperienceTo.Drain=no
+	//   ExperienceTo[0]=children       ; a second, independent group
+	//   ExperienceTo.Share[0]=50
+	//   ExperienceTo.Drain[0]=yes
+	//   ExperienceTo.Slot[0]=2         ; which slot singular child/sibling means
+	//   ExperienceTo.ID[0]=SomeSlotID  ; ...or address that slot by its ID
+	//
+	// Relations: parent | root | child | sibling | children | siblings. ("self" is
+	// accepted by the shared parser but is a no-op here -- an earner cannot pay
+	// itself.) Singular child/sibling pick ONE slot, chosen by .Slot/.ID; the
+	// plural forms take every slot.
+	//
+	// Detected by watching veterancy each synced tick, so no new game hook and
+	// deterministic. Parsed by hand (Phobos's ValueableVector parser assumes an
+	// AbstractType with a Find(), which an enum cannot provide). INI-derived config,
+	// identical across peers -> not serialized, same as Prerequisite_Lists.
+	struct ExperienceRule
+	{
+		std::vector<AttachmentRelation> To;
+		int Share = 100;    // percent of the (multiplied) gain each recipient gets
+		bool Drain = false; // yes = a move rather than a copy: earner loses what it gave
+		int Slot = 0;       // slot for singular child/sibling
+		std::string ID;     // ...or slot ID; non-empty wins over Slot
+	};
+	std::vector<ExperienceRule> ExperienceRules;
 
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
@@ -185,9 +205,7 @@ public:
 		, RequiresSlot_Index { }
 		, RequiresSlot_Type { }
 		, Decorative { false }
-		, ExperienceTo { }
-		, ExperienceTo_Share { 100 }
-		, ExperienceTo_Drain { false }
+		, ExperienceRules { }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
 		, PassSelection { false }

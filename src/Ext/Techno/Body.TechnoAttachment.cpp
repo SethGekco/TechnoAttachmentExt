@@ -594,14 +594,23 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 	}
 }
 
-// A2 -- experience passing. Watches this techno's veterancy each synced tick; a
-// positive delta is newly-earned XP, and a share of it is routed to whichever
-// relatives its AttachmentType names (F0b relations). Polling instead of hooking
-// the game's XP grant means no new hook, no ordering hazard with other DLLs, and
-// it catches XP from every source (kills, crates, script) uniformly.
+// A2 -- experience income multiplier + experience passing.
 //
-// Only attached children carry the config (the tag lives on AttachmentType), so
-// this is a cheap early-out for everything else.
+// Watches this techno's veterancy each synced tick; a positive delta is newly
+// earned XP. Polling instead of hooking the game's XP grant means no new hook, no
+// ordering hazard with other DLLs, and it catches XP from every source (kills,
+// crates, script) uniformly.
+//
+// Pipeline, in order:
+//   1. Experience.Multiplier (TechnoType, applies to ANY techno) scales the gain
+//      the moment it lands. "Earns half XP" therefore means everything downstream
+//      works from the halved figure.
+//   2. If this techno is an attached child whose AttachmentType defines experience
+//      rules, each rule pays out its Share of the (multiplied) gain to the
+//      relatives it names.
+//   3. Rules flagged Drain are a MOVE rather than a copy: the earner loses what
+//      those rules paid out, summed and clamped so it can never lose more than it
+//      gained this tick.
 void TechnoExt::UpdateExperienceSharing(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
@@ -611,7 +620,7 @@ void TechnoExt::UpdateExperienceSharing(TechnoClass* pThis)
 	float const current = pThis->Veterancy.Veterancy;
 
 	// First observation (fresh unit, or first tick after a load): record and stop,
-	// so we never treat the initial value as a gain.
+	// so the initial value is never mistaken for a gain.
 	if (!pExt->LastVeterancyValid)
 	{
 		pExt->LastVeterancy = current;
@@ -619,44 +628,78 @@ void TechnoExt::UpdateExperienceSharing(TechnoClass* pThis)
 		return;
 	}
 
-	float const delta = current - pExt->LastVeterancy;
-	pExt->LastVeterancy = current;
-
-	if (delta <= 0.0f)
-		return; // no gain (or a loss -- de-vet is not propagated)
-
-	auto const pAtt = pExt->ParentAttachment;
-	auto const pType = pAtt ? pAtt->GetType() : nullptr;
-	if (!pType || pType->ExperienceTo.empty())
-		return;
-
-	int const sharePercent = pType->ExperienceTo_Share;
-	if (sharePercent <= 0)
-		return;
-
-	double const share = delta * (sharePercent / 100.0);
-	if (share <= 0.0)
-		return;
-
-	bool gaveAny = false;
-	for (auto const relation : pType->ExperienceTo)
+	float const raw = current - pExt->LastVeterancy;
+	if (raw <= 0.0f)
 	{
-		for (auto const pTarget : TechnoExt::ResolveRelatives(pThis, relation))
-		{
-			if (!pTarget || pTarget == pThis || !pTarget->IsAlive)
-				continue;
+		pExt->LastVeterancy = current; // track losses too (de-vet is not propagated)
+		return;
+	}
 
-			pTarget->Veterancy.Add(share);
-			gaveAny = true;
+	// --- 1. income multiplier (any techno, attached or not) ---
+	double gain = raw;
+	if (auto const pTypeExt = TechnoTypeExt::ExtMap.Find(pThis->GetTechnoType()))
+	{
+		double const mult = pTypeExt->Experience_Multiplier;
+		if (mult != 1.0)
+		{
+			gain = raw * (mult > 0.0 ? mult : 0.0);
+			float const kept = pExt->LastVeterancy + static_cast<float>(gain);
+			pThis->Veterancy.Veterancy = kept > 0.0f ? kept : 0.0f;
 		}
 	}
 
-	// Drain: the earner keeps only what it didn't pass on. Clamped at zero, and
-	// applied once regardless of how many recipients there were, so sharing with
-	// several relatives doesn't multiply the cost.
-	if (gaveAny && pType->ExperienceTo_Drain)
+	pExt->LastVeterancy = pThis->Veterancy.Veterancy;
+
+	if (gain <= 0.0)
+		return;
+
+	// --- 2. distribute, per rule group ---
+	auto const pAtt = pExt->ParentAttachment;
+	auto const pType = pAtt ? pAtt->GetType() : nullptr;
+	if (!pType || pType->ExperienceRules.empty())
+		return;
+
+	double drained = 0.0;
+
+	for (auto const& rule : pType->ExperienceRules)
 	{
-		float const kept = current - static_cast<float>(share);
+		if (rule.To.empty() || rule.Share <= 0)
+			continue;
+
+		double const amount = gain * (rule.Share / 100.0);
+		if (amount <= 0.0)
+			continue;
+
+		// Slot selection for the singular child/sibling relations: an ID (when set)
+		// wins over the numeric slot, signalled to the resolver by a negative slot.
+		bool const useId = !rule.ID.empty();
+		int const slot = useId ? -1 : rule.Slot;
+		const char* const id = useId ? rule.ID.c_str() : nullptr;
+
+		bool gave = false;
+		for (auto const relation : rule.To)
+		{
+			for (auto const pTarget : TechnoExt::ResolveRelatives(pThis, relation, slot, id))
+			{
+				if (!pTarget || pTarget == pThis || !pTarget->IsAlive)
+					continue; // note: "self" cannot pay itself
+
+				pTarget->Veterancy.Add(amount);
+				gave = true;
+			}
+		}
+
+		if (gave && rule.Drain)
+			drained += amount;
+	}
+
+	// --- 3. drain (move rather than copy) ---
+	if (drained > 0.0)
+	{
+		if (drained > gain)
+			drained = gain; // cannot lose more than was earned this tick
+
+		float const kept = pThis->Veterancy.Veterancy - static_cast<float>(drained);
 		pThis->Veterancy.Veterancy = kept > 0.0f ? kept : 0.0f;
 		pExt->LastVeterancy = pThis->Veterancy.Veterancy;
 	}

@@ -115,6 +115,10 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 	// unit-only assumptions).
 	TechnoExt::UpdateAttachmentGates(pThis);
 
+	// Experience.Multiplier is a TechnoType tag, so buildings need this too (they
+	// can earn veterancy); the sharing half is a no-op unless they are attached.
+	TechnoExt::UpdateExperienceSharing(pThis);
+
 	return 0;
 }
 
