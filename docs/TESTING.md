@@ -112,16 +112,33 @@ Setup: one parent, slot A = source, slot B = consumer.
       selects the **host**, it isn't mouse-solid, and it doesn't block cells.
 - [ ] It doesn't accidentally turn a child you *want* selectable into a decoration.
 
-## 8b. Experience passing (`ExperienceTo`)
+## 8b. Experience — multiplier + passing
+- [ ] `Experience.Multiplier=0.5` on a **normal unit** (no attachments): it ranks up
+      at roughly half the usual rate.
+- [ ] `Experience.Multiplier=0` → unit never gains veterancy.
+- [ ] Multiplier also works on an **attachment child** and on a **building**.
 - [ ] `ExperienceTo=parent`: kill things with the **child** → the **host** gains
       veterancy (watch for the promotion chevron).
 - [ ] `ExperienceTo=siblings`: other attachments on the same parent gain instead.
-- [ ] `ExperienceTo.Share=50` → recipients gain roughly half of what the child earned.
-- [ ] `ExperienceTo.Drain=yes` → the child's own rank stops climbing (it hands the
-      XP over); with `Drain=no` (default) the XP is **duplicated**, not moved.
+- [ ] `ExperienceTo.Share=50` → recipients gain roughly half of the child's gain.
+- [ ] **Groups coexist:** unindexed `ExperienceTo=parent` *plus* `ExperienceTo[0]=children`
+      → **both** fire (they are separate rules, not aliases). This is the key new behaviour.
+- [ ] Per-group shares differ: `.Share=100` and `.Share[0]=25` pay out different amounts.
+- [ ] `ExperienceTo[1]=child` + `ExperienceTo.Slot[1]=2` → only the slot-2 child gains,
+      not slot 0.
+- [ ] `ExperienceTo.ID[1]=<slot ID>` addresses the same slot by ID and wins over `.Slot`.
+- [ ] `ExperienceTo.Drain[0]=yes` on one group only → the earner loses that group's
+      share but keeps what a non-draining group copied.
+- [ ] **Drain clamp:** several draining groups summing over 100% → earner drops to
+      zero gain, never negative veterancy.
+- [ ] Multiplier + sharing together: with `Experience.Multiplier=0.5` and
+      `.Share=100`, the recipient gets the **halved** amount (multiplier applies first).
+- [ ] `root` vs `parent` differ only with **nested** attachments (child of a child).
 - [ ] XP from a **crate** or script, not just kills, also propagates.
 - [ ] Save/load mid-game does **not** cause a phantom XP payout on the next frame.
 - [ ] Bad relation name (`ExperienceTo=nonsense`) logs a parse error, no crash.
+- [ ] A gap in the index list (`[0]` and `[2]`, no `[1]`) stops at the gap — `[2]`
+      is ignored. Confirm that matches your expectation.
 
 ## 9. Interaction / safety (where bugs hide)
 - [ ] **EMP a dark consumer**, then restore its power while EMP is still active →

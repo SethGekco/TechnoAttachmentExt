@@ -142,18 +142,50 @@ Prerequisite.MinRank=veteran
 Prerequisite.MaxHealth=49
 ```
 
-### Experience passing
+### Experience: income multiplier + passing
+
+**Income multiplier — on any TechnoType** (units, buildings, and attachment
+children alike, since a child is just a TechnoType):
+```ini
+[SomeUnit]
+Experience.Multiplier=0.5   ; earns 50% XP. 1.0 = vanilla, 0 = earns none
+```
+Applied the moment XP lands, **before** any sharing — so everything downstream
+works from the multiplied figure.
+
+**Passing — on AttachmentType, in independent rule groups.** One unindexed group
+plus contiguous `[0]`, `[1]`, … The unindexed group and `[0]` are **separate
+rules, not aliases**, so you can use both:
 ```ini
 [SomeAttachmentType]
-ExperienceTo=parent,siblings   ; who receives XP this child earns. Relations:
-                               ; self | parent | root | child | sibling |
-                               ; children | siblings
-ExperienceTo.Share=100         ; percent of the gain each recipient gets
-ExperienceTo.Drain=no          ; yes = the earner keeps only what it didn't pass on
+ExperienceTo=parent            ; unindexed group
+ExperienceTo.Share=100
+ExperienceTo.Drain=no
+
+ExperienceTo[0]=children       ; a second, independent group
+ExperienceTo.Share[0]=50
+ExperienceTo.Drain[0]=yes
+
+ExperienceTo[1]=child          ; a third: one specific slot
+ExperienceTo.Slot[1]=2         ; which slot the singular child/sibling means
+;ExperienceTo.ID[1]=SomeSlotID ; ...or name the slot by its ID (wins over .Slot)
 ```
-Detected by watching the child's veterancy each synced tick, so it catches XP from
-**any** source (kills, crates, script). De-vet is not propagated. Drain is applied
-once per gain regardless of how many relatives received it.
+Relations: `parent` | `root` | `child` | `sibling` | `children` | `siblings`.
+- `parent` = one level up; `root` = all the way to the top of the chain (they
+  differ only when attachments are **nested**).
+- Singular `child`/`sibling` take **one** slot, chosen by `.Slot`/`.ID`; the plural
+  forms take **every** slot.
+- `self` is accepted by the parser but does nothing here — an earner can't pay
+  itself.
+
+`Drain=no` (default) **copies** XP — the recipient gains and the earner keeps its
+own. `Drain=yes` **moves** it: the earner loses what that group paid out, summed
+across draining groups and clamped so it can never lose more than it earned that
+tick. Multiplier and Drain are different knobs — the multiplier decides how much
+is earned at all, Drain decides copy-vs-move per group.
+
+Detected by watching veterancy each synced tick, so it catches XP from **any**
+source (kills, crates, script). De-vet is not propagated.
 
 ---
 
