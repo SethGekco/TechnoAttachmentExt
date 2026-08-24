@@ -309,6 +309,18 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   type (reverting is inherent). Quiet swap (unlink first, then Limbo+UnInit -- no
   destruction weapons/kill credit); health carried as a percentage. NOT PLAY-TESTED.
 
+- ✅ **Per-slot overrides for the new tags (2026-08-21, commit 9e88de0).**
+  `AttachmentN.PowersParent/.Powered/.PowersSibling(s)/.PoweredByParent/
+  .RequiresPassengers/.PassSelection/.TransparentToMouse`. Restores the documented
+  TechnoType → AttachmentType → AttachmentN precedence, which every recently-added
+  tag was violating. All call sites go through `AttachmentClass::Resolve*()`.
+- ⏸ **G1 ammo-by-attachment — blocked as specified (2026-08-21).** `TechnoClass::Ammo`
+  is per-instance (safe to modify), but **`TechnoTypeClass::Ammo` (capacity) is
+  shared by every unit of that type** — writing it would change ammo army-wide.
+  So "attachment raises the parent's ammo CAPACITY" needs hooks at the max-ammo read
+  sites, not a field write. Current-ammo granting with exact revert is feasible now;
+  capacity is a separate piece of work. Needs a design call before building.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already

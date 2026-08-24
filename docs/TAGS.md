@@ -239,7 +239,19 @@ InheritCommands.StopCommand=yes
 InheritCommands.DeployCommand=yes
 ```
 
-Per-slot variants exist for the prerequisite family and `YSortPosition`, e.g.:
+### Per-slot overrides
+`AttachmentN.<tag>` on the host **overrides** the AttachmentType, so one
+AttachmentType can be reused across slots that need different behaviour
+(precedence: TechnoType → AttachmentType → `AttachmentN.*`). Available for:
+
+`PowersParent`, `Powered`, `PowersSibling(s)`, `PoweredByParent`,
+`RequiresPassengers`, `PassSelection`, `TransparentToMouse`, `YSortPosition`,
+and the prerequisite family.
+
+> The **list-valued** companions (`Powered.Type`, `PowersSiblings.Type/.Index`,
+> `RequiresSlot.*`) are still AttachmentType-level only.
+
+Example:
 ```ini
 [SomeParentTechnoType]
 Attachment0.Type=TestAttach

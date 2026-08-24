@@ -56,7 +56,7 @@ Setup: one parent, slot A = source, slot B = consumer.
 - [ ] **Picky consumer:** B with `Powered.Type=<A's type>` — a vague
       `PowersSiblings=yes` source of a *different* type must NOT power it; one of
       the accepted type must.
-- [x] Singular alias `PowersSibling=` parses. **Confirmed 2026-08-21.**
+- [x] Both spellings parse: `PowersSibling=` and `PowersSiblings=`. **Confirmed 2026-08-21.**
 - [ ] Remaining singular aliases: `PowersSibling.Type=`, `PowersSibling.Index=`.
 - [ ] **Detach safety:** detach a dark consumer child from its parent → it must
       wake up, not stay dark forever.
@@ -165,6 +165,20 @@ Setup: one parent, slot A = source, slot B = consumer.
       tick → no flicker storm, no crash, no leaked units piling up on the map.
 - [ ] Save/load right after a conversion → correct type, no duplicate child.
 - [ ] **Multiplayer**: conversions on both peers stay in step (no desync).
+
+## 8d. Per-slot overrides (`AttachmentN.*` has the final word)
+One AttachmentType reused on two slots, with the slot overriding it:
+- [ ] `AttachmentN.Powered=no` on a slot whose AttachmentType has `Powered=yes`
+      → that slot ignores power while the other slot still goes dark.
+- [ ] `AttachmentN.PowersParent=yes` on a slot whose AttachmentType doesn't set it
+      → only that slot powers the host.
+- [ ] `AttachmentN.PowersSibling(s)=` override (both spellings accepted).
+- [ ] `AttachmentN.PoweredByParent=` override.
+- [ ] `AttachmentN.RequiresPassengers=` override.
+- [ ] `AttachmentN.PassSelection=` / `.TransparentToMouse=` override.
+- [ ] **Unset = inherit:** a slot that sets none of these behaves exactly as the
+      AttachmentType says (regression check on everything already confirmed).
+- [ ] Save/load preserves per-slot overrides.
 
 ## 9. Interaction / safety (where bugs hide)
 - [ ] **EMP a dark consumer**, then restore its power while EMP is still active →
