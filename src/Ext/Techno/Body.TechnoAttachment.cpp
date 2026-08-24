@@ -386,6 +386,8 @@ static bool TAExt_ChildActive(AttachmentClass* pSlot)
 static bool TAExt_SiblingSourcePowers(
 	AttachmentClass* pSrc, AttachmentTypeClass* pSrcType,
 	AttachmentClass* pCon, AttachmentTypeClass* pConType, size_t cIndex)
+	// NOTE: the boolean flags come from the SLOT resolvers (per-slot override wins);
+	// only the list-valued targeting still reads the AttachmentType.
 {
 	auto const pConChild = pCon->Child;
 	auto const pSrcChild = pSrc->Child;
@@ -412,7 +414,7 @@ static bool TAExt_SiblingSourcePowers(
 	}
 
 	// Non-picky consumer: any targeting mode powers it.
-	return pSrcType->PowersSiblings || specific;
+	return pSrc->ResolvePowersSiblings() || specific;
 }
 
 // Is this techno currently dark for any reason OTHER than our own claim? Used so a
@@ -441,7 +443,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 		for (auto const& pSlot : pExt->ChildAttachments)
 		{
 			auto const pType = pSlot ? pSlot->GetType() : nullptr;
-			if (!pType || !pType->PowersParent)
+			if (!pType || !pSlot->ResolvePowersParent())
 				continue;
 			hostRole = true;
 			if (TAExt_ChildActive(pSlot.get()))
@@ -461,7 +463,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 	if (auto const pSelfSlot = pExt->ParentAttachment)
 	{
 		auto const pSelfType = pSelfSlot->GetType();
-		if (pSelfType && pSelfType->Powered)
+		if (pSelfType && pSelfSlot->ResolvePowered())
 		{
 			isConsumer = true;
 			bool sibPowered = false;
@@ -496,7 +498,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 		auto const pSelfType = pSelfSlot->GetType();
 		auto const pParent = pSelfSlot->Parent;
 
-		if (pSelfType && pSelfType->PoweredByParent)
+		if (pSelfType && pSelfSlot->ResolvePoweredByParent())
 		{
 			isConsumer = true;
 			// Dark if the parent is gone or itself dark -- darkness propagates down
@@ -510,10 +512,11 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 			bool required = false;
 			bool met = true;
 
-			if (pSelfType->RequiresPassengers > 0)
+			int const requiredPassengers = pSelfSlot->ResolveRequiresPassengers();
+			if (requiredPassengers > 0)
 			{
 				required = true;
-				met = met && (pParent->Passengers.NumPassengers >= pSelfType->RequiresPassengers);
+				met = met && (pParent->Passengers.NumPassengers >= requiredPassengers);
 			}
 
 			auto const& rIdx = pSelfType->RequiresSlot_Index;

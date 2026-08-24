@@ -60,6 +60,18 @@ public:
 	// Returns null when the feature is unused. Otherwise the first matching
 	// ConvertRule's target, or the slot's configured type when none match (that is
 	// what makes reverting automatic).
+	// Per-slot override resolvers. Precedence: AttachmentN.* (slot) beats the
+	// AttachmentType, matching the documented TechnoType -> AttachmentType ->
+	// Attachment-tag order. Always go through these rather than reading
+	// GetType()->X directly, or per-slot overrides silently do nothing.
+	bool ResolvePowersParent();
+	bool ResolvePowered();
+	bool ResolvePowersSiblings();
+	bool ResolvePoweredByParent();
+	int  ResolveRequiresPassengers();
+	bool ResolvePassSelection();
+	bool ResolveTransparentToMouse();
+
 	TechnoTypeClass* ResolveDesiredChildType();
 	// Swap the existing child for a fresh one of pNewType, keeping this slot and
 	// its adoption by the parent. Quiet: no destruction weapons, no death effects.

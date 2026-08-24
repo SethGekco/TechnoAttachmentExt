@@ -78,6 +78,19 @@ public:
 			// Per-slot draw-order override; takes precedence over the
 			// AttachmentType's YSortPosition when set.
 			Nullable<AttachmentYSortPosition> YSortPosition;
+			// Per-slot overrides for the behaviour flags, so ONE AttachmentType can
+			// be reused across slots that need different power/selection settings.
+			// Precedence is TechnoType -> AttachmentType -> AttachmentN.* (the slot
+			// has the final word), matching the documented resolution order.
+			// NOTE: the list-valued companions (Powered.Type, PowersSiblings.Type/
+			// .Index, RequiresSlot.*) stay AttachmentType-level for now.
+			Nullable<bool> PowersParent;
+			Nullable<bool> Powered;
+			Nullable<bool> PowersSiblings;
+			Nullable<bool> PoweredByParent;
+			Nullable<int> RequiresPassengers;
+			Nullable<bool> PassSelection;
+			Nullable<bool> TransparentToMouse;
 
 			bool Load(PhobosStreamReader& stm, bool registerForChange);
 			bool Save(PhobosStreamWriter& stm) const;

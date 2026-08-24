@@ -42,7 +42,7 @@ bool __fastcall TechnoClass_Select_Wrapper_TAExt(TechnoClass* pThis)
 	// PassSelection: select the host instead. Virtual call re-enters this wrapper
 	// for the parent and cascades up; the base case (non-attached ancestor) lands
 	// on the real Select below. The parent chain is acyclic by construction.
-	if (pAtt && pAtt->GetType()->PassSelection && pAtt->Parent)
+	if (pAtt && pAtt->ResolvePassSelection() && pAtt->Parent)
 		return pAtt->Parent->Select();
 
 	return reinterpret_cast<bool(__thiscall*)(TechnoClass*)>(0x6FBFA0)(pThis);
@@ -62,7 +62,7 @@ DEFINE_HOOK(0x6DA3FF, TacticalClass_SelectAt_TransparentToMouse_TAExt, 0x6)
 	GET(TechnoClass*, pTechno, EAX);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pTechno);
-	return (pExt && pExt->ParentAttachment && pExt->ParentAttachment->GetType()->TransparentToMouse)
+	return (pExt && pExt->ParentAttachment && pExt->ParentAttachment->ResolveTransparentToMouse())
 		? SkipTechno
 		: ContinueCheck;
 }
@@ -78,7 +78,7 @@ DEFINE_HOOK(0x6DA4FB, TacticalClass_SelectAt_TransparentToMouse_Occupier_TAExt, 
 		{
 			auto const pExt = TechnoExt::ExtMap.Find(pT);
 			if (pExt && pExt->ParentAttachment
-				&& pExt->ParentAttachment->GetType()->TransparentToMouse)
+				&& pExt->ParentAttachment->ResolveTransparentToMouse())
 				continue; // skip transparent children, keep looking
 		}
 

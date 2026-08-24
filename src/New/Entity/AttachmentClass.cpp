@@ -268,6 +268,52 @@ void AttachmentClass::CreateChild()
 	}
 }
 
+// ---- per-slot override resolvers -------------------------------------------
+// AttachmentN.<tag> on the host wins over the AttachmentType's value, so one
+// AttachmentType can be reused across slots that need different behaviour.
+
+bool AttachmentClass::ResolvePowersParent()
+{
+	return (this->Data && this->Data->PowersParent.isset())
+		? this->Data->PowersParent.Get() : this->GetType()->PowersParent;
+}
+
+bool AttachmentClass::ResolvePowered()
+{
+	return (this->Data && this->Data->Powered.isset())
+		? this->Data->Powered.Get() : this->GetType()->Powered;
+}
+
+bool AttachmentClass::ResolvePowersSiblings()
+{
+	return (this->Data && this->Data->PowersSiblings.isset())
+		? this->Data->PowersSiblings.Get() : this->GetType()->PowersSiblings;
+}
+
+bool AttachmentClass::ResolvePoweredByParent()
+{
+	return (this->Data && this->Data->PoweredByParent.isset())
+		? this->Data->PoweredByParent.Get() : this->GetType()->PoweredByParent;
+}
+
+int AttachmentClass::ResolveRequiresPassengers()
+{
+	return (this->Data && this->Data->RequiresPassengers.isset())
+		? this->Data->RequiresPassengers.Get() : this->GetType()->RequiresPassengers;
+}
+
+bool AttachmentClass::ResolvePassSelection()
+{
+	return (this->Data && this->Data->PassSelection.isset())
+		? this->Data->PassSelection.Get() : this->GetType()->PassSelection;
+}
+
+bool AttachmentClass::ResolveTransparentToMouse()
+{
+	return (this->Data && this->Data->TransparentToMouse.isset())
+		? this->Data->TransparentToMouse.Get() : this->GetType()->TransparentToMouse;
+}
+
 // ---- convert-in-place ------------------------------------------------------
 
 TechnoTypeClass* AttachmentClass::ResolveDesiredChildType()

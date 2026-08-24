@@ -124,7 +124,40 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.YSortPosition", static_cast<int>(i));
 		ySortPosition.Read(exINI, pSection, tempBuffer);
 
-		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic, ySortPosition };
+		// Per-slot behaviour overrides (slot has the final word over AttachmentType).
+		Nullable<bool> slotPowersParent;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PowersParent", static_cast<int>(i));
+		slotPowersParent.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotPowered;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Powered", static_cast<int>(i));
+		slotPowered.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotPowersSiblings;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PowersSibling", static_cast<int>(i));
+		slotPowersSiblings.Read(exINI, pSection, tempBuffer);
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PowersSiblings", static_cast<int>(i));
+		slotPowersSiblings.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotPoweredByParent;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredByParent", static_cast<int>(i));
+		slotPoweredByParent.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotRequiresPassengers;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiresPassengers", static_cast<int>(i));
+		slotRequiresPassengers.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotPassSelection;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PassSelection", static_cast<int>(i));
+		slotPassSelection.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotTransparentToMouse;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.TransparentToMouse", static_cast<int>(i));
+		slotTransparentToMouse.Read(exINI, pSection, tempBuffer);
+
+		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic, ySortPosition,
+			slotPowersParent, slotPowered, slotPowersSiblings, slotPoweredByParent,
+			slotRequiresPassengers, slotPassSelection, slotTransparentToMouse };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -211,6 +244,13 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->ForbiddenHouses)
 		.Process(this->Prerequisite_Dynamic)
 		.Process(this->YSortPosition)
+		.Process(this->PowersParent)
+		.Process(this->Powered)
+		.Process(this->PowersSiblings)
+		.Process(this->PoweredByParent)
+		.Process(this->RequiresPassengers)
+		.Process(this->PassSelection)
+		.Process(this->TransparentToMouse)
 		.Success();
 }
 
