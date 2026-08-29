@@ -40,6 +40,9 @@ namespace TAExtPowerNetwork
 	// every consumer on the map.
 	bool Solved = false;
 
+	// Defined below; declared here because the building-power query above uses it.
+	static int DistSq(const CellStruct& a, const CellStruct& b);
+
 	// --- external-structure power (vanilla PowersUnit semantics) ---------------
 	// Snapshot of every live building, rebuilt each frame alongside the network so
 	// the per-attachment PoweredBy gate is a cheap lookup instead of an O(buildings)
