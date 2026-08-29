@@ -11,6 +11,7 @@
 class Matrix3D;
 class BuildingTypeClass;
 class HouseTypeClass;
+class WeaponTypeClass;
 
 // Standalone port of Phobos's TechnoTypeExt, stripped to ONLY the attachment
 // fields. Uses Container<T> in unordered_map mode (Canary defined, no
@@ -96,8 +97,10 @@ public:
 			// be reused across slots that need different power/selection settings.
 			// Precedence is TechnoType -> AttachmentType -> AttachmentN.* (the slot
 			// has the final word), matching the documented resolution order.
-			// NOTE: the list-valued companions (Powered.Type, PowersSiblings.Type/
-			// .Index, RequiresSlot.*) stay AttachmentType-level for now.
+			// Covers the flags, the list-valued companions, and the inherit/respawn/
+			// destruction family. Vectors: non-empty = override. Nullables: isset =
+			// override. Still AttachmentType-only: the ExperienceTo[N] / Convert[N]
+			// rule GROUPS (they are whole rule lists, not single values).
 			Nullable<bool> PowersParent;
 			Nullable<bool> Powered;
 			Nullable<bool> PowersSiblings;
@@ -110,6 +113,40 @@ public:
 			Valueable<int> PoweredBy_House; // -1 = unset (inherit the AttachmentType)
 			Nullable<bool> PassSelection;
 			Nullable<bool> TransparentToMouse;
+			// List-valued companions
+			ValueableVector<TechnoTypeClass*> Powered_Type;
+			ValueableVector<TechnoTypeClass*> PowersSiblings_Type;
+			ValueableVector<int> PowersSiblings_Index;
+			ValueableVector<int> RequiresSlot_Index;
+			ValueableVector<TechnoTypeClass*> RequiresSlot_Type;
+			// Host rank / health prerequisite windows
+			Nullable<Rank> Prerequisite_MinRank;
+			Nullable<Rank> Prerequisite_MaxRank;
+			Nullable<int> Prerequisite_MinHealth;
+			Nullable<int> Prerequisite_MaxHealth;
+			// Sibling prerequisites
+			ValueableVector<int> Prerequisite_Sibling_Index;
+			ValueableVector<TechnoTypeClass*> Prerequisite_Sibling_Type;
+			ValueableVector<int> Prerequisite_Siblings_Index;
+			ValueableVector<TechnoTypeClass*> Prerequisite_Siblings_Type;
+			// Inherit / respawn / destruction family
+			Nullable<bool> RespawnAtCreation;
+			Nullable<int> RespawnDelay;
+			Nullable<bool> InheritCommands_StopCommand;
+			Nullable<bool> InheritCommands_DeployCommand;
+			Nullable<bool> InheritOwner;
+			Nullable<bool> InheritStateEffects;
+			Nullable<bool> InheritDestruction;
+			Nullable<bool> InheritHeightStatus;
+			Nullable<bool> OccupiesCell;
+			Nullable<bool> LowSelectionPriority;
+			Nullable<bool> Decorative;
+			Nullable<WeaponTypeClass*> DestructionWeapon_Child;
+			Nullable<WeaponTypeClass*> DestructionWeapon_Parent;
+			Nullable<Mission> ParentDestructionMission;
+			Nullable<Mission> ParentDetachmentMission;
+			Nullable<bool> Convert_KeepHealth;
+			Nullable<bool> Convert_KeepVeterancy;
 
 			bool Load(PhobosStreamReader& stm, bool registerForChange);
 			bool Save(PhobosStreamWriter& stm) const;

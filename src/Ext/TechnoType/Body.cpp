@@ -5,6 +5,7 @@
 #include <Matrix3D.h>
 #include <BuildingTypeClass.h>
 #include <HouseTypeClass.h>
+#include <WeaponTypeClass.h>
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -190,6 +191,128 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 				slotPoweredByHouse = houseMask;
 		}
 
+		// Remaining per-slot overrides: list-valued companions, prerequisite
+		// windows, and the inherit/respawn/destruction family.
+
+		ValueableVector<TechnoTypeClass*> slotPoweredType;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Powered.Type", static_cast<int>(i));
+		slotPoweredType.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<TechnoTypeClass*> slotPowSibType;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PowersSiblings.Type", static_cast<int>(i));
+		slotPowSibType.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<int> slotPowSibIdx;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PowersSiblings.Index", static_cast<int>(i));
+		slotPowSibIdx.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<int> slotReqSlotIdx;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiresSlot.Index", static_cast<int>(i));
+		slotReqSlotIdx.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<TechnoTypeClass*> slotReqSlotType;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiresSlot.Type", static_cast<int>(i));
+		slotReqSlotType.Read(exINI, pSection, tempBuffer);
+
+		Nullable<Rank> slotPreMinRank;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.MinRank", static_cast<int>(i));
+		slotPreMinRank.Read(exINI, pSection, tempBuffer);
+
+		Nullable<Rank> slotPreMaxRank;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.MaxRank", static_cast<int>(i));
+		slotPreMaxRank.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotPreMinHealth;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.MinHealth", static_cast<int>(i));
+		slotPreMinHealth.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotPreMaxHealth;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.MaxHealth", static_cast<int>(i));
+		slotPreMaxHealth.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<int> slotPreSibIdx;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Sibling.Index", static_cast<int>(i));
+		slotPreSibIdx.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<TechnoTypeClass*> slotPreSibType;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Sibling.Type", static_cast<int>(i));
+		slotPreSibType.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<int> slotPreSibsIdx;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Siblings.Index", static_cast<int>(i));
+		slotPreSibsIdx.Read(exINI, pSection, tempBuffer);
+
+		ValueableVector<TechnoTypeClass*> slotPreSibsType;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.Siblings.Type", static_cast<int>(i));
+		slotPreSibsType.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotRespawnAtCreation;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RespawnAtCreation", static_cast<int>(i));
+		slotRespawnAtCreation.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotRespawnDelay;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RespawnDelay", static_cast<int>(i));
+		slotRespawnDelay.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotInhStop;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritCommands.StopCommand", static_cast<int>(i));
+		slotInhStop.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotInhDeploy;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritCommands.DeployCommand", static_cast<int>(i));
+		slotInhDeploy.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotInhOwner;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritOwner", static_cast<int>(i));
+		slotInhOwner.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotInhState;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritStateEffects", static_cast<int>(i));
+		slotInhState.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotInhDestruction;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritDestruction", static_cast<int>(i));
+		slotInhDestruction.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotInhHeight;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritHeightStatus", static_cast<int>(i));
+		slotInhHeight.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotOccupiesCell;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.OccupiesCell", static_cast<int>(i));
+		slotOccupiesCell.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotLowSelPri;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.LowSelectionPriority", static_cast<int>(i));
+		slotLowSelPri.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotDecorative;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Decorative", static_cast<int>(i));
+		slotDecorative.Read(exINI, pSection, tempBuffer);
+
+		Nullable<WeaponTypeClass*> slotDwChild;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.DestructionWeapon.Child", static_cast<int>(i));
+		slotDwChild.Read(exINI, pSection, tempBuffer);
+
+		Nullable<WeaponTypeClass*> slotDwParent;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.DestructionWeapon.Parent", static_cast<int>(i));
+		slotDwParent.Read(exINI, pSection, tempBuffer);
+
+		Nullable<Mission> slotPdMission;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ParentDestructionMission", static_cast<int>(i));
+		slotPdMission.Read(exINI, pSection, tempBuffer);
+
+		Nullable<Mission> slotPdetMission;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.ParentDetachmentMission", static_cast<int>(i));
+		slotPdetMission.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotConvKeepHp;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Convert.KeepHealth", static_cast<int>(i));
+		slotConvKeepHp.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotConvKeepVet;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Convert.KeepVeterancy", static_cast<int>(i));
+		slotConvKeepVet.Read(exINI, pSection, tempBuffer);
 		Nullable<bool> slotPassSelection;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PassSelection", static_cast<int>(i));
 		slotPassSelection.Read(exINI, pSection, tempBuffer);
@@ -202,7 +325,8 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotPowersParent, slotPowered, slotPowersSiblings, slotPoweredByParent,
 			slotRequiresPassengers,
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
-			slotPassSelection, slotTransparentToMouse };
+			slotPassSelection, slotTransparentToMouse,
+			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotOccupiesCell, slotLowSelPri, slotDecorative, slotDwChild, slotDwParent, slotPdMission, slotPdetMission, slotConvKeepHp, slotConvKeepVet };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -308,6 +432,36 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->PoweredBy_House)
 		.Process(this->PassSelection)
 		.Process(this->TransparentToMouse)
+		.Process(this->Powered_Type)
+		.Process(this->PowersSiblings_Type)
+		.Process(this->PowersSiblings_Index)
+		.Process(this->RequiresSlot_Index)
+		.Process(this->RequiresSlot_Type)
+		.Process(this->Prerequisite_MinRank)
+		.Process(this->Prerequisite_MaxRank)
+		.Process(this->Prerequisite_MinHealth)
+		.Process(this->Prerequisite_MaxHealth)
+		.Process(this->Prerequisite_Sibling_Index)
+		.Process(this->Prerequisite_Sibling_Type)
+		.Process(this->Prerequisite_Siblings_Index)
+		.Process(this->Prerequisite_Siblings_Type)
+		.Process(this->RespawnAtCreation)
+		.Process(this->RespawnDelay)
+		.Process(this->InheritCommands_StopCommand)
+		.Process(this->InheritCommands_DeployCommand)
+		.Process(this->InheritOwner)
+		.Process(this->InheritStateEffects)
+		.Process(this->InheritDestruction)
+		.Process(this->InheritHeightStatus)
+		.Process(this->OccupiesCell)
+		.Process(this->LowSelectionPriority)
+		.Process(this->Decorative)
+		.Process(this->DestructionWeapon_Child)
+		.Process(this->DestructionWeapon_Parent)
+		.Process(this->ParentDestructionMission)
+		.Process(this->ParentDetachmentMission)
+		.Process(this->Convert_KeepHealth)
+		.Process(this->Convert_KeepVeterancy)
 		.Success();
 }
 
