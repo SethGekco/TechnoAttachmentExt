@@ -115,6 +115,10 @@ Setup: one parent, slot A = source, slot B = consumer.
 - [ ] **Capacity `excess`:** `PowerSource.Count=2` with 4 consumers → exactly 2 lit.
 - [ ] **Capacity `all`:** same setup with `OverflowMode=all` → **all 4** go dark.
 - [ ] `PowerSource.Types` / `PowerConsumer.Types` filters exclude non-listed types.
+- [ ] `PowerConsumer.House=owner` → an ally's network no longer powers you
+      (default is `owner,ally`, so this is the behaviour change to verify).
+- [ ] `PowerConsumer.House=any` → an enemy's network powers you.
+- [ ] `PowerSource.House=owner` on the source → it refuses to power allies.
 - [ ] **Enemy isolation:** an enemy's source must NOT power your consumer.
       An **ally's** source should.
 - [ ] Works on all four kinds: infantry, vehicle, aircraft, **building** consumers.
@@ -195,6 +199,15 @@ Setup: one parent, slot A = source, slot B = consumer.
 - [ ] Save/load right after a conversion → correct type, no duplicate child.
 - [ ] **Multiplayer**: conversions on both peers stay in step (no desync).
 
+## 4c. PoweredBy on plain TechnoTypes (NOT attachments)
+- [ ] `PoweredBy=GAROBO` on a normal **unit** TechnoType → that unit goes dark
+      without a GAROBO, with no attachments involved at all.
+- [ ] Same on a normal **building** TechnoType.
+- [ ] `PoweredBy.House=` / `.Range=` / `.RequirePower=` all work in this plain form.
+- [ ] **Precedence**: a techno with `PoweredBy` on its TechnoType, used as an
+      attachment child whose AttachmentType also sets `PoweredBy` → the
+      AttachmentType wins; add `AttachmentN.PoweredBy` and the slot wins.
+
 ## 8d. Per-slot overrides (`AttachmentN.*` has the final word)
 One AttachmentType reused on two slots, with the slot overriding it:
 - [ ] `AttachmentN.Powered=no` on a slot whose AttachmentType has `Powered=yes`
@@ -208,6 +221,22 @@ One AttachmentType reused on two slots, with the slot overriding it:
 - [ ] **Unset = inherit:** a slot that sets none of these behaves exactly as the
       AttachmentType says (regression check on everything already confirmed).
 - [ ] Save/load preserves per-slot overrides.
+- [ ] **List-valued overrides**: `AttachmentN.Powered.Type=`,
+      `AttachmentN.PowersSiblings.Type/.Index=`, `AttachmentN.RequiresSlot.Index/.Type=`.
+- [ ] **Prerequisite windows per slot**: `AttachmentN.Prerequisite.MinRank=`,
+      `.MaxRank=`, `.MinHealth=`, `.MaxHealth=`.
+- [ ] **Sibling prerequisites per slot**: `AttachmentN.Prerequisite.Sibling(s).Index/.Type=`.
+- [ ] **Behaviour family per slot**: `AttachmentN.RespawnDelay=`,
+      `.RespawnAtCreation=`, `.InheritOwner=`, `.InheritDestruction=`,
+      `.InheritHeightStatus=`, `.InheritStateEffects=`,
+      `.InheritCommands.StopCommand/.DeployCommand=`, `.OccupiesCell=`,
+      `.LowSelectionPriority=`, `.DestructionWeapon.Child/.Parent=`,
+      `.ParentDestructionMission=`, `.ParentDetachmentMission=`,
+      `.Convert.KeepHealth/.KeepVeterancy=`.
+- [ ] **Regression sweep** — this pass rewired MANY existing call sites to go
+      through resolvers. Re-check that the previously-working behaviours are
+      unchanged when no per-slot tag is set: respawn timing, destruction weapons,
+      InheritHeightStatus, cell occupation, scatter, and stop/deploy inheritance.
 
 ## 9. Interaction / safety (where bugs hide)
 - [ ] **EMP a dark consumer**, then restore its power while EMP is still active →

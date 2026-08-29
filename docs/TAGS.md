@@ -61,6 +61,11 @@ The classic `[GAROBO]PowersUnit=[ROBO]` relationship, but expressed on the
 **consumer** so it can differ per slot. Unlike `Prerequisite=` (which *hides* the
 child), this only darkens it.
 
+**Works on any techno.** Put it on a plain `[SomeUnit]` or `[SomeBuilding]`
+TechnoType and that unit/building goes dark without the structure — it is not
+attachment-only. On an attached child the resolution order still applies:
+**TechnoType → AttachmentType → `AttachmentN.*`**.
+
 ```ini
 [SomeAttachmentType]
 PoweredBy=GAROBO,GATECH     ; dark unless the host's owner has one working
@@ -142,10 +147,15 @@ PowerRelay.Range=8                  ; unset = inherit the range of whatever feed
 [ROBO]
 PowerConsumer=yes
 PowerConsumer.Types=GAPOWR          ; optional: only these source types satisfy it
+PowerConsumer.House=owner,ally      ; whose network may power me (default owner,ally)
+;PowerSource.House=owner,ally       ; ...and on the source: whom it will power
 ```
 - A relay only re-broadcasts while it is itself reached, so a chain of pylons
   carries power outward from the source — cut one and everything past it goes dark.
-- Only **allied** networks power a techno; an enemy plant won't light up your units.
+- **`.House` uses the same vocabulary as `PoweredBy.House`** (owner/ally/team/enemy/
+  neutral/civilian/special/any). Both directions must accept — the consumer says
+  whose network may power it, the source says whom it is willing to power, exactly
+  like the `.Types` filters. Default `owner,ally`.
 - Capacity is counted **per source**, including consumers reached through its relays.
 - Solved once per frame; **fails safe** — if the solver never runs, consumers stay
   powered rather than all going dark.
@@ -297,12 +307,21 @@ InheritCommands.DeployCommand=yes
 AttachmentType can be reused across slots that need different behaviour
 (precedence: TechnoType → AttachmentType → `AttachmentN.*`). Available for:
 
-`PowersParent`, `Powered`, `PowersSibling(s)`, `PoweredByParent`,
-`RequiresPassengers`, `PassSelection`, `TransparentToMouse`, `YSortPosition`,
-and the prerequisite family.
+Essentially everything: `PowersParent`, `Powered`, `PowersSibling(s)`,
+`PoweredByParent`, `RequiresPassengers`, `PassSelection`, `TransparentToMouse`,
+`YSortPosition`, the whole prerequisite family, `PoweredBy` (+ `.RequireAll`,
+`.RequirePower`, `.Range`, `.House`), the list-valued companions
+(`Powered.Type`, `PowersSiblings.Type/.Index`, `RequiresSlot.Index/.Type`),
+`Prerequisite.MinRank/.MaxRank/.MinHealth/.MaxHealth`,
+`Prerequisite.Sibling(s).Index/.Type`, and the behaviour family:
+`RespawnAtCreation`, `RespawnDelay`, `InheritCommands.StopCommand/.DeployCommand`,
+`InheritOwner`, `InheritStateEffects`, `InheritDestruction`,
+`InheritHeightStatus`, `OccupiesCell`, `LowSelectionPriority`, `Decorative`,
+`DestructionWeapon.Child/.Parent`, `ParentDestructionMission`,
+`ParentDetachmentMission`, `Convert.KeepHealth/.KeepVeterancy`.
 
-> The **list-valued** companions (`Powered.Type`, `PowersSiblings.Type/.Index`,
-> `RequiresSlot.*`) are still AttachmentType-level only.
+> Only the **rule groups** — `ExperienceTo[N]` and `Convert[N]` — remain
+> AttachmentType-level, since they are whole rule lists rather than single values.
 
 Example:
 ```ini
