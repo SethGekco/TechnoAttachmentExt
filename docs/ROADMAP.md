@@ -321,6 +321,13 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   sites, not a field write. Current-ammo granting with exact revert is feasible now;
   capacity is a separate piece of work. Needs a design call before building.
 
+- ✅ **PoweredBy — external-structure power (2026-08-29, commit c0c0b5a).**
+  Vanilla PowersUnit semantics from the consumer side: `PoweredBy=<buildings>` +
+  `.RequireAll/.RequirePower/.Range`, on AttachmentType and per-slot. Fills the gap
+  between the radius network (consumer flag sits on the child TechnoType, so it
+  can't vary per slot) and `Prerequisite=` (hides rather than darkens). Building
+  snapshot rebuilt once per frame in the existing solver. NOT PLAY-TESTED.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already

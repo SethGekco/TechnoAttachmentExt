@@ -67,6 +67,22 @@ Setup: one parent, slot A = source, slot B = consumer.
       propagates all the way down.
 - [ ] Parent destroyed → child handles it without crashing.
 
+## 4b. External-structure power (`PoweredBy`)
+- [ ] `PoweredBy=GAROBO`: attachment dark with no GAROBO, lights up when one is
+      built anywhere on the map (house-wide, no radius).
+- [ ] Sell/destroy the GAROBO → dark again.
+- [ ] **Power matters**: keep the GAROBO but take the base to low power → the
+      attachment goes dark (`RequirePower=yes` default).
+- [ ] `PoweredBy.RequirePower=no` → a powered-down GAROBO still counts.
+- [ ] `PoweredBy=GAROBO,GATECH` with `RequireAll=no` (default) → either works.
+- [ ] `RequireAll=yes` → needs both.
+- [ ] `PoweredBy.Range=10` → only a GAROBO within 10 cells counts; drive away → dark.
+- [ ] **Enemy/ally isolation**: an ALLY's GAROBO must NOT power your attachment.
+- [ ] **Per-slot**: `Attachment0.PoweredBy=GAROBO` + `Attachment1` unset, same
+      AttachmentType → only slot 0 depends on the building. ← the key new ability
+- [ ] Combines with sibling power: a child needing both a sibling generator AND a
+      GAROBO goes dark if *either* is missing.
+
 ## 5. Requirement gating (open-topped style)
 - [ ] `RequiresPassengers=1`: attachment dark until a passenger boards the host;
       dark again when the last one leaves.

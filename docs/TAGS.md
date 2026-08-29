@@ -56,6 +56,35 @@ PoweredByParent=yes     ; child is dark while its parent is gone or itself dark
 Darkness **propagates down** the attachment subtree, so powering down a host takes
 its attached pieces with it.
 
+### Power — external structure (vanilla `PowersUnit` style)
+The classic `[GAROBO]PowersUnit=[ROBO]` relationship, but expressed on the
+**consumer** so it can differ per slot. Unlike `Prerequisite=` (which *hides* the
+child), this only darkens it.
+
+```ini
+[SomeAttachmentType]
+PoweredBy=GAROBO,GATECH     ; dark unless the host's owner has one working
+PoweredBy.RequireAll=no     ; no (default) = ANY of them; yes = ALL of them
+PoweredBy.RequirePower=yes  ; the building must itself be online (default)
+PoweredBy.Range=0           ; 0 = house-wide (vanilla); >0 = within N cells
+```
+Per-slot, so one AttachmentType can be powered by GAROBO on one slot and not on
+another:
+```ini
+[SomeParentTechnoType]
+Attachment0.Type=Turret
+Attachment0.PoweredBy=GAROBO      ; this one needs the robot control centre
+Attachment1.Type=Turret           ; same AttachmentType...
+                                  ; ...this one is unconditional
+```
+- **"Working"** = alive, on the field, `HasPower`, and not itself dark — so a
+  shut-down or low-power plant stops powering things.
+- **Owner only.** An ally's GAROBO does *not* run your robot tanks (matches vanilla).
+- Composes with the other power gates through the same arbiter: a child can require
+  a sibling generator *and* an external structure, and it goes dark if either fails.
+
+---
+
 ### Requirement gating (open-topped style)
 ```ini
 [TurretAttachment]
