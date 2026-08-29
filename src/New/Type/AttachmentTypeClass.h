@@ -79,6 +79,20 @@ public:
 	// subtree), so a powered-down host takes its decorative/functional bits with it.
 	Valueable<bool> PoweredByParent;
 
+	// External-structure power -- the vanilla [ROBO]PoweredUnit / [GAROBO]PowersUnit
+	// relationship, expressed from the CONSUMER side so it can differ per slot.
+	// The child is dark unless the host's owner has a working building from this
+	// list. Unlike Prerequisite= (which HIDES the child), this only darkens it.
+	//   PoweredBy=GAROBO,GATECH  -> buildings that power this attachment
+	//   PoweredBy.RequireAll=no  -> no (default) = ANY of them; yes = ALL of them
+	//   PoweredBy.RequirePower=yes -> the building must itself be online (default)
+	//   PoweredBy.Range=0        -> 0 = house-wide (vanilla behaviour); >0 = the
+	//                               building must be within N cells
+	ValueableVector<BuildingTypeClass*> PoweredBy;
+	Valueable<bool> PoweredBy_RequireAll;
+	Valueable<bool> PoweredBy_RequirePower;
+	Valueable<int> PoweredBy_Range;
+
 	// B1 -- requirement gating ("activate only if ..."). The child is dark unless
 	// the parent satisfies these. Open-topped turret style:
 	//   RequiresPassengers=N     -> parent must carry at least N passengers
@@ -232,6 +246,10 @@ public:
 		, Powered { false }
 		, Powered_Type { }
 		, PoweredByParent { false }
+		, PoweredBy { }
+		, PoweredBy_RequireAll { false }
+		, PoweredBy_RequirePower { true }
+		, PoweredBy_Range { 0 }
 		, RequiresPassengers { 0 }
 		, RequiresSlot_Index { }
 		, RequiresSlot_Type { }

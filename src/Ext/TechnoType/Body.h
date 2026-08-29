@@ -89,6 +89,10 @@ public:
 			Nullable<bool> PowersSiblings;
 			Nullable<bool> PoweredByParent;
 			Nullable<int> RequiresPassengers;
+			ValueableVector<BuildingTypeClass*> PoweredBy; // non-empty = overrides the type
+			Nullable<bool> PoweredBy_RequireAll;
+			Nullable<bool> PoweredBy_RequirePower;
+			Nullable<int> PoweredBy_Range;
 			Nullable<bool> PassSelection;
 			Nullable<bool> TransparentToMouse;
 

@@ -7,7 +7,13 @@
 #include <New/Entity/AttachmentClass.h>
 #include <New/Type/AttachmentTypeClass.h>
 
-namespace TAExtPowerNetwork { extern bool Solved; }
+class BuildingTypeClass;
+namespace TAExtPowerNetwork
+{
+	extern bool Solved;
+	bool HasWorkingBuilding(HouseClass* pOwner, BuildingTypeClass* pType,
+		bool requirePower, int rangeCells, const CellStruct& from);
+}
 
 #include <algorithm>
 #include <ranges>
@@ -505,6 +511,45 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 			// the subtree. We read the parent's CURRENT flag (set by its own tick,
 			// which runs before the child's for a child that is a separate techno).
 			powered = powered && pParent && !TAExt_HostIsDark(pParent);
+		}
+
+		// External-structure power: vanilla PowersUnit semantics, but expressed on
+		// the consumer so it can vary per slot. Dark unless the HOST'S OWNER has a
+		// qualifying building. Only applied once the solver has populated the
+		// building snapshot, so it fails SAFE (powered) rather than darkening
+		// everything on the first frame.
+		if (pSelfType && pParent && TAExtPowerNetwork::Solved)
+		{
+			auto const& poweredBy = pSelfSlot->ResolvePoweredBy();
+			if (!poweredBy.empty())
+			{
+				isConsumer = true;
+
+				bool const requireAll = pSelfSlot->ResolvePoweredByRequireAll();
+				bool const requirePower = pSelfSlot->ResolvePoweredByRequirePower();
+				int const range = pSelfSlot->ResolvePoweredByRange();
+				auto const coords = pThis->GetMapCoords();
+				auto const pOwner = pParent->Owner;
+
+				bool met = requireAll;
+				for (auto const pBldType : poweredBy)
+				{
+					bool const have = TAExtPowerNetwork::HasWorkingBuilding(
+						pOwner, pBldType, requirePower, range, coords);
+
+					if (requireAll)
+					{
+						if (!have) { met = false; break; }
+					}
+					else if (have)
+					{
+						met = true; break;
+					}
+				}
+
+				if (!met)
+					reasons |= TAExtDeactivate_BuildingPower;
+			}
 		}
 
 		if (pSelfType && pParent)

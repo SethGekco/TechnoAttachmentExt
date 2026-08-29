@@ -147,6 +147,22 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiresPassengers", static_cast<int>(i));
 		slotRequiresPassengers.Read(exINI, pSection, tempBuffer);
 
+		ValueableVector<BuildingTypeClass*> slotPoweredBy;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredBy", static_cast<int>(i));
+		slotPoweredBy.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotPoweredByRequireAll;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredBy.RequireAll", static_cast<int>(i));
+		slotPoweredByRequireAll.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotPoweredByRequirePower;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredBy.RequirePower", static_cast<int>(i));
+		slotPoweredByRequirePower.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotPoweredByRange;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredBy.Range", static_cast<int>(i));
+		slotPoweredByRange.Read(exINI, pSection, tempBuffer);
+
 		Nullable<bool> slotPassSelection;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PassSelection", static_cast<int>(i));
 		slotPassSelection.Read(exINI, pSection, tempBuffer);
@@ -157,7 +173,9 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 
 		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic, ySortPosition,
 			slotPowersParent, slotPowered, slotPowersSiblings, slotPoweredByParent,
-			slotRequiresPassengers, slotPassSelection, slotTransparentToMouse };
+			slotRequiresPassengers,
+			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange,
+			slotPassSelection, slotTransparentToMouse };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -249,6 +267,10 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->PowersSiblings)
 		.Process(this->PoweredByParent)
 		.Process(this->RequiresPassengers)
+		.Process(this->PoweredBy)
+		.Process(this->PoweredBy_RequireAll)
+		.Process(this->PoweredBy_RequirePower)
+		.Process(this->PoweredBy_Range)
 		.Process(this->PassSelection)
 		.Process(this->TransparentToMouse)
 		.Success();

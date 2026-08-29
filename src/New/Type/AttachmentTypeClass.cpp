@@ -37,6 +37,10 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Powered.Read(exINI, section, "Powered");
 	this->Powered_Type.Read(exINI, section, "Powered.Type");
 	this->PoweredByParent.Read(exINI, section, "PoweredByParent");
+	this->PoweredBy.Read(exINI, section, "PoweredBy");
+	this->PoweredBy_RequireAll.Read(exINI, section, "PoweredBy.RequireAll");
+	this->PoweredBy_RequirePower.Read(exINI, section, "PoweredBy.RequirePower");
+	this->PoweredBy_Range.Read(exINI, section, "PoweredBy.Range");
 	this->RequiresPassengers.Read(exINI, section, "RequiresPassengers");
 	this->RequiresSlot_Index.Read(exINI, section, "RequiresSlot.Index");
 	this->RequiresSlot_Type.Read(exINI, section, "RequiresSlot.Type");
@@ -231,6 +235,10 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Powered)
 		.Process(this->Powered_Type)
 		.Process(this->PoweredByParent)
+		.Process(this->PoweredBy)
+		.Process(this->PoweredBy_RequireAll)
+		.Process(this->PoweredBy_RequirePower)
+		.Process(this->PoweredBy_Range)
 		.Process(this->RequiresPassengers)
 		.Process(this->RequiresSlot_Index)
 		.Process(this->RequiresSlot_Type)

@@ -302,6 +302,30 @@ int AttachmentClass::ResolveRequiresPassengers()
 		? this->Data->RequiresPassengers.Get() : this->GetType()->RequiresPassengers;
 }
 
+const ValueableVector<BuildingTypeClass*>& AttachmentClass::ResolvePoweredBy()
+{
+	return (this->Data && !this->Data->PoweredBy.empty())
+		? this->Data->PoweredBy : this->GetType()->PoweredBy;
+}
+
+bool AttachmentClass::ResolvePoweredByRequireAll()
+{
+	return (this->Data && this->Data->PoweredBy_RequireAll.isset())
+		? this->Data->PoweredBy_RequireAll.Get() : this->GetType()->PoweredBy_RequireAll;
+}
+
+bool AttachmentClass::ResolvePoweredByRequirePower()
+{
+	return (this->Data && this->Data->PoweredBy_RequirePower.isset())
+		? this->Data->PoweredBy_RequirePower.Get() : this->GetType()->PoweredBy_RequirePower;
+}
+
+int AttachmentClass::ResolvePoweredByRange()
+{
+	return (this->Data && this->Data->PoweredBy_Range.isset())
+		? this->Data->PoweredBy_Range.Get() : this->GetType()->PoweredBy_Range;
+}
+
 bool AttachmentClass::ResolvePassSelection()
 {
 	return (this->Data && this->Data->PassSelection.isset())

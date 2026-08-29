@@ -23,6 +23,8 @@
 
 #include <TechnoClass.h>
 #include <HouseClass.h>
+#include <BuildingClass.h>
+#include <BuildingTypeClass.h>
 
 #include <Utilities/Macro.h>
 
@@ -37,6 +39,44 @@ namespace TAExtPowerNetwork
 	// that, so a solver that never runs fails SAFE (powered) instead of darkening
 	// every consumer on the map.
 	bool Solved = false;
+
+	// --- external-structure power (vanilla PowersUnit semantics) ---------------
+	// Snapshot of every live building, rebuilt each frame alongside the network so
+	// the per-attachment PoweredBy gate is a cheap lookup instead of an O(buildings)
+	// scan per attachment. "Powered" mirrors BuildingClass::HasPower AND the
+	// building not being dark itself, so a shut-down plant stops powering things.
+	struct BuildingRecord
+	{
+		HouseClass* Owner;
+		BuildingTypeClass* Type;
+		CellStruct Coords;
+		bool Powered;
+	};
+	static std::vector<BuildingRecord> buildings;
+
+	// Does pOwner have a qualifying building of pType? rangeCells <= 0 means
+	// house-wide (vanilla behaviour); otherwise it must be within that many cells
+	// of `from`. Ownership is the owning house only -- an ALLY's power plant does
+	// not run your robot tanks, matching vanilla PowersUnit.
+	bool HasWorkingBuilding(HouseClass* pOwner, BuildingTypeClass* pType,
+		bool requirePower, int rangeCells, const CellStruct& from)
+	{
+		if (!pOwner || !pType)
+			return false;
+
+		for (auto const& rec : buildings)
+		{
+			if (rec.Owner != pOwner || rec.Type != pType)
+				continue;
+			if (requirePower && !rec.Powered)
+				continue;
+			if (rangeCells > 0 && DistSq(rec.Coords, from) > rangeCells * rangeCells)
+				continue;
+			return true;
+		}
+
+		return false;
+	}
 
 	// Squared cell distance; integer math only (no floating point) so every peer
 	// computes bit-identical results.
@@ -103,6 +143,21 @@ namespace TAExtPowerNetwork
 		sourceLoad.clear();
 
 		auto const& array = TechnoClass::Array;
+
+		// --- 0. Snapshot live buildings for the PoweredBy gate. -----------------
+		buildings.clear();
+		for (int i = 0; i < BuildingClass::Array.Count; ++i)
+		{
+			auto const pBld = BuildingClass::Array.GetItem(i);
+			if (!pBld || !pBld->IsAlive || pBld->InLimbo)
+				continue;
+
+			buildings.push_back(BuildingRecord {
+				pBld->Owner,
+				pBld->Type,
+				pBld->GetMapCoords(),
+				pBld->HasPower && !pBld->Deactivated });
+		}
 
 		// --- 1. Seed broadcasters from sources (array order = deterministic). ---
 		for (int i = 0; i < array.Count; ++i)

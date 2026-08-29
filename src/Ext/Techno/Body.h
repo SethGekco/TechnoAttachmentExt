@@ -32,6 +32,7 @@ enum TAExtDeactivateReason : int
 	TAExtDeactivate_AttachmentPower = 1 << 0, // lost attachment/sibling/parent power
 	TAExtDeactivate_SlotRequirement = 1 << 1, // required parent slot / passengers missing
 	TAExtDeactivate_NetworkPower    = 1 << 2, // PowerConsumer not reached by the network
+	TAExtDeactivate_BuildingPower   = 1 << 3, // PoweredBy building missing/offline
 };
 
 // Standalone port of Phobos's TechnoExt, stripped to ONLY the attachment

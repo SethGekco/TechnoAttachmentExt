@@ -69,6 +69,10 @@ public:
 	bool ResolvePowersSiblings();
 	bool ResolvePoweredByParent();
 	int  ResolveRequiresPassengers();
+	const ValueableVector<BuildingTypeClass*>& ResolvePoweredBy();
+	bool ResolvePoweredByRequireAll();
+	bool ResolvePoweredByRequirePower();
+	int  ResolvePoweredByRange();
 	bool ResolvePassSelection();
 	bool ResolveTransparentToMouse();
 
