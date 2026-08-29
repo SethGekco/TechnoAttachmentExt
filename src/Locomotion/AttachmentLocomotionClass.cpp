@@ -140,7 +140,7 @@ bool AttachmentLocomotionClass::Process()
 	// sight is handled in FootClass::AI
 
 	AttachmentClass* pAttachment = this->GetAttachment();
-	if (pAttachment && pAttachment->GetType()->InheritHeightStatus)
+	if (pAttachment && pAttachment->ResolveInheritHeightStatus())
 	{
 		this->LinkedTo->OnBridge = pAttachment->Parent->OnBridge;
 	}
@@ -172,7 +172,7 @@ bool AttachmentLocomotionClass::Is_Ion_Sensitive()
 Layer AttachmentLocomotionClass::In_Which_Layer()
 {
 	AttachmentClass* pAttachment = this->GetAttachment();
-	if (!pAttachment || !pAttachment->GetType()->InheritHeightStatus)
+	if (!pAttachment || !pAttachment->ResolveInheritHeightStatus())
 		return this->CalculateLayer();
 
 	auto const pParentAsFoot = abstract_cast<FootClass*>(pAttachment->Parent);

@@ -74,6 +74,25 @@ public:
 	bool ResolvePoweredByRequirePower();
 	int  ResolvePoweredByRange();
 	int  ResolvePoweredByHouse();
+	// List-valued companions (non-empty slot vector overrides the AttachmentType).
+	const ValueableVector<TechnoTypeClass*>& ResolvePoweredType();
+	const ValueableVector<TechnoTypeClass*>& ResolvePowersSiblingsType();
+	const ValueableVector<int>& ResolvePowersSiblingsIndex();
+	const ValueableVector<int>& ResolveRequiresSlotIndex();
+	const ValueableVector<TechnoTypeClass*>& ResolveRequiresSlotType();
+	// Inherit / respawn / destruction family
+	bool ResolveRespawnAtCreation();
+	int  ResolveRespawnDelay();
+	bool ResolveInheritStopCommand();
+	bool ResolveInheritDeployCommand();
+	bool ResolveInheritOwner();
+	bool ResolveInheritStateEffects();
+	bool ResolveInheritDestruction();
+	bool ResolveInheritHeightStatus();
+	bool ResolveOccupiesCell();
+	bool ResolveLowSelectionPriority();
+	bool ResolveConvertKeepHealth();
+	bool ResolveConvertKeepVeterancy();
 	bool ResolvePassSelection();
 	bool ResolveTransparentToMouse();
 

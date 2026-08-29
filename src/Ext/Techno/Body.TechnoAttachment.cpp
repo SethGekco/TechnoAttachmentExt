@@ -189,8 +189,8 @@ void TechnoExt::HandleAttachmentConversion(TechnoClass* pThis, TechnoTypeClass* 
 
 			// Synchronize respawn timer if both attachment types have respawn enabled.
 			// Preserves the completion percentage: newRemaining/newDelay == oldRemaining/oldDelay.
-			int oldDelay = (*it)->GetType()->RespawnDelay;
-			int newDelay = pNewMount->GetType()->RespawnDelay;
+			int oldDelay = (*it)->ResolveRespawnDelay();
+			int newDelay = pNewMount->ResolveRespawnDelay();
 			if (oldDelay > 0 && newDelay > 0 && (*it)->RespawnTimer.HasStarted())
 			{
 				int oldRemaining = (*it)->RespawnTimer.GetTimeLeft();
@@ -269,7 +269,7 @@ bool TechnoExt::DoesntOccupyCellAsChild(TechnoClass* pThis)
 {
 	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
 	return pExt && pExt->ParentAttachment
-		&& !pExt->ParentAttachment->GetType()->OccupiesCell;
+		&& !pExt->ParentAttachment->ResolveOccupiesCell();
 }
 
 bool TechnoExt::IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep)
@@ -400,8 +400,8 @@ static bool TAExt_SiblingSourcePowers(
 	auto const conChildType = pConChild ? pConChild->GetTechnoType() : nullptr;
 	auto const srcChildType = pSrcChild ? pSrcChild->GetTechnoType() : nullptr;
 
-	auto const& sTypes = pSrcType->PowersSiblings_Type;
-	auto const& sIdx = pSrcType->PowersSiblings_Index;
+	auto const& sTypes = pSrc->ResolvePowersSiblingsType();
+	auto const& sIdx = pSrc->ResolvePowersSiblingsIndex();
 
 	bool const byType = conChildType
 		&& std::find(sTypes.begin(), sTypes.end(), conChildType) != sTypes.end();
@@ -409,11 +409,11 @@ static bool TAExt_SiblingSourcePowers(
 		std::find(sIdx.begin(), sIdx.end(), static_cast<int>(cIndex)) != sIdx.end();
 	bool const specific = byType || byIndex;
 
-	if (!pConType->Powered_Type.empty())
+	if (!pCon->ResolvePoweredType().empty())
 	{
 		// Picky consumer: only a source of an accepted child type that targets it
 		// specifically -- the vague PowersSiblings=yes does not power picky consumers.
-		auto const& acc = pConType->Powered_Type;
+		auto const& acc = pCon->ResolvePoweredType();
 		bool const accepted = srcChildType
 			&& std::find(acc.begin(), acc.end(), srcChildType) != acc.end();
 		return specific && accepted;
@@ -525,8 +525,8 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 				met = met && (pParent->Passengers.NumPassengers >= requiredPassengers);
 			}
 
-			auto const& rIdx = pSelfType->RequiresSlot_Index;
-			auto const& rType = pSelfType->RequiresSlot_Type;
+			auto const& rIdx = pSelfSlot->ResolveRequiresSlotIndex();
+			auto const& rType = pSelfSlot->ResolveRequiresSlotType();
 			if (!rIdx.empty() || !rType.empty())
 			{
 				required = true;

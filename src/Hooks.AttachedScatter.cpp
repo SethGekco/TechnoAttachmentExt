@@ -42,7 +42,7 @@ DEFINE_HOOK(0x4817A8, CellClass_Incoming_CheckIfTechnoOccupies_TAExt, 0x6)
 	GET(TechnoClass*, pTechno, ESI);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pTechno);
-	return (pExt && pExt->ParentAttachment && pExt->ParentAttachment->GetType()->OccupiesCell)
+	return (pExt && pExt->ParentAttachment && pExt->ParentAttachment->ResolveOccupiesCell())
 		? ConditionIsTrue
 		: ContinueCheck;
 }

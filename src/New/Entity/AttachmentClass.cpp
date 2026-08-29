@@ -54,7 +54,7 @@ void AttachmentClass::OnCreated()
 	if (this->Child)
 		return;
 
-	if (this->GetType()->RespawnAtCreation)
+	if (this->ResolveRespawnAtCreation())
 		this->CreateChild();
 }
 
@@ -79,19 +79,30 @@ bool AttachmentClass::PrerequisitesMet()
 
 	// Sibling gates (E1) come from the AttachmentType. Singular ".Sibling" =
 	// ANY of the list satisfies; plural ".Siblings" = ALL must be satisfied.
-	auto const& sibIdxAny  = pType->Prerequisite_Sibling_Index;
-	auto const& sibTypeAny = pType->Prerequisite_Sibling_Type;
-	auto const& sibIdxAll  = pType->Prerequisite_Siblings_Index;
-	auto const& sibTypeAll = pType->Prerequisite_Siblings_Type;
+	auto const& sibIdxAny  = (this->Data && !this->Data->Prerequisite_Sibling_Index.empty())
+		? this->Data->Prerequisite_Sibling_Index : pType->Prerequisite_Sibling_Index;
+	auto const& sibTypeAny = (this->Data && !this->Data->Prerequisite_Sibling_Type.empty())
+		? this->Data->Prerequisite_Sibling_Type : pType->Prerequisite_Sibling_Type;
+	auto const& sibIdxAll  = (this->Data && !this->Data->Prerequisite_Siblings_Index.empty())
+		? this->Data->Prerequisite_Siblings_Index : pType->Prerequisite_Siblings_Index;
+	auto const& sibTypeAll = (this->Data && !this->Data->Prerequisite_Siblings_Type.empty())
+		? this->Data->Prerequisite_Siblings_Type : pType->Prerequisite_Siblings_Type;
 	bool const anySibling = !sibIdxAny.empty() || !sibTypeAny.empty()
 		|| !sibIdxAll.empty() || !sibTypeAll.empty();
 
 	// Host rank / health gates (checked at the end, but they count as gating here
 	// or the early-out below would skip them entirely).
-	bool const anyHostState = pType->Prerequisite_MinRank.isset()
-		|| pType->Prerequisite_MaxRank.isset()
-		|| pType->Prerequisite_MinHealth.isset()
-		|| pType->Prerequisite_MaxHealth.isset();
+	auto const& minRank = (this->Data && this->Data->Prerequisite_MinRank.isset())
+		? this->Data->Prerequisite_MinRank : pType->Prerequisite_MinRank;
+	auto const& maxRank = (this->Data && this->Data->Prerequisite_MaxRank.isset())
+		? this->Data->Prerequisite_MaxRank : pType->Prerequisite_MaxRank;
+	auto const& minHealth = (this->Data && this->Data->Prerequisite_MinHealth.isset())
+		? this->Data->Prerequisite_MinHealth : pType->Prerequisite_MinHealth;
+	auto const& maxHealth = (this->Data && this->Data->Prerequisite_MaxHealth.isset())
+		? this->Data->Prerequisite_MaxHealth : pType->Prerequisite_MaxHealth;
+
+	bool const anyHostState = minRank.isset() || maxRank.isset()
+		|| minHealth.isset() || maxHealth.isset();
 
 	if (prereq.empty() && pType->Prerequisite_Lists.empty()
 		&& prereqNeg.empty() && reqHouses.empty() && forbHouses.empty()
@@ -209,25 +220,23 @@ bool AttachmentClass::PrerequisitesMet()
 	// ---- host rank / health gates (A1-lite veterancy + damaged-variant) ----
 	if (auto const pParent = this->Parent)
 	{
-		if (pType->Prerequisite_MinRank.isset() || pType->Prerequisite_MaxRank.isset())
+		if (minRank.isset() || maxRank.isset())
 		{
 			auto const rank = pParent->Veterancy.GetRemainingLevel();
 
-			if (pType->Prerequisite_MinRank.isset()
-				&& static_cast<int>(rank) < static_cast<int>(pType->Prerequisite_MinRank.Get()))
+			if (minRank.isset() && static_cast<int>(rank) < static_cast<int>(minRank.Get()))
 				return false;
-			if (pType->Prerequisite_MaxRank.isset()
-				&& static_cast<int>(rank) > static_cast<int>(pType->Prerequisite_MaxRank.Get()))
+			if (maxRank.isset() && static_cast<int>(rank) > static_cast<int>(maxRank.Get()))
 				return false;
 		}
 
-		if (pType->Prerequisite_MinHealth.isset() || pType->Prerequisite_MaxHealth.isset())
+		if (minHealth.isset() || maxHealth.isset())
 		{
 			int const hp = static_cast<int>(pParent->GetHealthPercentage() * 100.0);
 
-			if (pType->Prerequisite_MinHealth.isset() && hp < pType->Prerequisite_MinHealth.Get())
+			if (minHealth.isset() && hp < minHealth.Get())
 				return false;
-			if (pType->Prerequisite_MaxHealth.isset() && hp > pType->Prerequisite_MaxHealth.Get())
+			if (maxHealth.isset() && hp > maxHealth.Get())
 				return false;
 		}
 	}
@@ -345,6 +354,108 @@ bool AttachmentClass::ResolveTransparentToMouse()
 		? this->Data->TransparentToMouse.Get() : this->GetType()->TransparentToMouse;
 }
 
+const ValueableVector<TechnoTypeClass*>& AttachmentClass::ResolvePoweredType()
+{
+	return (this->Data && !this->Data->Powered_Type.empty())
+		? this->Data->Powered_Type : this->GetType()->Powered_Type;
+}
+
+const ValueableVector<TechnoTypeClass*>& AttachmentClass::ResolvePowersSiblingsType()
+{
+	return (this->Data && !this->Data->PowersSiblings_Type.empty())
+		? this->Data->PowersSiblings_Type : this->GetType()->PowersSiblings_Type;
+}
+
+const ValueableVector<TechnoTypeClass*>& AttachmentClass::ResolveRequiresSlotType()
+{
+	return (this->Data && !this->Data->RequiresSlot_Type.empty())
+		? this->Data->RequiresSlot_Type : this->GetType()->RequiresSlot_Type;
+}
+
+const ValueableVector<int>& AttachmentClass::ResolvePowersSiblingsIndex()
+{
+	return (this->Data && !this->Data->PowersSiblings_Index.empty())
+		? this->Data->PowersSiblings_Index : this->GetType()->PowersSiblings_Index;
+}
+
+const ValueableVector<int>& AttachmentClass::ResolveRequiresSlotIndex()
+{
+	return (this->Data && !this->Data->RequiresSlot_Index.empty())
+		? this->Data->RequiresSlot_Index : this->GetType()->RequiresSlot_Index;
+}
+
+bool AttachmentClass::ResolveRespawnAtCreation()
+{
+	return (this->Data && this->Data->RespawnAtCreation.isset())
+		? this->Data->RespawnAtCreation.Get() : this->GetType()->RespawnAtCreation;
+}
+
+int AttachmentClass::ResolveRespawnDelay()
+{
+	return (this->Data && this->Data->RespawnDelay.isset())
+		? this->Data->RespawnDelay.Get() : this->GetType()->RespawnDelay;
+}
+
+bool AttachmentClass::ResolveInheritStopCommand()
+{
+	return (this->Data && this->Data->InheritCommands_StopCommand.isset())
+		? this->Data->InheritCommands_StopCommand.Get() : this->GetType()->InheritCommands_StopCommand;
+}
+
+bool AttachmentClass::ResolveInheritDeployCommand()
+{
+	return (this->Data && this->Data->InheritCommands_DeployCommand.isset())
+		? this->Data->InheritCommands_DeployCommand.Get() : this->GetType()->InheritCommands_DeployCommand;
+}
+
+bool AttachmentClass::ResolveInheritOwner()
+{
+	return (this->Data && this->Data->InheritOwner.isset())
+		? this->Data->InheritOwner.Get() : this->GetType()->InheritOwner;
+}
+
+bool AttachmentClass::ResolveInheritStateEffects()
+{
+	return (this->Data && this->Data->InheritStateEffects.isset())
+		? this->Data->InheritStateEffects.Get() : this->GetType()->InheritStateEffects;
+}
+
+bool AttachmentClass::ResolveInheritDestruction()
+{
+	return (this->Data && this->Data->InheritDestruction.isset())
+		? this->Data->InheritDestruction.Get() : this->GetType()->InheritDestruction;
+}
+
+bool AttachmentClass::ResolveInheritHeightStatus()
+{
+	return (this->Data && this->Data->InheritHeightStatus.isset())
+		? this->Data->InheritHeightStatus.Get() : this->GetType()->InheritHeightStatus;
+}
+
+bool AttachmentClass::ResolveOccupiesCell()
+{
+	return (this->Data && this->Data->OccupiesCell.isset())
+		? this->Data->OccupiesCell.Get() : this->GetType()->OccupiesCell;
+}
+
+bool AttachmentClass::ResolveLowSelectionPriority()
+{
+	return (this->Data && this->Data->LowSelectionPriority.isset())
+		? this->Data->LowSelectionPriority.Get() : this->GetType()->LowSelectionPriority;
+}
+
+bool AttachmentClass::ResolveConvertKeepHealth()
+{
+	return (this->Data && this->Data->Convert_KeepHealth.isset())
+		? this->Data->Convert_KeepHealth.Get() : this->GetType()->Convert_KeepHealth;
+}
+
+bool AttachmentClass::ResolveConvertKeepVeterancy()
+{
+	return (this->Data && this->Data->Convert_KeepVeterancy.isset())
+		? this->Data->Convert_KeepVeterancy.Get() : this->GetType()->Convert_KeepVeterancy;
+}
+
 // ---- convert-in-place ------------------------------------------------------
 
 TechnoTypeClass* AttachmentClass::ResolveDesiredChildType()
@@ -417,7 +528,7 @@ void AttachmentClass::ConvertChildTo(TechnoTypeClass* pNewType)
 		return;
 	}
 
-	if (pType->Convert_KeepHealth)
+	if (this->ResolveConvertKeepHealth())
 	{
 		// Carried as a PERCENTAGE so the replacement keeps the same damage ratio
 		// even when the two types have different Strength.
@@ -430,7 +541,7 @@ void AttachmentClass::ConvertChildTo(TechnoTypeClass* pNewType)
 		pNew->Health = hp;
 	}
 
-	if (pType->Convert_KeepVeterancy)
+	if (this->ResolveConvertKeepVeterancy())
 		pNew->Veterancy.Veterancy = veterancy;
 
 	// The new child is left for the next AI tick to unlimbo and position, exactly
@@ -444,15 +555,15 @@ void AttachmentClass::AI()
 
 	if (!this->Child)
 	{
-		if (pType->RespawnDelay == 0)
+		if (this->ResolveRespawnDelay() == 0)
 		{
 			this->CreateChild();
 		}
-		else if (pType->RespawnDelay > 0)
+		else if (this->ResolveRespawnDelay() > 0)
 		{
 			if (!this->RespawnTimer.HasStarted())
 			{
-				this->RespawnTimer.Start(pType->RespawnDelay);
+				this->RespawnTimer.Start(this->ResolveRespawnDelay());
 			}
 			else if (this->RespawnTimer.Completed())
 			{
@@ -508,7 +619,7 @@ void AttachmentClass::AI()
 			pChildAsFoot->TubeIndex = pParentAsFoot->TubeIndex;
 		}
 
-		if (pType->InheritStateEffects)
+		if (this->ResolveInheritStateEffects())
 		{
 			this->Child->IsFallingDown = this->Parent->IsFallingDown;
 			this->Child->WasFallingDown = this->Parent->WasFallingDown;
@@ -531,7 +642,7 @@ void AttachmentClass::AI()
 			this->Child->ShouldLoseTargetNow = this->Parent->ShouldLoseTargetNow;
 		}
 
-		if (pType->InheritOwner)
+		if (this->ResolveInheritOwner())
 			this->Child->SetOwningHouse(this->Parent->GetOwningHouse(), false);
 	}
 }
@@ -546,13 +657,20 @@ void AttachmentClass::Destroy(TechnoClass* pSource)
 
 		auto pType = this->GetType();
 
-		if (pType->DestructionWeapon_Child.isset())
-			TechnoExt::FireWeaponAtSelf(this->Child, pType->DestructionWeapon_Child);
+		auto const& dwChild = (this->Data && this->Data->DestructionWeapon_Child.isset())
+			? this->Data->DestructionWeapon_Child : pType->DestructionWeapon_Child;
+		if (dwChild.isset())
+			TechnoExt::FireWeaponAtSelf(this->Child, dwChild.Get());
 
-		if (pType->InheritDestruction && this->Child)
+		if (this->ResolveInheritDestruction() && this->Child)
 			TechnoExt::Kill(this->Child, pSource);
-		else if (!this->Child->InLimbo && pType->ParentDestructionMission.isset())
-			this->Child->QueueMission(pType->ParentDestructionMission.Get(), false);
+		else
+		{
+			auto const& pdm = (this->Data && this->Data->ParentDestructionMission.isset())
+				? this->Data->ParentDestructionMission : pType->ParentDestructionMission;
+			if (!this->Child->InLimbo && pdm.isset())
+				this->Child->QueueMission(pdm.Get(), false);
+		}
 
 		this->Child = nullptr;
 	}
@@ -566,8 +684,10 @@ void AttachmentClass::ChildDestroyed()
 			pChildExt->ParentAttachment = nullptr;
 
 		AttachmentTypeClass* pType = this->GetType();
-		if (pType->DestructionWeapon_Parent.isset())
-			TechnoExt::FireWeaponAtSelf(this->Parent, pType->DestructionWeapon_Parent);
+		auto const& dwParent = (this->Data && this->Data->DestructionWeapon_Parent.isset())
+			? this->Data->DestructionWeapon_Parent : pType->DestructionWeapon_Parent;
+		if (dwParent.isset())
+			TechnoExt::FireWeaponAtSelf(this->Parent, dwParent.Get());
 
 		this->Child = nullptr;
 	}
@@ -634,7 +754,7 @@ bool AttachmentClass::AttachChild(TechnoClass* pChild)
 
 	AttachmentTypeClass* pType = this->GetType();
 
-	if (pType->InheritOwner)
+	if (this->ResolveInheritOwner())
 	{
 		if (auto pController = this->Child->MindControlledBy)
 			pController->CaptureManager->FreeUnit(this->Child);
@@ -649,11 +769,13 @@ bool AttachmentClass::DetachChild()
 	{
 		AttachmentTypeClass* pType = this->GetType();
 
-		if (!this->Child->InLimbo && pType->ParentDetachmentMission.isset())
-			this->Child->QueueMission(pType->ParentDetachmentMission.Get(), false);
+		auto const& pdetm = (this->Data && this->Data->ParentDetachmentMission.isset())
+			? this->Data->ParentDetachmentMission : pType->ParentDetachmentMission;
+		if (!this->Child->InLimbo && pdetm.isset())
+			this->Child->QueueMission(pdetm.Get(), false);
 
 		// FIXME this won't work probably
-		if (pType->InheritOwner)
+		if (this->ResolveInheritOwner())
 			this->Child->SetOwningHouse(this->Parent->GetOriginalOwner(), false);
 
 		// remove the attachment locomotor manually just to be safe
