@@ -102,7 +102,8 @@ Attachment1.Type=Turret           ; same AttachmentType...
 ```
 - **"Working"** = alive, on the field, `HasPower`, and not itself dark — so a
   shut-down or low-power plant stops powering things.
-- **Owner only.** An ally's GAROBO does *not* run your robot tanks (matches vanilla).
+- **Owner only by default** — an ally's GAROBO does not run your robot tanks,
+  matching vanilla. Widen it with `PoweredBy.House=` above.
 - Composes with the other power gates through the same arbiter: a child can require
   a sibling generator *and* an external structure, and it goes dark if either fails.
 
