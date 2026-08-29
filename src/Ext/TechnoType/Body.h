@@ -59,6 +59,20 @@ public:
 		// Consumer: dark unless the network reaches it.
 		Valueable<bool> PowerConsumer;
 		ValueableVector<TechnoTypeClass*> PowerConsumer_Types; // empty = any source satisfies
+		// Whose network may power me / whom I am willing to power
+		// (TAExtHouseRelation bitmask). Both sides must accept, same as the Types
+		// filters. Default owner+ally preserves the original allied-only behaviour.
+		Valueable<int> PowerConsumer_House;
+		Valueable<int> PowerSource_House;
+
+		// External-structure power for a PLAIN techno (unit or building), not just
+		// attachment children. Same tags as the AttachmentType version; an attached
+		// child's AttachmentType/slot settings override these.
+		ValueableVector<BuildingTypeClass*> PoweredBy;
+		Valueable<bool> PoweredBy_RequireAll;
+		Valueable<bool> PoweredBy_RequirePower;
+		Valueable<int> PoweredBy_Range;
+		Valueable<int> PoweredBy_House;
 
 		struct AttachmentDataEntry
 		{
@@ -121,6 +135,13 @@ public:
 			, PowerRelay_Range { -1 }
 			, PowerConsumer { false }
 			, PowerConsumer_Types { }
+			, PowerConsumer_House { TAExtHouse_Owner | TAExtHouse_Ally }
+			, PowerSource_House { TAExtHouse_Owner | TAExtHouse_Ally }
+			, PoweredBy { }
+			, PoweredBy_RequireAll { false }
+			, PoweredBy_RequirePower { true }
+			, PoweredBy_Range { 0 }
+			, PoweredBy_House { TAExtHouse_Owner }
 			, AttachmentData {}
 		{ }
 

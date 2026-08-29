@@ -58,6 +58,25 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	this->PowerConsumer.Read(exINI, pSection, "PowerConsumer");
 	this->PowerConsumer_Types.Read(exINI, pSection, "PowerConsumer.Types");
 
+	{
+		int houseMask = TAExtHouse_None;
+		if (TAExt_ReadHouseRelationList(pINI, pSection, "PowerConsumer.House", houseMask))
+			this->PowerConsumer_House = houseMask;
+		if (TAExt_ReadHouseRelationList(pINI, pSection, "PowerSource.House", houseMask))
+			this->PowerSource_House = houseMask;
+	}
+
+	// External-structure power on a plain TechnoType (unit or building).
+	this->PoweredBy.Read(exINI, pSection, "PoweredBy");
+	this->PoweredBy_RequireAll.Read(exINI, pSection, "PoweredBy.RequireAll");
+	this->PoweredBy_RequirePower.Read(exINI, pSection, "PoweredBy.RequirePower");
+	this->PoweredBy_Range.Read(exINI, pSection, "PoweredBy.Range");
+	{
+		int houseMask = TAExtHouse_None;
+		if (TAExt_ReadHouseRelationList(pINI, pSection, "PoweredBy.House", houseMask))
+			this->PoweredBy_House = houseMask;
+	}
+
 	// OverflowMode=all|excess -- "all" drops the whole group past the cap,
 	// "excess" (default) drops only the ones past it.
 	char overflowBuffer[32];
@@ -224,6 +243,13 @@ void TechnoTypeExt::ExtData::Serialize(T& Stm)
 		.Process(this->PowerRelay_Range)
 		.Process(this->PowerConsumer)
 		.Process(this->PowerConsumer_Types)
+		.Process(this->PowerConsumer_House)
+		.Process(this->PowerSource_House)
+		.Process(this->PoweredBy)
+		.Process(this->PoweredBy_RequireAll)
+		.Process(this->PoweredBy_RequirePower)
+		.Process(this->PoweredBy_Range)
+		.Process(this->PoweredBy_House)
 		.Process(this->AttachmentData)
 		;
 }

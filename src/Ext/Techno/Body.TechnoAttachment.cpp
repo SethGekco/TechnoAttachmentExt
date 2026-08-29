@@ -513,46 +513,6 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 			powered = powered && pParent && !TAExt_HostIsDark(pParent);
 		}
 
-		// External-structure power: vanilla PowersUnit semantics, but expressed on
-		// the consumer so it can vary per slot. Dark unless the HOST'S OWNER has a
-		// qualifying building. Only applied once the solver has populated the
-		// building snapshot, so it fails SAFE (powered) rather than darkening
-		// everything on the first frame.
-		if (pSelfType && pParent && TAExtPowerNetwork::Solved)
-		{
-			auto const& poweredBy = pSelfSlot->ResolvePoweredBy();
-			if (!poweredBy.empty())
-			{
-				isConsumer = true;
-
-				bool const requireAll = pSelfSlot->ResolvePoweredByRequireAll();
-				bool const requirePower = pSelfSlot->ResolvePoweredByRequirePower();
-				int const range = pSelfSlot->ResolvePoweredByRange();
-				int const houseMask = pSelfSlot->ResolvePoweredByHouse();
-				auto const coords = pThis->GetMapCoords();
-				auto const pOwner = pParent->Owner;
-
-				bool met = requireAll;
-				for (auto const pBldType : poweredBy)
-				{
-					bool const have = TAExtPowerNetwork::HasWorkingBuilding(
-						pOwner, pBldType, requirePower, range, coords, houseMask);
-
-					if (requireAll)
-					{
-						if (!have) { met = false; break; }
-					}
-					else if (have)
-					{
-						met = true; break;
-					}
-				}
-
-				if (!met)
-					reasons |= TAExtDeactivate_BuildingPower;
-			}
-		}
-
 		if (pSelfType && pParent)
 		{
 			bool required = false;
@@ -605,6 +565,82 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 
 			if (required && !met)
 				reasons |= TAExtDeactivate_SlotRequirement;
+		}
+	}
+
+	// --- External-structure power (PoweredBy), for ANY techno ------------------
+	// Vanilla PowersUnit semantics expressed on the consumer. This is NOT limited to
+	// attachment children: a plain unit or building can declare PoweredBy on its
+	// TechnoType. Config resolves in the documented order --
+	//   TechnoType  ->  AttachmentType  ->  AttachmentN.* (slot wins)
+	// -- so an attached child's slot/type override its TechnoType's setting.
+	// Only applied once the solver has filled the building snapshot, so it fails
+	// SAFE (powered) rather than darkening everything on frame one.
+	if (TAExtPowerNetwork::Solved)
+	{
+		const ValueableVector<BuildingTypeClass*>* pList = nullptr;
+		bool requireAll = false;
+		bool requirePower = true;
+		int range = 0;
+		int houseMask = TAExtHouse_Owner;
+
+		if (auto const pSlot = pExt->ParentAttachment)
+		{
+			// Slot resolvers already fall back to the AttachmentType.
+			auto const& attList = pSlot->ResolvePoweredBy();
+			if (!attList.empty())
+			{
+				pList = &attList;
+				requireAll = pSlot->ResolvePoweredByRequireAll();
+				requirePower = pSlot->ResolvePoweredByRequirePower();
+				range = pSlot->ResolvePoweredByRange();
+				houseMask = pSlot->ResolvePoweredByHouse();
+			}
+		}
+
+		if (!pList)
+		{
+			// Not attached, or the attachment levels say nothing: use the TechnoType.
+			if (auto const pTypeExt = TechnoTypeExt::ExtMap.Find(pThis->GetTechnoType()))
+			{
+				if (!pTypeExt->PoweredBy.empty())
+				{
+					pList = &pTypeExt->PoweredBy;
+					requireAll = pTypeExt->PoweredBy_RequireAll;
+					requirePower = pTypeExt->PoweredBy_RequirePower;
+					range = pTypeExt->PoweredBy_Range;
+					houseMask = pTypeExt->PoweredBy_House;
+				}
+			}
+		}
+
+		if (pList && !pList->empty())
+		{
+			// For an attached child the HOST's owner is what counts (the child may be
+			// mind-controlled or owner-inherited); otherwise our own.
+			auto const pAtt = pExt->ParentAttachment;
+			auto const pOwnerTechno = (pAtt && pAtt->Parent) ? pAtt->Parent : pThis;
+			auto const pOwner = pOwnerTechno->Owner;
+			auto const coords = pThis->GetMapCoords();
+
+			bool met = requireAll;
+			for (auto const pBldType : *pList)
+			{
+				bool const have = TAExtPowerNetwork::HasWorkingBuilding(
+					pOwner, pBldType, requirePower, range, coords, houseMask);
+
+				if (requireAll)
+				{
+					if (!have) { met = false; break; }
+				}
+				else if (have)
+				{
+					met = true; break;
+				}
+			}
+
+			if (!met)
+				reasons |= TAExtDeactivate_BuildingPower;
 		}
 	}
 

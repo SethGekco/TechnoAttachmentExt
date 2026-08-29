@@ -311,10 +311,20 @@ namespace TAExtPowerNetwork
 					continue;
 
 				auto const pRootSource = sources[sourceOfNode[b]];
-				// Only the owning house's network powers it -- an enemy power plant
-				// should not light up your units. Allies do count.
-				if (!pRootSource->Owner || !pTechno->Owner
-					|| !pRootSource->Owner->IsAlliedWith(pTechno->Owner))
+				// House filter, both directions -- the consumer says whose network may
+				// power it (PowerConsumer.House) and the source says whom it is willing
+				// to power (PowerSource.House). Both must accept, mirroring how the
+				// .Types filters compose. Default owner+ally = the original behaviour.
+				if (!pRootSource->Owner || !pTechno->Owner)
+					continue;
+
+				auto const pSrcTypeExt = TechnoTypeExt::ExtMap.Find(pRootSource->GetTechnoType());
+				if (!pSrcTypeExt)
+					continue;
+
+				if (!HouseRelationMatches(pTechno->Owner, pRootSource->Owner, pTypeExt->PowerConsumer_House))
+					continue;
+				if (!HouseRelationMatches(pRootSource->Owner, pTechno->Owner, pSrcTypeExt->PowerSource_House))
 					continue;
 				if (!TypesMatch(pRootSource, pTechno))
 					continue;
