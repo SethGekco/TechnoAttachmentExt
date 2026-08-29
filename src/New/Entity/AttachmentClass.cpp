@@ -326,6 +326,13 @@ int AttachmentClass::ResolvePoweredByRange()
 		? this->Data->PoweredBy_Range.Get() : this->GetType()->PoweredBy_Range;
 }
 
+int AttachmentClass::ResolvePoweredByHouse()
+{
+	// -1 on the slot means "not set" -> fall back to the AttachmentType.
+	return (this->Data && this->Data->PoweredBy_House >= 0)
+		? this->Data->PoweredBy_House : this->GetType()->PoweredBy_House;
+}
+
 bool AttachmentClass::ResolvePassSelection()
 {
 	return (this->Data && this->Data->PassSelection.isset())

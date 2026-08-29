@@ -93,6 +93,7 @@ public:
 			Nullable<bool> PoweredBy_RequireAll;
 			Nullable<bool> PoweredBy_RequirePower;
 			Nullable<int> PoweredBy_Range;
+			Valueable<int> PoweredBy_House; // -1 = unset (inherit the AttachmentType)
 			Nullable<bool> PassSelection;
 			Nullable<bool> TransparentToMouse;
 

@@ -32,6 +32,57 @@ inline bool TAExt_ParseRelation(const char* pValue, AttachmentRelation& value)
 	return true;
 }
 
+// House-relation name parser for comma-separated lists (PoweredBy.House=).
+// Free function for the same reason as TAExt_ParseRelation: Phobos's vector parser
+// cannot handle an enum.
+inline bool TAExt_ParseHouseRelation(const char* pValue, int& mask)
+{
+	if (_strcmpi(pValue, "owner") == 0 || _strcmpi(pValue, "self") == 0)
+		mask |= TAExtHouse_Owner;
+	else if (_strcmpi(pValue, "ally") == 0 || _strcmpi(pValue, "allies") == 0)
+		mask |= TAExtHouse_Ally;
+	else if (_strcmpi(pValue, "team") == 0)
+		mask |= TAExtHouse_Team;
+	else if (_strcmpi(pValue, "enemy") == 0 || _strcmpi(pValue, "enemies") == 0)
+		mask |= TAExtHouse_Enemy;
+	else if (_strcmpi(pValue, "neutral") == 0)
+		mask |= TAExtHouse_Neutral;
+	else if (_strcmpi(pValue, "civilian") == 0)
+		mask |= TAExtHouse_Civilian;
+	else if (_strcmpi(pValue, "special") == 0)
+		mask |= TAExtHouse_Special;
+	else if (_strcmpi(pValue, "any") == 0 || _strcmpi(pValue, "all") == 0)
+		mask |= TAExtHouse_Any;
+	else
+		return false;
+	return true;
+}
+
+// Parse a whole comma-separated relation list from one INI key. Returns false when
+// the key is absent, so callers can tell "unset" from "set to something".
+inline bool TAExt_ReadHouseRelationList(CCINIClass* pINI, const char* pSection,
+	const char* pKey, int& maskOut)
+{
+	char buffer[128];
+	if (pINI->ReadString(pSection, pKey, "", buffer, sizeof(buffer)) <= 0)
+		return false;
+
+	int mask = TAExtHouse_None;
+	char* context = nullptr;
+	for (char* tok = strtok_s(buffer, ",", &context); tok; tok = strtok_s(nullptr, ",", &context))
+	{
+		while (*tok == ' ')
+			++tok;
+
+		if (!TAExt_ParseHouseRelation(tok, mask))
+			Debug::INIParseFailed(pSection, pKey, tok,
+				"Expected houses (owner/ally/team/enemy/neutral/civilian/special/any)");
+	}
+
+	maskOut = mask;
+	return true;
+}
+
 namespace detail
 {
 	// Rank (rookie/veteran/elite) has no parser in Phobos's TemplateDef either, so

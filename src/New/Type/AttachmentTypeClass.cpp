@@ -41,6 +41,11 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->PoweredBy_RequireAll.Read(exINI, section, "PoweredBy.RequireAll");
 	this->PoweredBy_RequirePower.Read(exINI, section, "PoweredBy.RequirePower");
 	this->PoweredBy_Range.Read(exINI, section, "PoweredBy.Range");
+	{
+		int houseMask = TAExtHouse_None;
+		if (TAExt_ReadHouseRelationList(pINI, section, "PoweredBy.House", houseMask))
+			this->PoweredBy_House = houseMask;
+	}
 	this->RequiresPassengers.Read(exINI, section, "RequiresPassengers");
 	this->RequiresSlot_Index.Read(exINI, section, "RequiresSlot.Index");
 	this->RequiresSlot_Type.Read(exINI, section, "RequiresSlot.Type");
@@ -239,6 +244,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->PoweredBy_RequireAll)
 		.Process(this->PoweredBy_RequirePower)
 		.Process(this->PoweredBy_Range)
+		.Process(this->PoweredBy_House)
 		.Process(this->RequiresPassengers)
 		.Process(this->RequiresSlot_Index)
 		.Process(this->RequiresSlot_Type)

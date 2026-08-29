@@ -163,6 +163,14 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredBy.Range", static_cast<int>(i));
 		slotPoweredByRange.Read(exINI, pSection, tempBuffer);
 
+		Valueable<int> slotPoweredByHouse { -1 };
+		{
+			int houseMask = TAExtHouse_None;
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredBy.House", static_cast<int>(i));
+			if (TAExt_ReadHouseRelationList(pINI, pSection, tempBuffer, houseMask))
+				slotPoweredByHouse = houseMask;
+		}
+
 		Nullable<bool> slotPassSelection;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PassSelection", static_cast<int>(i));
 		slotPassSelection.Read(exINI, pSection, tempBuffer);
@@ -174,7 +182,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		AttachmentDataEntry const entry { ValueableIdx<AttachmentTypeClass>(type), technoType, flh, isOnTurret, rotationAdjust, id, prereq, prereqNeg, reqHouses, forbHouses, prereqDynamic, ySortPosition,
 			slotPowersParent, slotPowered, slotPowersSiblings, slotPoweredByParent,
 			slotRequiresPassengers,
-			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange,
+			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
@@ -271,6 +279,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->PoweredBy_RequireAll)
 		.Process(this->PoweredBy_RequirePower)
 		.Process(this->PoweredBy_Range)
+		.Process(this->PoweredBy_House)
 		.Process(this->PassSelection)
 		.Process(this->TransparentToMouse)
 		.Success();

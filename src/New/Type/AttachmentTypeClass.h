@@ -22,6 +22,21 @@ enum class AttachmentYSortPosition
 	OverParent = 2
 };
 
+// House-relation filter: which houses' buildings count for a PoweredBy check.
+// A bitmask so a modder can combine them (e.g. "owner,ally").
+enum TAExtHouseRelation : int
+{
+	TAExtHouse_None     = 0,
+	TAExtHouse_Owner    = 1 << 0, // the host's own house
+	TAExtHouse_Ally     = 1 << 1, // allied, excluding self
+	TAExtHouse_Team     = 1 << 2, // same multiplayer team (TournamentTeamID)
+	TAExtHouse_Enemy    = 1 << 3, // not allied and not a passive/neutral house
+	TAExtHouse_Neutral  = 1 << 4, // the Neutral country
+	TAExtHouse_Civilian = 1 << 5, // MultiplayPassive countries (civvies)
+	TAExtHouse_Special  = 1 << 6, // the Special country
+	TAExtHouse_Any      = 1 << 7, // anybody at all
+};
+
 // F0b relationship descriptor: how to address a techno relative to an
 // attachment graph. Child/Sibling take a slot (index or ID); the others
 // ignore it. Shared foundation for prerequisites, targeting, XP/power passing.
@@ -92,6 +107,9 @@ public:
 	Valueable<bool> PoweredBy_RequireAll;
 	Valueable<bool> PoweredBy_RequirePower;
 	Valueable<int> PoweredBy_Range;
+	// Which houses' buildings count (TAExtHouseRelation bitmask). Default: owner
+	// only, matching vanilla PowersUnit. e.g. PoweredBy.House=owner,ally
+	Valueable<int> PoweredBy_House;
 
 	// B1 -- requirement gating ("activate only if ..."). The child is dark unless
 	// the parent satisfies these. Open-topped turret style:
@@ -250,6 +268,7 @@ public:
 		, PoweredBy_RequireAll { false }
 		, PoweredBy_RequirePower { true }
 		, PoweredBy_Range { 0 }
+		, PoweredBy_House { TAExtHouse_Owner }
 		, RequiresPassengers { 0 }
 		, RequiresSlot_Index { }
 		, RequiresSlot_Type { }

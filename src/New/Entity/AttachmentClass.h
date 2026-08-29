@@ -73,6 +73,7 @@ public:
 	bool ResolvePoweredByRequireAll();
 	bool ResolvePoweredByRequirePower();
 	int  ResolvePoweredByRange();
+	int  ResolvePoweredByHouse();
 	bool ResolvePassSelection();
 	bool ResolveTransparentToMouse();
 

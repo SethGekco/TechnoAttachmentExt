@@ -12,7 +12,7 @@ namespace TAExtPowerNetwork
 {
 	extern bool Solved;
 	bool HasWorkingBuilding(HouseClass* pOwner, BuildingTypeClass* pType,
-		bool requirePower, int rangeCells, const CellStruct& from);
+		bool requirePower, int rangeCells, const CellStruct& from, int houseMask);
 }
 
 #include <algorithm>
@@ -528,6 +528,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 				bool const requireAll = pSelfSlot->ResolvePoweredByRequireAll();
 				bool const requirePower = pSelfSlot->ResolvePoweredByRequirePower();
 				int const range = pSelfSlot->ResolvePoweredByRange();
+				int const houseMask = pSelfSlot->ResolvePoweredByHouse();
 				auto const coords = pThis->GetMapCoords();
 				auto const pOwner = pParent->Owner;
 
@@ -535,7 +536,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 				for (auto const pBldType : poweredBy)
 				{
 					bool const have = TAExtPowerNetwork::HasWorkingBuilding(
-						pOwner, pBldType, requirePower, range, coords);
+						pOwner, pBldType, requirePower, range, coords, houseMask);
 
 					if (requireAll)
 					{
