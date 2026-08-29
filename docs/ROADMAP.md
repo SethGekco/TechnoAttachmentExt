@@ -327,6 +327,10 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   between the radius network (consumer flag sits on the child TechnoType, so it
   can't vary per slot) and `Prerequisite=` (hides rather than darkens). Building
   snapshot rebuilt once per frame in the existing solver. NOT PLAY-TESTED.
+  **+ PoweredBy.House (2026-08-29, commit 5ad41d9):** owner/ally/team/enemy/neutral/
+  civilian/special/any bitmask deciding whose buildings count, also per-slot.
+  Default owner = vanilla. `team` uses TournamentTeamID (team games only);
+  passives excluded from `enemy`.
 
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /

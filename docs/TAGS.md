@@ -67,7 +67,30 @@ PoweredBy=GAROBO,GATECH     ; dark unless the host's owner has one working
 PoweredBy.RequireAll=no     ; no (default) = ANY of them; yes = ALL of them
 PoweredBy.RequirePower=yes  ; the building must itself be online (default)
 PoweredBy.Range=0           ; 0 = house-wide (vanilla); >0 = within N cells
+PoweredBy.House=owner       ; whose buildings count (comma list, default owner)
 ```
+`PoweredBy.House` relations:
+
+| value | meaning |
+|---|---|
+| `owner` (`self`) | the host's own house — **default**, matches vanilla |
+| `ally` | allied, excluding self |
+| `team` | same multiplayer team (`TournamentTeamID`) |
+| `enemy` | not allied, excluding passive/neutral houses |
+| `neutral` | the Neutral country |
+| `civilian` | `MultiplayPassive` countries |
+| `special` | the Special country |
+| `any` (`all`) | anybody at all |
+
+Combine them: `PoweredBy.House=owner,ally` — powered by your own *or* an ally's
+structure. `PoweredBy.House=enemy` gives you "runs on a captured/nearby enemy
+facility", which pairs well with `PoweredBy.Range=`.
+
+Two edges worth knowing:
+- **Passive countries are excluded from `enemy`**, so neutrals/civilians never read
+  as hostile — ask for them by name.
+- **`team` needs a real team game** (non-zero `TournamentTeamID`); two teamless
+  houses do *not* count as team-mates. In a plain skirmish use `ally`.
 Per-slot, so one AttachmentType can be powered by GAROBO on one slot and not on
 another:
 ```ini

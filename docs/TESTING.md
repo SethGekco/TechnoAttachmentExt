@@ -82,6 +82,19 @@ Setup: one parent, slot A = source, slot B = consumer.
       AttachmentType → only slot 0 depends on the building. ← the key new ability
 - [ ] Combines with sibling power: a child needing both a sibling generator AND a
       GAROBO goes dark if *either* is missing.
+- [ ] `PoweredBy.House=owner` (default) → only YOUR GAROBO powers it.
+- [ ] `PoweredBy.House=ally` → an ally's GAROBO powers it, your own does NOT
+      (ally excludes self — combine as `owner,ally` for both).
+- [ ] `PoweredBy.House=owner,ally` → either works.
+- [ ] `PoweredBy.House=enemy` → an ENEMY's GAROBO powers it; a neutral/civilian one
+      does not (passives are excluded from `enemy`).
+- [ ] `PoweredBy.House=neutral` / `civilian` / `special` against a map with those
+      houses present.
+- [ ] `PoweredBy.House=any` → anybody's GAROBO works.
+- [ ] `AttachmentN.PoweredBy.House=` per-slot override.
+- [ ] Bad value (`PoweredBy.House=nonsense`) → parse error in the log, no crash.
+- [ ] `team`: in a plain skirmish (no teams) it should power NOTHING — confirm it
+      doesn't accidentally behave like `ally`.
 
 ## 5. Requirement gating (open-topped style)
 - [ ] `RequiresPassengers=1`: attachment dark until a passenger boards the host;
