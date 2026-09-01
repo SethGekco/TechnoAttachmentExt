@@ -20,7 +20,12 @@
 
 #if TAEXT_ENABLE_RECURSION_PROBE
 
-DEFINE_HOOK(0x4373B0, TechnoAttachmentExt_TraversalRecursionProbe, 0x3)
+// Size 7, not 3. Syringe stamps 5 bytes and resumes at addr+max(size,5);
+// 0x4373B0+5 lands inside `mov eax,[esp+0x5C]` (0x4373B3, 4 bytes). 7 covers
+// `sub esp,0x4C` + that `mov`, resuming cleanly at 0x4373B7. This returns 0,
+// so the copied-bytes path is always taken -- with size 3 the probe would
+// crash the moment it was enabled, which is precisely when it is needed.
+DEFINE_HOOK(0x4373B0, TechnoAttachmentExt_TraversalRecursionProbe, 0x7)
 {
 	static int lastFrame = -1;
 	static int count = 0;

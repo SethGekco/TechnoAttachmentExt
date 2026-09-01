@@ -44,6 +44,15 @@ DEFINE_HOOK(0x7258D0, TechnoAttachmentExt_AnnounceInvalidPointer, 0x6)
 // Init — create a parent's child attachments when the techno initialises.
 // TechnoClass::Init, ESI = this. (Phobos also hooks here; Syringe chains.)
 // ============================================================================
+// Hooks the `pop esi / ret` that ends TechnoClass::Init, so attachments are
+// created once the object is fully constructed.
+//
+// Size 2 is the true length of those two instructions. Syringe stamps 5 and
+// would resume at 0x6F42FC, but the copied `ret` returns to the caller first,
+// so that resume is never reached. The 3 bytes the patch spills past the `ret`
+// are NOP alignment padding (0x6F42F9-0x6F42FB), not code or data.
+//
+// syringe-hook-ok: stolen bytes end in `ret`; the 3 spilled bytes are NOP padding
 DEFINE_HOOK(0x6F42F7, TechnoClass_Init_InitAttachments, 0x2)
 {
 	GET(TechnoClass*, pThis, ESI);
