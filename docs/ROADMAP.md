@@ -332,6 +332,38 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   Default owner = vanilla. `team` uses TournamentTeamID (team games only);
   passives excluded from `enemy`.
 
+### Open bug findings (2026-09-01, Rex report)
+- 🔎 **`OccupiesCell=no` does nothing for non-vehicle children — upstream limitation,
+  not a config error.** PR #352's `src/Ext/Cell/Hooks.cpp` reimplements
+  `UnitClass::SetOccupyBit`/`ClearOccupyBit` (VTABLE `0x7F5D60`/`0x7F5D64`) gated on
+  `DoesntOccupyCellAsChild`, and ends with the author's own note:
+  `// TODO ^ same for TA for non-UnitClass, not needed so cba for now`.
+  So the tag is honoured ONLY by `UnitClass` (vehicle) children; infantry, aircraft
+  and building children ignore it. Our port matches upstream (the toggle
+  TAEXT_ENABLE_CELLTRANSPARENCY defaults to 1, so it IS compiled in — verified).
+  ALSO: the occupy *bit* is only one blocking mechanism; cell-content membership
+  (the object being in `CellClass::FirstObject`'s list) blocks placement/pathing
+  independently, and is only hidden at the specific CellTechno call sites we patched.
+  TODO: per-class occupation skip (infantry sub-cell, building foundation) + a
+  general "not in the cell content list" option.
+- 🔎 **Auto-fire ignoring a host with a dead-centre attachment.** PR #352 has NO
+  "attachments are not auto-targetable" rule — its Hooks.TargetEvaluation.cpp is
+  mostly other Phobos features. The candidate-rejection exit is `0x6F894F`
+  (`TechnoClass::EvaluateObject`, ESI = candidate), but the entry region is densely
+  hooked by Phobos release (0x6F7E1E/24/30/47/EC2/EF4) plus AggressiveStance
+  (0x6F858F), so a new seat needs care.
+  **Cheap answer first:** the vanilla `ObjectTypeClass` flags `LegalTarget=no`,
+  `Insignificant=yes` and `Selectable=no` already exist and are the intended switch
+  for "this thing should not be picked as a target". For a dedicated attachment
+  child TechnoType that is a pure-INI fix, no DLL change.
+  TODO: a per-attachment `Targetable=no` for when the SAME TechnoType is used both
+  standalone and as an attachment (needs the 0x6F894F seat).
+- 💡 **Requested: invisibility tag** — hide an attachment from view, not block the
+  cursor (`TransparentToMouse` already does the cursor half), choose WHICH players
+  see it, and guarantee no cell blocking. The see-it-per-player part is render-side
+  and shares the blocked J2 translucency problem; the cursor and occupation halves
+  are tractable now.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already
