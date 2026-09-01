@@ -333,3 +333,26 @@ Attachment0.YSortPosition=overparent
 Attachment0.Prerequisite.Negative=NAWEAP
 Attachment0.Prerequisite.Dynamic=no
 ```
+
+---
+
+## Boolean values — what actually parses
+
+Phobos's bool parser looks at the **first character only**, case-insensitively:
+
+| accepted | means |
+|---|---|
+| `1`, `t…`, `y…` | **true** (`true`, `yes`) |
+| `0`, `f…`, `n…` | **false** (`false`, `no`) |
+
+So **`=false` and `=no` are exactly equivalent**, as are `=true` and `=yes`.
+
+Two consequences worth knowing:
+- **`on` / `off` do NOT parse.** `o` matches neither list, so the read *fails*, the
+  tag keeps its **default**, and a parse error is logged. A tag written `=off`
+  therefore looks exactly like "this feature does nothing".
+- Only the first letter is checked, so `yellow` reads as **true** and `frog` as
+  **false**. Typos can silently parse as a valid value.
+
+A failed parse always logs, so when a tag seems inert, grep `debug.log` for the
+key name before suspecting the feature.
