@@ -32,6 +32,7 @@ DEFINE_HOOK(0x740A93, TechnoAttachmentExt_Mission_Move_ForceIdle, 0x6)
 
 	if (TechnoExt::HasAttachmentLoco(pThis))
 	{
+		TAExtDiag_ReportNoMove("Mission_Move", pThis);
 		pThis->EnterIdleMode(false, true);
 		return ReturnTrue;
 	}
@@ -83,6 +84,7 @@ DEFINE_HOOK(0x73EFC4, TechnoAttachmentExt_Mission_Hunt_NoMove, 0x6)
 
 	if (TechnoExt::HasAttachmentLoco(pThis))
 	{
+		TAExtDiag_ReportNoMove("Mission_Hunt", pThis);
 		pThis->QueueMission(Mission::Guard, false);
 		pThis->NextMission();
 		R->EAX(pThis->Mission_Guard());
@@ -99,6 +101,8 @@ DEFINE_HOOK(0x744103, TechnoAttachmentExt_Mission_AreaGuard_NoMove, 0x6)
 
 	if (TechnoExt::HasAttachmentLoco(pThis))
 	{
+		TAExtDiag_ReportNoMove("Mission_AreaGuard", pThis);
+
 		if (pThis->CanPassiveAcquireTargets() && pThis->TargetingTimer.Completed())
 			pThis->TargetAndEstimateDamage(pThis->Location, ThreatType::Range);
 
@@ -187,6 +191,7 @@ DEFINE_HOOK(0x6F7CE2, TechnoAttachmentExt_CanAutoTargetObject_NoMove, 0x6)
 	{
 		if (TechnoExt::HasAttachmentLoco(pUnit))
 		{
+			TAExtDiag_ReportNoMove("CanAutoTargetObject", pUnit);
 			R->EAX(pUnit->GetFireError(pTarget, weaponIndex, true));
 			return 0x6F7CEE;
 		}
@@ -206,6 +211,7 @@ DEFINE_HOOK(0x7088E3, TechnoAttachmentExt_ShouldRetaliate_NoMove, 0x6)
 	{
 		if (TechnoExt::HasAttachmentLoco(pUnit))
 		{
+			TAExtDiag_ReportNoMove("ShouldRetaliate", pUnit);
 			R->Stack(STACK_OFFSET(0x18, 0x4), weaponIndex);
 			R->EAX(pUnit->GetFireError(pTarget, weaponIndex, true));
 			return 0x7088F3;

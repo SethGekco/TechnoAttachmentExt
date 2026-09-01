@@ -23,6 +23,7 @@
   <ItemGroup>
     <ClCompile Include="src\TechnoAttachmentExt.cpp" />
     <ClCompile Include="src\Phobos.cpp" />
+    <ClCompile Include="src\TAExtDiag.cpp" />
     <ClCompile Include="YRpp\StaticInits.cpp" />
     <!-- Phobos utility implementations -->
     <ClCompile Include="Phobos\src\Utilities\Debug.cpp" />
