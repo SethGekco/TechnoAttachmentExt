@@ -146,6 +146,8 @@ public:
 	static bool IsAttached(TechnoClass* pThis);
 	static bool HasAttachmentLoco(FootClass* pThis);
 	static bool DoesntOccupyCellAsChild(TechnoClass* pThis);
+	// Intangible: the child is kept out of the cell content list entirely.
+	static bool IsIntangibleAsChild(TechnoClass* pThis);
 	static bool IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep = true);
 	static bool AreRelatives(TechnoClass* pThis, TechnoClass* pThat);
 	static TechnoClass* GetTopLevelParent(TechnoClass* pThis);

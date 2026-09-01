@@ -168,6 +168,7 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 		}
 	}
 
+	this->Intangible.Read(exINI, section, "Intangible");
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
 	this->LowSelectionPriority.Read(exINI, section, "LowSelectionPriority");
 	this->PassSelection.Read(exINI, section, "PassSelection");
@@ -251,6 +252,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Decorative)
 		.Process(this->Convert_KeepHealth)
 		.Process(this->Convert_KeepVeterancy)
+		.Process(this->Intangible)
 		.Process(this->OccupiesCell)
 		.Process(this->LowSelectionPriority)
 		.Process(this->PassSelection)

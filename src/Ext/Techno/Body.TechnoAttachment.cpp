@@ -272,6 +272,13 @@ bool TechnoExt::DoesntOccupyCellAsChild(TechnoClass* pThis)
 		&& !pExt->ParentAttachment->ResolveOccupiesCell();
 }
 
+bool TechnoExt::IsIntangibleAsChild(TechnoClass* pThis)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	return pExt && pExt->ParentAttachment
+		&& pExt->ParentAttachment->ResolveIntangible();
+}
+
 bool TechnoExt::IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep)
 {
 	if (!pThis || !pParent)  // sanity check, sometimes crashes because ext is null - Kerbiter

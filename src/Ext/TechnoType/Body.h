@@ -138,6 +138,7 @@ public:
 			Nullable<bool> InheritStateEffects;
 			Nullable<bool> InheritDestruction;
 			Nullable<bool> InheritHeightStatus;
+			Nullable<bool> Intangible;
 			Nullable<bool> OccupiesCell;
 			Nullable<bool> LowSelectionPriority;
 			Nullable<bool> Decorative;

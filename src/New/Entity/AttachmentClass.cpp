@@ -432,6 +432,12 @@ bool AttachmentClass::ResolveInheritHeightStatus()
 		? this->Data->InheritHeightStatus.Get() : this->GetType()->InheritHeightStatus;
 }
 
+bool AttachmentClass::ResolveIntangible()
+{
+	return (this->Data && this->Data->Intangible.isset())
+		? this->Data->Intangible.Get() : this->GetType()->Intangible;
+}
+
 bool AttachmentClass::ResolveOccupiesCell()
 {
 	return (this->Data && this->Data->OccupiesCell.isset())

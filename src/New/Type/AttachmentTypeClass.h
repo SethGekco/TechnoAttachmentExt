@@ -193,6 +193,16 @@ public:
 	Valueable<bool> Convert_KeepHealth;
 	Valueable<bool> Convert_KeepVeterancy;
 
+	// "Intangible": keep the child OUT of the cell's content list entirely
+	// (CellClass::AddContent/RemoveContent), so nothing that walks cell contents --
+	// placement checks, occupier lookups, cursor picking -- can see it. This is the
+	// absolute "blocks nothing" guarantee, stronger than OccupiesCell=no (which only
+	// clears the occupation FLAG).
+	// EXPERIMENTAL: if the renderer also sources objects from cell contents, an
+	// intangible child may additionally become invisible. That is either a bug or
+	// exactly the requested invisibility feature depending on intent -- see
+	// docs/TESTING.md 1c, which resolves it with one test. Off by default.
+	Valueable<bool> Intangible;
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
 	Valueable<bool> PassSelection;
@@ -277,6 +287,7 @@ public:
 		, ConvertRules { }
 		, Convert_KeepHealth { true }
 		, Convert_KeepVeterancy { true }
+		, Intangible { false }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }
 		, PassSelection { false }

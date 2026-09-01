@@ -27,6 +27,7 @@
 #include <Utilities/Macro.h>
 #include <Helpers/Macro.h>
 
+#include <Helpers/Cast.h>
 #include <Ext/Techno/Body.h>
 
 // BISECT TOGGLE: set to 0 to compile out the entire cell-transparency system.
@@ -237,5 +238,65 @@ DEFINE_FUNCTION_JUMP(VTABLE, 0x7E8D84, BuildingClass_MarkOccupation_TAExt);   //
 DEFINE_FUNCTION_JUMP(VTABLE, 0x7E8D88, BuildingClass_UnmarkOccupation_TAExt); // alt vtable
 DEFINE_FUNCTION_JUMP(VTABLE, 0x7E3FAC, AircraftClass_MarkOccupation_TAExt);
 DEFINE_FUNCTION_JUMP(VTABLE, 0x7E3FB0, AircraftClass_UnmarkOccupation_TAExt);
+
+// ---------------------------------------------------------------------------
+// Intangible: keep the child out of the cell CONTENT list.
+//
+// OccupiesCell=no only clears the occupation FLAG. Cell content membership --
+// being in CellClass::FirstObject's linked list -- is consulted independently by
+// placement checks, occupier lookups and cursor picking, so a child can still
+// "be in the way" with the flag clear. Intangible=yes removes it from that list
+// as well, which is the absolute "blocks nothing" guarantee.
+//
+// CellClass::AddContent    0x47E8A0, arg1 = ObjectClass* Content (EBP once loaded)
+//   hook at 0x47E8C2 (test ebp,ebp / je) -- the vanilla null check, which we must
+//   re-express because size 0x8 consumes it. Skip target 0x47EA80 is the null
+//   branch's epilogue: pop esi/ebp/ebx; add esp,0x14; ret 8.
+// CellClass::RemoveContent 0x47EA90, arg1 = ObjectClass* Content (ESI once loaded)
+//   hook at 0x47EA9B (test esi,esi / je), skip target 0x47EB8F.
+//
+// Both functions are unhooked by Phobos/Antares/Kratos (registry-checked).
+// Add and Remove are skipped together so the pair stays balanced.
+//
+// EXPERIMENTAL: if the renderer sources drawable objects from cell contents, an
+// intangible child may also become invisible -- see docs/TESTING.md 1c. Opt-in.
+// ---------------------------------------------------------------------------
+
+DEFINE_HOOK(0x47E8C2, CellClass_AddContent_Intangible_TAExt, 0x8)
+{
+	enum { DoNothing = 0x47EA80, Continue = 0x0 };
+
+	GET(ObjectClass*, pContent, EBP);
+
+	if (!pContent)
+		return DoNothing; // restored vanilla null check
+
+	if (auto const pTechno = abstract_cast<TechnoClass*>(pContent))
+	{
+		if (TechnoExt::IsIntangibleAsChild(pTechno))
+			return DoNothing;
+	}
+
+	return Continue;
+}
+
+DEFINE_HOOK(0x47EA9B, CellClass_RemoveContent_Intangible_TAExt, 0x8)
+{
+	enum { DoNothing = 0x47EB8F, Continue = 0x0 };
+
+	GET(ObjectClass*, pContent, ESI);
+
+	if (!pContent)
+		return DoNothing; // restored vanilla null check
+
+	if (auto const pTechno = abstract_cast<TechnoClass*>(pContent))
+	{
+		// Never added as intangible, so there is nothing to remove.
+		if (TechnoExt::IsIntangibleAsChild(pTechno))
+			return DoNothing;
+	}
+
+	return Continue;
+}
 
 #endif // TAEXT_ENABLE_CELLTRANSPARENCY
