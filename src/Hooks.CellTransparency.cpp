@@ -19,6 +19,8 @@
 #include <BuildingClass.h>
 #include <TechnoClass.h>
 #include <UnitClass.h>
+#include <InfantryClass.h>
+#include <AircraftClass.h>
 
 #include <Utilities/Debug.h>
 
@@ -158,5 +160,82 @@ void __fastcall UnitClass_ClearOccupyBit_TAExt(UnitClass* pThis, void*, CoordStr
 
 DEFINE_FUNCTION_JUMP(VTABLE, 0x7F5D60, UnitClass_SetOccupyBit_TAExt);
 DEFINE_FUNCTION_JUMP(VTABLE, 0x7F5D64, UnitClass_ClearOccupyBit_TAExt);
+
+// ---------------------------------------------------------------------------
+// OccupiesCell for NON-vehicle children.
+//
+// The pair above is UnitClass-only -- which is why OccupiesCell=no appeared to do
+// nothing for infantry / aircraft / building children. Upstream PR #352 has the
+// same gap and says so outright:
+//     "TODO ^ same for TA for non-UnitClass, not needed so cba for now"
+//
+// These vtable slots are the SAME virtual as the pair above -- ObjectClass::
+// MarkAllOccupationBits / UnmarkAllOccupationBits (the PR calls them Set/Clear
+// OccupyBit, following Ares). Each class has its own implementation:
+//
+//   slot = <class IsOnFloor slot> + 0xA0 (mark) / +0xA4 (unmark)
+//     UnitClass      0x7F5D60/0x7F5D64 -> 0x7441B0 / 0x744210   (already handled)
+//     InfantryClass  0x7EB148/0x7EB14C -> 0x5217C0 / 0x521850
+//     BuildingClass  0x7F4A50/0x7F4A54 -> 0x5F60A0 / 0x5F6120
+//     AircraftClass  0x7E3FAC/0x7E3FB0 -> 0x453D60 / 0x453DC0
+//     Building (alt) 0x7E8D84/0x7E8D88 -> same as BuildingClass
+//
+// Offsets calibrated against the verified UnitClass pair, and every address here
+// is unhooked by Phobos/Antares/Kratos (registry-checked).
+//
+// Skipping mark AND unmark together stays balanced: a child that never marked has
+// nothing to clear, exactly like the UnitClass pair.
+// ---------------------------------------------------------------------------
+
+void __fastcall InfantryClass_MarkOccupation_TAExt(InfantryClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return;
+	reinterpret_cast<void(__thiscall*)(InfantryClass*, CoordStruct*)>(0x5217C0)(pThis, pCrd);
+}
+
+void __fastcall InfantryClass_UnmarkOccupation_TAExt(InfantryClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return;
+	reinterpret_cast<void(__thiscall*)(InfantryClass*, CoordStruct*)>(0x521850)(pThis, pCrd);
+}
+
+void __fastcall BuildingClass_MarkOccupation_TAExt(BuildingClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return;
+	reinterpret_cast<void(__thiscall*)(BuildingClass*, CoordStruct*)>(0x5F60A0)(pThis, pCrd);
+}
+
+void __fastcall BuildingClass_UnmarkOccupation_TAExt(BuildingClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return;
+	reinterpret_cast<void(__thiscall*)(BuildingClass*, CoordStruct*)>(0x5F6120)(pThis, pCrd);
+}
+
+void __fastcall AircraftClass_MarkOccupation_TAExt(AircraftClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return;
+	reinterpret_cast<void(__thiscall*)(AircraftClass*, CoordStruct*)>(0x453D60)(pThis, pCrd);
+}
+
+void __fastcall AircraftClass_UnmarkOccupation_TAExt(AircraftClass* pThis, void*, CoordStruct* pCrd)
+{
+	if (TechnoExt::DoesntOccupyCellAsChild(pThis))
+		return;
+	reinterpret_cast<void(__thiscall*)(AircraftClass*, CoordStruct*)>(0x453DC0)(pThis, pCrd);
+}
+
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7EB148, InfantryClass_MarkOccupation_TAExt);
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7EB14C, InfantryClass_UnmarkOccupation_TAExt);
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7F4A50, BuildingClass_MarkOccupation_TAExt);
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7F4A54, BuildingClass_UnmarkOccupation_TAExt);
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7E8D84, BuildingClass_MarkOccupation_TAExt);   // alt vtable
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7E8D88, BuildingClass_UnmarkOccupation_TAExt); // alt vtable
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7E3FAC, AircraftClass_MarkOccupation_TAExt);
+DEFINE_FUNCTION_JUMP(VTABLE, 0x7E3FB0, AircraftClass_UnmarkOccupation_TAExt);
 
 #endif // TAEXT_ENABLE_CELLTRANSPARENCY
