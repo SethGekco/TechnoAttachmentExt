@@ -32,6 +32,26 @@ deployed but **not yet played**.
       `RequiredHouses`, `ForbiddenHouses`, `Prerequisite.Dynamic=no`.
 - [ ] Save → load a game with attachments present; nothing crashes or duplicates.
 
+## 1b. OccupiesCell for non-vehicle children (2026-09-01 fix)
+Previously `OccupiesCell=no` was honoured for **vehicle children only** (upstream
+gap). Verify per child type:
+- [ ] **Infantry** child with `OccupiesCell=no` → no longer blocks unit movement or
+      building placement on its cell.
+- [ ] **Building** child with `OccupiesCell=no` → same.
+- [ ] **Aircraft** child with `OccupiesCell=no` → same.
+- [ ] **Vehicle** child still behaves as before (regression — this path was already
+      working).
+- [ ] `OccupiesCell=yes` (default) still blocks for every type — the skip must be
+      opt-in, not always-on.
+- [ ] Per-slot `AttachmentN.OccupiesCell=no` overrides the AttachmentType.
+- [ ] **Balance check**: attach → detach → destroy a non-occupying child of each
+      type; no cell stays permanently marked (a stuck flag shows up as an
+      invisible wall units refuse to path through).
+- [ ] Chrono/teleport a host carrying a non-occupying child → no stale flags left
+      at the origin cell.
+- [ ] Still no freeze with a vehicle child on a building host (the original bug
+      these hooks were written for).
+
 ## 2. Attachment power (`PowersParent`)
 - [ ] **Vehicle host** with a `PowersParent=yes` child: host is dark with no active
       child, wakes when the child returns. *(Reported working.)*

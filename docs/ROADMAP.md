@@ -344,8 +344,15 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   ALSO: the occupy *bit* is only one blocking mechanism; cell-content membership
   (the object being in `CellClass::FirstObject`'s list) blocks placement/pathing
   independently, and is only hidden at the specific CellTechno call sites we patched.
-  TODO: per-class occupation skip (infantry sub-cell, building foundation) + a
-  general "not in the cell content list" option.
+  ✅ **FIXED 2026-09-01 (commit 5b2fa3f):** the same wrapper is now installed on
+  every class's Mark/UnmarkAllOccupationBits slot (Infantry 0x7EB148/4C, Building
+  0x7F4A50/54 + alt 0x7E8D84/88, Aircraft 0x7E3FAC/B0), calibrated as
+  `<IsOnFloor slot> + 0xA0/0xA4` against the verified UnitClass pair. All ten
+  addresses unhooked by other frameworks. Documented in the encyclopedia
+  (Attachment-Cell-Placement.md). NOT PLAY-TESTED.
+  STILL OPEN: cell-content membership (CellClass::FirstObject list) blocks
+  placement independently of the flag — needed for a true "never blocks anything"
+  guarantee, and for Rex's requested invisibility tag.
 - 🔎 **Auto-fire ignoring a host with a dead-centre attachment.** PR #352 has NO
   "attachments are not auto-targetable" rule — its Hooks.TargetEvaluation.cpp is
   mostly other Phobos features. The candidate-rejection exit is `0x6F894F`
