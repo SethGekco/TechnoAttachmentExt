@@ -52,6 +52,27 @@ gap). Verify per child type:
 - [ ] Still no freeze with a vehicle child on a building host (the original bug
       these hooks were written for).
 
+## 1c. Intangible (cell-content removal) — EXPERIMENTAL, answer this first
+- [ ] **THE question:** put `Intangible=yes` on an attachment and look at it.
+      **Is the child still drawn?**
+      - *Still visible* → it is a pure "blocks nothing" tag, as intended.
+      - *Invisible* → cell content also feeds the renderer. That is then the
+        invisibility feature (rename/split it), and `Intangible` must NOT be
+        recommended for attachments that should stay visible.
+      Everything else in this section depends on that answer.
+- [ ] With `Intangible=yes`, a building can be placed **on** the child's cell.
+- [ ] Units path straight through the child's cell.
+- [ ] Clicking the child's cell selects/targets whatever is underneath it.
+- [ ] Works for all four child kinds (infantry / vehicle / aircraft / building).
+- [ ] Per-slot `AttachmentN.Intangible=yes` overrides the AttachmentType.
+- [ ] **Balance check:** attach → detach → destroy an intangible child; no cell is
+      left with a stale entry (symptom: a phantom object blocking a cell forever).
+- [ ] **Regression:** `Intangible=no` (default) behaves exactly as before —
+      confirm normal attachments are unaffected.
+- [ ] Host moves across many cells with an intangible child → no leak, no slowdown
+      (AddContent/RemoveContent are very hot paths).
+- [ ] Save/load with an intangible child present.
+
 ## 2. Attachment power (`PowersParent`)
 - [ ] **Vehicle host** with a `PowersParent=yes` child: host is dark with no active
       child, wakes when the child returns. *(Reported working.)*

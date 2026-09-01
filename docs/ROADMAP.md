@@ -350,9 +350,15 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   `<IsOnFloor slot> + 0xA0/0xA4` against the verified UnitClass pair. All ten
   addresses unhooked by other frameworks. Documented in the encyclopedia
   (Attachment-Cell-Placement.md). NOT PLAY-TESTED.
-  STILL OPEN: cell-content membership (CellClass::FirstObject list) blocks
-  placement independently of the flag — needed for a true "never blocks anything"
-  guarantee, and for Rex's requested invisibility tag.
+  ✅ **Cell-content half done 2026-09-01 (commit bf6ed22): `Intangible=yes`.**
+  Hooks CellClass::AddContent (0x47E8A0, seat 0x47E8C2, skip 0x47EA80) and
+  RemoveContent (0x47EA90, seat 0x47EA9B, skip 0x47EB8F) — both unhooked by other
+  frameworks; seats sit on the vanilla null check so it is re-expressed, and skip
+  targets are the null branch's own verified epilogue. Opt-in, per-slot capable.
+  ❓ OPEN: whether an intangible child also becomes INVISIBLE (does the renderer
+  source objects from cell contents?). Could not be settled cheaply from
+  disassembly; TESTING 1c resolves it in one look. If it does hide the child, that
+  IS the requested invisibility feature and the tag should be split in two.
 - 🔎 **Auto-fire ignoring a host with a dead-centre attachment.** PR #352 has NO
   "attachments are not auto-targetable" rule — its Hooks.TargetEvaluation.cpp is
   mostly other Phobos features. The candidate-rejection exit is `0x6F894F`
