@@ -272,6 +272,9 @@ bool TechnoExt::DoesntOccupyCellAsChild(TechnoClass* pThis)
 		&& !pExt->ParentAttachment->ResolveOccupiesCell();
 }
 
+// Defined further down; declared here so the ammo helper can use it.
+static bool TAExt_ChildActive(AttachmentClass* pSlot);
+
 // Sum the ammo-capacity bonus from every ACTIVE attachment slot on this host.
 // Only active children count, so a hidden/dead child stops granting its bonus --
 // same "active" rule the power gates use. Pure read of synced state.
