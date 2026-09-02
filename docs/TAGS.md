@@ -285,6 +285,26 @@ Convert.KeepVeterancy=yes    ; carry veterancy across (default yes)
 > keeps **one** slot and carries state across, so use it for upgrade chains and
 > progressive damage. Use two slots when you want both variants to be able to exist.
 
+### Ammo capacity from attachments
+```ini
+[SomeAttachmentType]
+Ammo.Parent=2      ; while this child is active, the HOST holds +2 max ammo
+```
+Per-slot too (`AttachmentN.Ammo.Parent=`). Bonuses from several **active** slots
+sum; a hidden or dead child stops contributing.
+
+This is real **capacity**, not a top-up: the host reloads up to `base + bonus` and
+only counts as full there. (A pure "give it N rounds now" tag would be almost
+pointless — units auto-reload, so the rounds arrive anyway.)
+
+> ⚠ **Known approximation.** `Ammo=` capacity lives on the *TechnoType* and is
+> shared by every unit of that type, so it cannot simply be written — the value is
+> substituted where the engine reads it. We substitute at the two reload-path
+> reads, which is what actually governs capacity. Other readers still see the base
+> number; the visible one is the **ammo pip display**, which will not show the
+> extra rounds. Firing, reloading and running dry all behave correctly.
+
+
 ---
 
 ## Presentation / behaviour

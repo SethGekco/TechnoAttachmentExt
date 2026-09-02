@@ -386,6 +386,15 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   and shares the blocked J2 translucency problem; the cursor and occupation halves
   are tractable now.
 
+- ✅ **G1 ammo capacity (2026-09-02, commit 90e7875).** `Ammo.Parent=N` on
+  AttachmentType + per-slot; active slots sum. Real capacity, not a top-up.
+  TechnoTypeClass::Ammo (offset 0x684) is type-shared, so the value is substituted
+  at the two reload-path reads — 0x6FB01C (TechnoClass::Reload) and 0x6FB08E (the
+  ammo-state helper) — both unhooked by every framework. A census found ~42 total
+  read sites; hooking all was rejected as hugely invasive and overlapping Antares'
+  own Hooks.Ammo.cpp rework. KNOWN APPROXIMATION: the ammo pip display still shows
+  the base count. NOT PLAY-TESTED.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already
