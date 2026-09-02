@@ -89,6 +89,7 @@ public:
 	bool ResolveInheritStateEffects();
 	bool ResolveInheritDestruction();
 	bool ResolveInheritHeightStatus();
+	int  ResolveAmmoParent();
 	bool ResolveIntangible();
 	bool ResolveOccupiesCell();
 	bool ResolveLowSelectionPriority();

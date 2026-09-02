@@ -202,6 +202,14 @@ public:
 	// intangible child may additionally become invisible. That is either a bug or
 	// exactly the requested invisibility feature depending on intent -- see
 	// docs/TESTING.md 1c, which resolves it with one test. Off by default.
+	// G1 -- ammo capacity. While this attachment's child is active, the HOST's
+	// maximum ammo is raised by this much (bonuses from several slots sum).
+	// This is real CAPACITY, not a one-off top-up: the host reloads up to
+	// base + bonus and only counts as "full" there.
+	// Note: TechnoTypeClass::Ammo is shared by every unit of a type, so the
+	// capacity cannot simply be written -- it is substituted at the reload
+	// check instead. See Hooks.AttachedAmmo.cpp.
+	Valueable<int> Ammo_Parent;
 	Valueable<bool> Intangible;
 	Valueable<bool> OccupiesCell;
 	Valueable<bool> LowSelectionPriority;
@@ -287,6 +295,7 @@ public:
 		, ConvertRules { }
 		, Convert_KeepHealth { true }
 		, Convert_KeepVeterancy { true }
+		, Ammo_Parent { 0 }
 		, Intangible { false }
 		, OccupiesCell { true }
 		, LowSelectionPriority { true }

@@ -278,6 +278,10 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritHeightStatus", static_cast<int>(i));
 		slotInhHeight.Read(exINI, pSection, tempBuffer);
 
+		Nullable<int> slotAmmoParent;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Ammo.Parent", static_cast<int>(i));
+		slotAmmoParent.Read(exINI, pSection, tempBuffer);
+
 		Nullable<bool> slotIntangible;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Intangible", static_cast<int>(i));
 		slotIntangible.Read(exINI, pSection, tempBuffer);
@@ -330,7 +334,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotRequiresPassengers,
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse,
-			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotIntangible, slotOccupiesCell, slotLowSelPri, slotDecorative, slotDwChild, slotDwParent, slotPdMission, slotPdetMission, slotConvKeepHp, slotConvKeepVet };
+			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotAmmoParent, slotIntangible, slotOccupiesCell, slotLowSelPri, slotDecorative, slotDwChild, slotDwParent, slotPdMission, slotPdetMission, slotConvKeepHp, slotConvKeepVet };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -457,6 +461,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->InheritStateEffects)
 		.Process(this->InheritDestruction)
 		.Process(this->InheritHeightStatus)
+		.Process(this->Ammo_Parent)
 		.Process(this->Intangible)
 		.Process(this->OccupiesCell)
 		.Process(this->LowSelectionPriority)

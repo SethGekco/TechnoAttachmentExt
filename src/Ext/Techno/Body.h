@@ -148,6 +148,8 @@ public:
 	static bool DoesntOccupyCellAsChild(TechnoClass* pThis);
 	// Intangible: the child is kept out of the cell content list entirely.
 	static bool IsIntangibleAsChild(TechnoClass* pThis);
+	// G1: extra ammo CAPACITY this techno gets from its active attachment slots.
+	static int GetAmmoCapacityBonus(TechnoClass* pHost);
 	static bool IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep = true);
 	static bool AreRelatives(TechnoClass* pThis, TechnoClass* pThat);
 	static TechnoClass* GetTopLevelParent(TechnoClass* pThis);

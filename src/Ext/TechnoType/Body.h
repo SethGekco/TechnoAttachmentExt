@@ -138,6 +138,7 @@ public:
 			Nullable<bool> InheritStateEffects;
 			Nullable<bool> InheritDestruction;
 			Nullable<bool> InheritHeightStatus;
+			Nullable<int> Ammo_Parent;
 			Nullable<bool> Intangible;
 			Nullable<bool> OccupiesCell;
 			Nullable<bool> LowSelectionPriority;

@@ -432,6 +432,12 @@ bool AttachmentClass::ResolveInheritHeightStatus()
 		? this->Data->InheritHeightStatus.Get() : this->GetType()->InheritHeightStatus;
 }
 
+int AttachmentClass::ResolveAmmoParent()
+{
+	return (this->Data && this->Data->Ammo_Parent.isset())
+		? this->Data->Ammo_Parent.Get() : this->GetType()->Ammo_Parent;
+}
+
 bool AttachmentClass::ResolveIntangible()
 {
 	return (this->Data && this->Data->Intangible.isset())

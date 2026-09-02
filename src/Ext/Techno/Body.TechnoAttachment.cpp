@@ -272,6 +272,27 @@ bool TechnoExt::DoesntOccupyCellAsChild(TechnoClass* pThis)
 		&& !pExt->ParentAttachment->ResolveOccupiesCell();
 }
 
+// Sum the ammo-capacity bonus from every ACTIVE attachment slot on this host.
+// Only active children count, so a hidden/dead child stops granting its bonus --
+// same "active" rule the power gates use. Pure read of synced state.
+int TechnoExt::GetAmmoCapacityBonus(TechnoClass* pHost)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pHost);
+	if (!pExt)
+		return 0;
+
+	int bonus = 0;
+	for (auto const& pSlot : pExt->ChildAttachments)
+	{
+		if (!TAExt_ChildActive(pSlot.get()))
+			continue;
+
+		bonus += pSlot->ResolveAmmoParent();
+	}
+
+	return bonus;
+}
+
 bool TechnoExt::IsIntangibleAsChild(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
