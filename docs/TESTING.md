@@ -53,13 +53,11 @@ gap). Verify per child type:
       these hooks were written for).
 
 ## 1c. Intangible (cell-content removal) — EXPERIMENTAL, answer this first
-- [ ] **THE question:** put `Intangible=yes` on an attachment and look at it.
-      **Is the child still drawn?**
-      - *Still visible* → it is a pure "blocks nothing" tag, as intended.
-      - *Invisible* → cell content also feeds the renderer. That is then the
-        invisibility feature (rename/split it), and `Intangible` must NOT be
-        recommended for attachments that should stay visible.
-      Everything else in this section depends on that answer.
+- [x] **ANSWERED 2026-09-01: the child stays VISIBLE.** Cell content does *not*
+      feed the renderer, so `Intangible` is a pure "blocks nothing" tag and is safe
+      on attachments you want seen. (Consequence: invisibility is still unbuilt and
+      needs a real render-side approach — see ROADMAP.)
+- [x] Units can be auto-targeted again through an attachment. **Confirmed 2026-09-01.**
 - [ ] With `Intangible=yes`, a building can be placed **on** the child's cell.
 - [ ] Units path straight through the child's cell.
 - [ ] Clicking the child's cell selects/targets whatever is underneath it.
@@ -72,6 +70,23 @@ gap). Verify per child type:
 - [ ] Host moves across many cells with an intangible child → no leak, no slowdown
       (AddContent/RemoveContent are very hot paths).
 - [ ] Save/load with an intangible child present.
+
+## 1d. Cursor pass-through (2026-09-01 fix)
+Previously the cursor still refused to interact with whatever sat under an
+attachment, even with `TransparentToMouse=yes` — the cursor uses a different
+resolution than click-to-select.
+- [ ] With `TransparentToMouse=yes` (or `Intangible=yes`), hovering over the
+      attachment shows the cursor for **what is underneath** (ground/unit), not a
+      "no action" cursor.
+- [ ] Clicking there actually issues that action (move onto the cell / select the
+      unit beneath).
+- [ ] With a unit selected, hovering an enemy under an attachment gives the
+      **attack** cursor.
+- [ ] **Regression:** an attachment WITHOUT either tag still catches the cursor as
+      before (this is opt-in).
+- [ ] The host itself is still hoverable/selectable normally.
+- [ ] `PassSelection=yes` still selects the host when clicking the child.
+- [ ] No cursor flicker while moving the pointer across the attachment.
 
 ## 2. Attachment power (`PowersParent`)
 - [ ] **Vehicle host** with a `PowersParent=yes` child: host is dark with no active

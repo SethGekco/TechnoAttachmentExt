@@ -355,10 +355,19 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   RemoveContent (0x47EA90, seat 0x47EA9B, skip 0x47EB8F) — both unhooked by other
   frameworks; seats sit on the vanilla null check so it is re-expressed, and skip
   targets are the null branch's own verified epilogue. Opt-in, per-slot capable.
-  ❓ OPEN: whether an intangible child also becomes INVISIBLE (does the renderer
-  source objects from cell contents?). Could not be settled cheaply from
-  disassembly; TESTING 1c resolves it in one look. If it does hide the child, that
-  IS the requested invisibility feature and the tag should be split in two.
+  ✅ **ANSWERED IN-GAME 2026-09-01: the child stays VISIBLE.** The renderer does
+  NOT source drawable objects from cell contents, so `Intangible` is purely a
+  "blocks nothing" tag — safe on attachments that should remain visible. Rex also
+  confirmed units can be auto-targeted through an attachment again.
+  ⇒ **Invisibility is therefore still unbuilt** and needs a genuine render-side
+  approach (same blocked area as J2 translucency).
+- ✅ **Cursor pass-through (2026-09-01, commit 1fb3290).** Rex reported the cursor
+  still would not interact with what sat beneath an attachment. Cause: our
+  TransparentToMouse only hooked TacticalClass::SelectAt (click-to-select); the
+  CURSOR resolves its object via DisplayClass::ProcessClickCoords (0x692300, called
+  at 0x4AACD4). Wrapped that CALL and null the `Target` out-param for
+  mouse-transparent/Intangible children. Both addresses unhooked by other
+  frameworks. NOT PLAY-TESTED.
 - 🔎 **Auto-fire ignoring a host with a dead-centre attachment.** PR #352 has NO
   "attachments are not auto-targetable" rule — its Hooks.TargetEvaluation.cpp is
   mostly other Phobos features. The candidate-rejection exit is `0x6F894F`
