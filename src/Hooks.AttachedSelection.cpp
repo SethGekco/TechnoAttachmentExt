@@ -19,6 +19,7 @@
 #include <TechnoClass.h>
 #include <CellClass.h>
 #include <ObjectClass.h>
+#include <DisplayClass.h>
 
 #include <Utilities/Macro.h>
 #include <Helpers/Cast.h>
@@ -89,3 +90,57 @@ DEFINE_HOOK(0x6DA4FB, TacticalClass_SelectAt_TransparentToMouse_Occupier_TAExt, 
 	R->EAX<ObjectClass*>(pFound);
 	return 0x6DA501;
 }
+
+// ---- cursor pass-through ----------------------------------------------------
+//
+// The SelectAt hooks above cover CLICK-TO-SELECT. They do NOT cover the CURSOR:
+// its shape comes from a different resolution entirely. The mouse handler calls
+// DisplayClass::ProcessClickCoords (0x692300) at 0x4AACD4, and the ObjectClass*
+// it writes back through `Target` is what the cursor reacts to. With an
+// attachment sitting under the pointer, that object is the CHILD -- so the
+// cursor showed "nothing useful here" and the player could not interact with
+// whatever was underneath, even with TransparentToMouse=yes set.
+//
+// Fix: wrap the call and clear `Target` when it resolved to a mouse-transparent
+// (or Intangible) attachment child. The cursor then falls through to the cell,
+// and an actual click still resolves through the SelectAt hooks above, which
+// already skip these children and pick the next real occupier.
+//
+// Both 0x4AACD4 (the call site) and 0x692300 (the function) are unhooked by
+// Phobos/Antares/Kratos -- registry-checked. Wrapping the CALL rather than the
+// function keeps every other caller of ProcessClickCoords untouched.
+//
+// Render-only/UI state; no synced logic is read or written here, so this is
+// online-safe (see the determinism note in the encyclopedia entry for 0x692300).
+
+static bool TAExt_HiddenFromCursor(ObjectClass* pObject)
+{
+	auto const pTechno = abstract_cast<TechnoClass*>(pObject);
+	if (!pTechno)
+		return false;
+
+	auto const pExt = TechnoExt::ExtMap.Find(pTechno);
+	auto const pAtt = pExt ? pExt->ParentAttachment : nullptr;
+	if (!pAtt)
+		return false;
+
+	// Intangible implies mouse pass-through: a child the engine is not meant to
+	// see in the world should not be catching the pointer either.
+	return pAtt->ResolveTransparentToMouse() || pAtt->ResolveIntangible();
+}
+
+bool __fastcall DisplayClass_ProcessClickCoords_Wrapper_TAExt(
+	DisplayClass* pThis, void*, Point2D* pSrc, CellStruct* pCellOut,
+	CoordStruct* pCoordOut, ObjectClass** ppTarget, BYTE* a5, BYTE* a6)
+{
+	bool const result = reinterpret_cast<bool(__thiscall*)(
+		DisplayClass*, Point2D*, CellStruct*, CoordStruct*, ObjectClass**, BYTE*, BYTE*)>(0x692300)
+		(pThis, pSrc, pCellOut, pCoordOut, ppTarget, a5, a6);
+
+	if (ppTarget && *ppTarget && TAExt_HiddenFromCursor(*ppTarget))
+		*ppTarget = nullptr; // cursor falls through to the cell underneath
+
+	return result;
+}
+
+DEFINE_FUNCTION_JUMP(CALL, 0x4AACD4, DisplayClass_ProcessClickCoords_Wrapper_TAExt);
