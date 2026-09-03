@@ -306,10 +306,18 @@ return to reload).
 - [ ] A child hidden by a prerequisite grants **nothing** (only ACTIVE children count).
 - [ ] Per-slot `AttachmentN.Ammo.Parent=` overrides the AttachmentType.
 - [ ] **Unlimited ammo unaffected:** a host with `Ammo=-1` is untouched.
-- [ ] **Known approximation:** the ammo **pip display** shows only the base count.
-      Confirm this is acceptable — if not, the pip-drawing site needs its own hook.
+- [ ] **Pips show the bonus** (added 2026-09-02): a host with `Ammo.Parent=2`
+      displays base+2 ammo pips, and they deplete/refill correctly.
+- [ ] **Pip context is not leaky:** other units of the SAME TechnoType without the
+      attachment must show only their base pips (the draw-time context is
+      type-checked, this verifies it).
+- [ ] Sidebar/UI elsewhere unaffected by the pip hook.
 - [ ] **Regression:** units with no `Ammo.Parent` anywhere reload exactly as before
-      (these hooks are on the shared reload path, so this is the important one).
+      AND show unchanged pips (these hooks sit on shared reload/draw paths, so this
+      is the important one).
+- [ ] **Launch sanity:** the game reaches a skirmish at all. The first version of
+      these hooks crashed on launch for every unit (`return 0` re-ran the stolen
+      read on the value written; `Ammo=-1` made it deref 0xFFFFFFFF+0x684).
 - [ ] Aircraft return-to-reload logic still works normally.
 - [ ] Save/load with a bonus active.
 - [ ] Multiplayer: no desync with ammo bonuses in play.

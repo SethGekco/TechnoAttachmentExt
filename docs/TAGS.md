@@ -297,12 +297,14 @@ This is real **capacity**, not a top-up: the host reloads up to `base + bonus` a
 only counts as full there. (A pure "give it N rounds now" tag would be almost
 pointless — units auto-reload, so the rounds arrive anyway.)
 
-> ⚠ **Known approximation.** `Ammo=` capacity lives on the *TechnoType* and is
-> shared by every unit of that type, so it cannot simply be written — the value is
-> substituted where the engine reads it. We substitute at the two reload-path
-> reads, which is what actually governs capacity. Other readers still see the base
-> number; the visible one is the **ammo pip display**, which will not show the
-> extra rounds. Firing, reloading and running dry all behave correctly.
+`Ammo=` capacity lives on the *TechnoType* and is shared by every unit of that
+type, so it cannot simply be written — the value is substituted where the engine
+reads it: the two reload-path reads (which govern capacity) plus the pip-max read
+(so the **pips show the extra rounds** too, added 2026-09-02).
+
+> Remaining approximation: other readers of the capacity still see the base
+> number. Nothing player-visible is known to be affected — firing, reloading,
+> running dry and the pip display are all correct. Report anything that looks off.
 
 
 ---

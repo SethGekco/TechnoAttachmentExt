@@ -392,8 +392,19 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   at the two reload-path reads — 0x6FB01C (TechnoClass::Reload) and 0x6FB08E (the
   ammo-state helper) — both unhooked by every framework. A census found ~42 total
   read sites; hooking all was rejected as hugely invasive and overlapping Antares'
-  own Hooks.Ammo.cpp rework. KNOWN APPROXIMATION: the ammo pip display still shows
-  the base count. NOT PLAY-TESTED.
+  own Hooks.Ammo.cpp rework.
+  ✅ **Pip display done 2026-09-02 (commit ced6d5b).** GetPipMax (0x716290) is
+  TYPE-only, so the bonus is applied via a draw-time context: DrawPipscale
+  (0x709A90) records the instance, the GetPipMax ammo case (0x7162A9) consumes it,
+  validated by liveness + type match. Patch ends at 0x7162AE, short of Antares'
+  hook at 0x7162B0.
+  ⚠ **Shipped a launch crash first (fixed, commit 8433bc3):** the capacity hooks
+  replaced a read, wrote EAX and returned 0, so Syringe's stub re-ran the stolen
+  `mov eax,[eax+0x684]` on the value — and Ammo is -1 for unlimited-ammo types, so
+  it deref'd 0xFFFFFFFF+0x684 at launch for nearly every unit. Hook GEOMETRY was
+  perfect; the defect was control flow, invisible to size/overlap checks. Written
+  up as a general crash family in the encyclopedia (Syringe-Stub-Semantics.md); a
+  repo-wide audit found no other instance.
 
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
