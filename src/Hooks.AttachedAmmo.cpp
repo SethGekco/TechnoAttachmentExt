@@ -59,15 +59,32 @@ namespace
 	}
 }
 
+// BOTH hooks below MUST return an explicit address, never 0.
+//
+// They REPLACE the read `mov eax,[eax+0x684]`: on entry EAX is the
+// TechnoTypeClass*, on exit EAX must be the capacity VALUE. Returning 0 makes
+// Syringe's stub run the stolen instruction after us, which re-reads
+// [EAX+0x684] -- but EAX is now the capacity we just wrote, not a pointer.
+//
+// That is not a corner case, it is the common one: `Ammo` is -1 for every type
+// with unlimited ammo, so EAX becomes 0xFFFFFFFF and the stub dereferences
+// [0xFFFFFFFF+0x684]. C0000005 at the stub's copied-bytes offset, on launch,
+// for essentially every unit. Vanilla's own next instruction is
+// `cmp eax,0xFFFFFFFF / je` precisely because -1 is expected here.
+//
+// Returning addr+6 is safe: Syringe patches 5 bytes + 1 NOP for a size-6 hook,
+// so 0x6FB022 / 0x6FB094 are past the patched window, not inside it.
+
 // TechnoClass::Reload -- `mov eax,[eax+0x684]` (EAX = type, ESI = this).
-// We replace the read, so EAX must be set to the effective capacity here.
 DEFINE_HOOK(0x6FB01C, TechnoClass_Reload_AmmoCapacity_TAExt, 0x6)
 {
+	enum { ReadReplaced = 0x6FB022 }; // `cmp eax,0xFFFFFFFF`
+
 	GET(TechnoClass*, pThis, ESI);
 	GET(TechnoTypeClass*, pType, EAX);
 
 	R->EAX(EffectiveAmmoCapacity(pThis, pType));
-	return 0;
+	return ReadReplaced;
 }
 
 // The ammo-state helper called from Reload (0x6FB080) -- same instruction shape,
@@ -75,9 +92,11 @@ DEFINE_HOOK(0x6FB01C, TechnoClass_Reload_AmmoCapacity_TAExt, 0x6)
 // would reload past base but still be treated as full at base.
 DEFINE_HOOK(0x6FB08E, TechnoClass_AmmoState_AmmoCapacity_TAExt, 0x6)
 {
+	enum { ReadReplaced = 0x6FB094 }; // `mov ecx,[esi+0x2FC]`
+
 	GET(TechnoClass*, pThis, ESI);
 	GET(TechnoTypeClass*, pType, EAX);
 
 	R->EAX(EffectiveAmmoCapacity(pThis, pType));
-	return 0;
+	return ReadReplaced;
 }
