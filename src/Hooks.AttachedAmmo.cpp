@@ -100,3 +100,74 @@ DEFINE_HOOK(0x6FB08E, TechnoClass_AmmoState_AmmoCapacity_TAExt, 0x6)
 	R->EAX(EffectiveAmmoCapacity(pThis, pType));
 	return ReadReplaced;
 }
+
+
+// ---------------------------------------------------------------------------
+// Ammo PIP DISPLAY.
+//
+// Without this the extra rounds are real but invisible: the pips are drawn from
+// TechnoTypeClass::GetPipMax (0x716290), which takes only the TYPE -- ECX is the
+// TechnoTypeClass and there is no instance in sight. Adding the bonus there
+// directly would show it on every unit of the type, the exact army-wide problem
+// this feature exists to avoid.
+//
+// So we give GetPipMax a draw-time context: TechnoClass::DrawPipscale (0x709A90)
+// has the instance in ECX at entry, and the ammo case of GetPipMax runs inside
+// that call. Record the techno on the way in, consume it in the GetPipMax hook.
+//
+// The context is validated, not trusted: it must still be alive AND its type must
+// match the ECX the game is asking about. GetPipMax has other callers (sidebar
+// UI), so a stale pointer must not be able to add a bonus to an unrelated type.
+// With bonus == 0 -- every mod not using Ammo.Parent -- both hooks are pure
+// pass-throughs.
+//
+// Seats: 0x709A90 and 0x7162A9, both unhooked by Phobos/Antares/Kratos. The
+// GetPipMax patch is 6 bytes ending at 0x7162AE, so it stops short of Antares'
+// GetPipMax_MindControl hook at 0x7162B0.
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	// Which techno the pip renderer is currently drawing. Render-only, per-client,
+	// never read by synced logic -> cannot desync.
+	TechnoClass* PipDrawContext = nullptr;
+}
+
+// TechnoClass::DrawPipscale entry -- ECX = the techno being drawn.
+// NOTE: this one MUST return 0. The stolen bytes are `sub esp,0x64; push ebx;
+// push ebp` -- frame setup that has to execute. Returning an address here would
+// skip it and corrupt the stack. (The opposite of the GetPipMax hook below: the
+// rule is about whether the stolen bytes are still valid to run, not a blanket
+// "always return an address".)
+DEFINE_HOOK(0x709A90, TechnoClass_DrawPipscale_SetContext_TAExt, 0x5)
+{
+	GET(TechnoClass*, pThis, ECX);
+	PipDrawContext = pThis;
+	return 0;
+}
+
+// TechnoTypeClass::GetPipMax, the Ammo case -- `mov eax,[ecx+0x684]`.
+// ECX = TechnoTypeClass. We REPLACE the read and write EAX, so this must return
+// an explicit address; returning 0 would re-run the read on the value we just
+// wrote (see the note at the top of this file -- that is exactly the launch
+// crash this file already caused once).
+DEFINE_HOOK(0x7162A9, TechnoTypeClass_GetPipMax_AmmoCapacity_TAExt, 0x6)
+{
+	enum { ReadReplaced = 0x7162AF }; // the `ret` that followed the stolen read
+
+	GET(TechnoTypeClass*, pType, ECX);
+
+	int capacity = pType ? pType->Ammo : 0;
+
+	// Only trust the context when it is alive and really is of this type.
+	auto const pThis = PipDrawContext;
+	if (capacity > 0 && pThis && pThis->IsAlive && pThis->GetTechnoType() == pType)
+	{
+		int const bonus = TechnoExt::GetAmmoCapacityBonus(pThis);
+		if (bonus > 0)
+			capacity += bonus;
+	}
+
+	R->EAX(capacity);
+	return ReadReplaced;
+}
