@@ -331,6 +331,14 @@ return to reload).
 - [ ] `Bobs=yes` with amplitude/period: it rises and falls smoothly.
 - [ ] `Bobs.Phase` differing per slot → siblings bob **out of step**.
 - [ ] Spin + bob together on one attachment behaves sensibly.
+- [ ] `Slides=yes` + `Slides.Axis=x` + `Range`/`Period`: travels smoothly back and
+      forth, total sweep = 2 x Range.
+- [ ] `Slides.Axis=y` and `=z` move along the other axes.
+- [ ] **Host-relative check:** turn/drive the host while an attachment slides — the
+      slide axis must rotate WITH the host, not stay fixed to the world.
+- [ ] Slide + orbit together: the slide follows the orbited frame.
+- [ ] `Slides.Axis=nonsense` logs a parse error and does not crash.
+- [ ] `Slides.Range=0` / `Slides.Period=0` do not crash (treated as not sliding).
 - [ ] **Zero/!invalid guards:** `Spins.Period=0` does not crash or freeze (treated
       as not spinning); `Bobs.Period=0` likewise.
 - [ ] **Save/load mid-motion:** reload and the motion continues smoothly — it is

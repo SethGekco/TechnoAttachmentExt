@@ -316,6 +316,12 @@ Spins.Orbit=no       ; no  = spins on the spot (centre of rotation = the child)
                      ; yes = the FLH offset sweeps around the parent instead
                      ;       (centre of rotation = the parent)
 
+Slides=yes           ; travels back and forth along one axis
+Slides.Axis=x        ; x | y | z
+Slides.Range=256     ; leptons either side of the FLH point (sweep = 2 x Range)
+Slides.Period=60     ; frames per full there-and-back cycle
+Slides.Phase=0       ; 0-255, as Bobs.Phase
+
 Bobs=yes             ; vertical oscillation
 Bobs.Amplitude=48    ; leptons above/below the FLH point
 Bobs.Period=45       ; frames per full up-down cycle
@@ -329,7 +335,12 @@ All per-slot too (`AttachmentN.Spins=` etc).
   child where it stands, `Spins.Orbit=yes` also swings its offset around the host.
   Use both together for a piece that circles the host while facing outward.
 - **`Bobs.Phase`** is what stops a row of attachments bobbing in lockstep — give
-  each slot a different value (e.g. 0, 64, 128, 192).
+  each slot a different value (e.g. 0, 64, 128, 192). `Slides.Phase` does the same.
+- **The slide axis is host-relative**, because the FLH offset is already resolved
+  through the host's transform. A sliding turret therefore tracks the machine's
+  surface as it turns, instead of drifting out of alignment in world space.
+- Order of composition: **orbit → slide → bob**, so a slide follows a rotated frame
+  rather than fighting it.
 
 > These are safe online: the motion is a pure function of the synced frame counter,
 > computed with integer maths and a fixed-point sine table (never `std::sin`, never

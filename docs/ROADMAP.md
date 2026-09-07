@@ -406,6 +406,10 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   up as a general crash family in the encyclopedia (Syringe-Stub-Semantics.md); a
   repo-wide audit found no other instance.
 
+- ✅ **Attachment Slides (2026-09-05, commit 3dd0955).** `Slides` + `.Axis`/
+  `.Range`/`.Period`/`.Phase`, per-slot. Host-relative axis for free (FLH is already
+  resolved through the host transform), composed orbit → slide → bob. Same
+  stateless frame-derived construction as Spins/Bobs. NOT PLAY-TESTED.
 - ✅ **J1 attachment motion — Spins / Bobs (2026-09-05, commit dcd43e3).**
   `Spins` + `.Period`/`.Orbit`, `Bobs` + `.Amplitude`/`.Period`/`.Phase`, all
   per-slot. **No new game hooks**: we already write each child's facing and
@@ -419,6 +423,31 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   corrupted the configured position for every user of that type.
   ⏸ Still blocked: spinning the body/turret/barrel of a NON-attachment techno is
   render-side, same wall as J2 translucency.
+
+### Attachment motion — where it goes next (Rex 2026-09-05)
+Rex asked for richer movement: slide over a range, a *radius* instead of fixed
+coordinates, and attachments that **move toward/away from enemies to hold weapon
+range** — "turrets that move on a machine's surface, or drones flying around".
+
+The useful split is **procedural** vs **reactive**, because they differ in cost:
+
+- ✅ **Procedural (done): Spins, Bobs, Slides.** Position is a pure function of the
+  frame counter. No new state, no serialization, no hooks, cannot drift or desync.
+  Covers slide-over-a-range, orbiting drones, bobbing hover, sliding hull turrets.
+- 🔷 **Reactive (next, needs state): move toward/away from a target.** The clean
+  primitive is a **leash + goal**:
+    * `Move.Radius=` / `Move.Axis=` — the region the child may occupy, anchored on
+      its FLH point (radius answers "a radius rather than strict coordinates").
+    * `Move.Mode=hold|approach|retreat` — how the goal inside that region is picked,
+      e.g. the point that best keeps the host's current target at `Move.Range=`.
+    * `Move.Speed=` — leptons per frame it may travel toward the goal, so it eases
+      rather than teleports.
+  **The consequence to plan for:** unlike the procedural motions, a speed-limited
+  approach has a *current offset* that persists frame to frame. That is new runtime
+  state and MUST be serialized, or a save/load teleports every attachment. It also
+  reads the host's target (synced), so it stays deterministic — but it is no longer
+  free the way Spins/Bobs/Slides were. Still no game hooks: it remains an
+  adjustment to the FLH we already resolve each frame.
 
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
