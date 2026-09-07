@@ -235,6 +235,22 @@ public:
 	//                         (total sweep = 2 x Range)
 	//   Slides.Period=60   -> frames per full there-and-back cycle
 	//   Slides.Phase=0     -> 0-255, as per Bobs.Phase
+	// REACTIVE motion: the child may stray from its FLH anchor to keep the target
+	// at a useful distance. Unlike Spins/Slides/Bobs this is NOT a pure function of
+	// the frame -- it eases toward a goal, so the current offset persists and IS
+	// serialized (otherwise a save/load teleports every attachment).
+	//   Move.Radius=256  -> how far it may stray from the anchor. 0 = feature off
+	//   Move.Mode=approach -> approach | retreat | hold
+	//   Move.Range=0     -> desired distance to the target; 0 = the child's own
+	//                       primary weapon range
+	//   Move.Speed=8     -> leptons per frame, so it eases rather than snapping
+	// The offset is WORLD-space (applied after the host transform) so the child
+	// leans toward the enemy regardless of which way the host is facing.
+	Valueable<int> Move_Radius;
+	Valueable<int> Move_Mode;   // 0 approach, 1 retreat, 2 hold
+	Valueable<int> Move_Range;
+	Valueable<int> Move_Speed;
+
 	Valueable<bool> Slides;
 	Valueable<int> Slides_Axis;      // 0 = X, 1 = Y, 2 = Z
 	Valueable<int> Slides_Range;
@@ -335,6 +351,10 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Move_Radius { 0 }
+		, Move_Mode { 0 }
+		, Move_Range { 0 }
+		, Move_Speed { 8 }
 		, Slides { false }
 		, Slides_Axis { 0 }
 		, Slides_Range { 256 }

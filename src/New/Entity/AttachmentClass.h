@@ -93,6 +93,10 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	int  ResolveMoveRadius();
+	int  ResolveMoveMode();
+	int  ResolveMoveRange();
+	int  ResolveMoveSpeed();
 	bool ResolveSlides();
 	int  ResolveSlidesAxis();
 	int  ResolveSlidesRange();
@@ -110,6 +114,13 @@ public:
 	int  GetBobZ();
 	// Slide offset in leptons along the configured axis; 0 when not sliding.
 	int  GetSlideOffset();
+
+	// Reactive motion: ease the child's world-space offset toward the point that
+	// best satisfies Move.Mode. Call ONCE per tick -- it mutates stored state.
+	void UpdateMoveOffset();
+
+	// The child's position WITHOUT the reactive Move.* offset.
+	CoordStruct GetChildAnchor();
 	bool ResolveIntangible();
 	bool ResolveOccupiesCell();
 	bool ResolveLowSelectionPriority();

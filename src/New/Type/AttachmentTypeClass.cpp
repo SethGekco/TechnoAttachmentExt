@@ -171,6 +171,20 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Spins.Read(exINI, section, "Spins");
 	this->Spins_Period.Read(exINI, section, "Spins.Period");
 	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	this->Move_Radius.Read(exINI, section, "Move.Radius");
+	this->Move_Range.Read(exINI, section, "Move.Range");
+	this->Move_Speed.Read(exINI, section, "Move.Speed");
+	{
+		char modeBuffer[16];
+		if (pINI->ReadString(section, "Move.Mode", "", modeBuffer, sizeof(modeBuffer)) > 0)
+		{
+			if (_strcmpi(modeBuffer, "approach") == 0)     this->Move_Mode = 0;
+			else if (_strcmpi(modeBuffer, "retreat") == 0) this->Move_Mode = 1;
+			else if (_strcmpi(modeBuffer, "hold") == 0)    this->Move_Mode = 2;
+			else Debug::INIParseFailed(section, "Move.Mode", modeBuffer,
+				"Expected approach, retreat or hold");
+		}
+	}
 	this->Slides.Read(exINI, section, "Slides");
 	this->Slides_Range.Read(exINI, section, "Slides.Range");
 	this->Slides_Period.Read(exINI, section, "Slides.Period");
@@ -277,6 +291,10 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Move_Radius)
+		.Process(this->Move_Mode)
+		.Process(this->Move_Range)
+		.Process(this->Move_Speed)
 		.Process(this->Slides)
 		.Process(this->Slides_Axis)
 		.Process(this->Slides_Range)

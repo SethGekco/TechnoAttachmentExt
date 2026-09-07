@@ -422,3 +422,39 @@ Two consequences worth knowing:
 
 A failed parse always logs, so when a tag seems inert, grep `debug.log` for the
 key name before suspecting the feature.
+
+### Reactive motion (`Move.*`)
+
+Lets an attachment stray from its FLH anchor to keep a useful distance from its
+target — a turret that creeps forward until it can shoot, a drone that backs off
+when something gets close. Unlike `Spins`/`Slides`/`Bobs` (which are pure
+functions of the frame counter), this eases toward a goal, so the current stray
+is real saved state and survives save/load.
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `Move.Radius` | `0` | Max stray from the anchor, in leptons (256 = one cell). `0` disables the feature. |
+| `Move.Mode` | `approach` | `approach` \| `retreat` \| `hold` |
+| `Move.Range` | `0` | Desired distance to the target. `0` = the child's own primary weapon range. |
+| `Move.Speed` | `8` | Leptons per frame, so it eases rather than snapping. |
+
+Also available per slot as `AttachmentN.Move.Radius`, `AttachmentN.Move.Mode`,
+`AttachmentN.Move.Range`, `AttachmentN.Move.Speed` (slot wins over AttachmentType).
+
+- `approach` holds the standoff: it creeps out when further than `Move.Range` and
+  pulls back in when closer, so it settles on a ring at that distance.
+- `retreat` simply backs away from the target as far as `Move.Radius` allows.
+- `hold` (and *any* mode with no target) drifts back to the anchor.
+
+The target is the **child's own** target if it has one, otherwise the host's.
+The offset is world-space and horizontal only — it points at the enemy regardless
+of which way the hull faces, and it won't try to climb toward an aircraft
+(vertical motion stays `Bobs`'s job).
+
+```ini
+[SomeAttachment]
+Move.Radius=256      ; may stray one cell
+Move.Mode=approach
+Move.Range=0         ; = its own weapon range
+Move.Speed=6
+```

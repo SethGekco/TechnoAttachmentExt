@@ -38,6 +38,7 @@ void TechnoExt::ExtData::Serialize(T& Stm)
 	Stm
 		.Process(this->AltOccupation)
 		.Process(this->DeactivationReasons)
+		.Process(this->AttachmentMoveOffset)
 		.Process(this->LastVeterancy)
 		.Process(this->LastVeterancyValid)
 		;

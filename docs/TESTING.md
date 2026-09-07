@@ -374,3 +374,20 @@ if it crashed, the whole `debug/snapshot-*/` folder (it has `except.txt`,
 `syringe.log` and the minidump). If the game **closes instantly with no
 `except.txt`**, say so explicitly — that's a different failure class (CRT abort)
 and points straight at INI parsing.
+
+## Reactive motion (Move.*)
+
+- [ ] `Move.Radius=0` (or unset) — attachment sits exactly on its FLH, no drift.
+- [ ] `Move.Mode=approach`, `Move.Range=0` — the child creeps toward a target until
+      it is at its own weapon range, then holds that ring.
+- [ ] Target moves closer — the child pulls BACK in to the ring, not just outward.
+- [ ] `Move.Mode=retreat` — the child backs away from the target.
+- [ ] `Move.Mode=hold` — the child returns to the anchor and stays there.
+- [ ] Target dies / is lost — the child eases home rather than freezing off-anchor.
+- [ ] `Move.Radius` is respected: the child never strays more than that from the anchor.
+- [ ] `Move.Speed` — small values ease visibly, large values snap.
+- [ ] Per-slot `AttachmentN.Move.*` overrides the AttachmentType's values.
+- [ ] Combines with Spins/Slides/Bobs without them fighting each other.
+- [ ] **Save/load mid-stray does NOT teleport the attachment** (the offset is
+      serialized — this is the first motion feature with real state).
+- [ ] Online: two clients, an attachment straying at a target — no desync.

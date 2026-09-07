@@ -77,6 +77,12 @@ public:
 		// A2 experience passing: this techno's veterancy as of the last tick. A
 		// positive delta is newly-earned XP to route to relatives. Serialized so a
 		// save/load doesn't look like a huge one-frame gain.
+		// Reactive attachment motion (Move.*): how far this child currently strays
+		// from its FLH anchor, in WORLD space. Unlike Spins/Slides/Bobs this is NOT
+		// derivable from the frame counter -- it eases toward a goal -- so it MUST be
+		// serialized or a save/load teleports every attachment back to its anchor.
+		CoordStruct AttachmentMoveOffset;
+
 		float LastVeterancy;
 		bool LastVeterancyValid;
 
@@ -88,6 +94,7 @@ public:
 			, PendingExitScatter { false }
 			, DeactivationReasons { 0 }
 			, NetworkPowered { false }
+			, AttachmentMoveOffset { }
 			, LastVeterancy { 0.0f }
 			, LastVeterancyValid { false }
 		{ }

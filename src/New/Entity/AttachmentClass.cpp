@@ -1,5 +1,7 @@
 #include "AttachmentClass.h"
 
+#include <algorithm>
+
 #include <Dir.h>
 #include <BulletClass.h>
 #include <BulletTypeClass.h>
@@ -65,6 +67,34 @@ namespace
 	}
 
 	int TAExt_Cos1024(int index) { return TAExt_Sin1024(index + 64); }
+
+	// Integer square root (Newton, seeded by bit length). Used by the reactive
+	// motion below instead of std::sqrt: distances feed a SYNCED position, and an
+	// FPU result can differ in the last bit between peers -- which is a desync, not
+	// a rounding nuisance. Exact and identical on every machine.
+	// Takes a 64-bit argument deliberately: the caller squares a map-scale distance
+	// (a 512-cell map is ~131k leptons across, and 131k^2 overflows a 32-bit int),
+	// so the squaring must happen in 64 bits before it ever gets here.
+	int TAExt_ISqrt(long long value)
+	{
+		if (value <= 0)
+			return 0;
+
+		long long guess = value;
+		long long next = (guess + 1) / 2;
+		while (next < guess)
+		{
+			guess = next;
+			next = (guess + value / guess) / 2;
+		}
+		return static_cast<int>(guess);
+	}
+
+	// x^2 + y^2 without overflow.
+	long long TAExt_LenSq(int x, int y)
+	{
+		return static_cast<long long>(x) * x + static_cast<long long>(y) * y;
+	}
 }
 
 // Current spin offset in raw facing units (65536 = one full turn), or 0.
@@ -125,7 +155,7 @@ int AttachmentClass::GetBobZ()
 	return (amplitude * TAExt_Sin1024(index)) / 1024;
 }
 
-CoordStruct AttachmentClass::GetChildLocation()
+CoordStruct AttachmentClass::GetChildAnchor()
 {
 	// COPY, never a reference: Data->FLH is the shared TYPE config, and the motion
 	// offsets below would otherwise corrupt it permanently for every user of it.
@@ -160,6 +190,138 @@ CoordStruct AttachmentClass::GetChildLocation()
 	flh.Z += this->GetBobZ();
 
 	return TechnoExt::GetFLHAbsoluteCoords(this->Parent, flh, this->Data->IsOnTurret);
+}
+
+// Final child position: the anchor plus whatever reactive stray the Move.* logic
+// has accumulated. The offset is WORLD-space and applied AFTER the host transform
+// on purpose -- "lean toward the enemy" should mean the same thing no matter which
+// way the host happens to be facing, and Move.Radius then describes a plain sphere
+// around the anchor instead of a shape that rotates with the hull.
+CoordStruct AttachmentClass::GetChildLocation()
+{
+	auto location = this->GetChildAnchor();
+
+	if (this->Child)
+	{
+		auto const& offset = TechnoExt::ExtMap.Find(this->Child)->AttachmentMoveOffset;
+		location.X += offset.X;
+		location.Y += offset.Y;
+		location.Z += offset.Z;
+	}
+
+	return location;
+}
+
+// Reactive motion. Eases the child's world offset toward the point that best
+// satisfies Move.Mode, at most Move.Speed leptons per tick, never straying further
+// than Move.Radius from the anchor.
+//
+// MUST be called exactly once per synced tick -- unlike the spin/slide/bob helpers
+// this MUTATES stored state, so calling it twice in a frame moves the child twice
+// and calling it from a render path would desync.
+//
+// Horizontal only: the goal direction ignores Z so a ground attachment doesn't
+// try to climb toward an aircraft. Vertical motion stays the business of Bobs.
+void AttachmentClass::UpdateMoveOffset()
+{
+	if (!this->Child)
+		return;
+
+	auto const pChildExt = TechnoExt::ExtMap.Find(this->Child);
+	auto& offset = pChildExt->AttachmentMoveOffset;
+
+	int const radius = this->ResolveMoveRadius();
+	if (radius <= 0)
+	{
+		offset = CoordStruct { 0, 0, 0 }; // feature off (or turned off mid-game): snap home
+		return;
+	}
+
+	int speed = this->ResolveMoveSpeed();
+	if (speed <= 0)
+		return;
+
+	int const mode = this->ResolveMoveMode();
+
+	// Goal direction, in world space, scaled to 1024.
+	int dirX = 0;
+	int dirY = 0;
+	int step = 0;
+
+	// The child's own target wins over the host's: a turret that acquired its own
+	// victim should lean at THAT one, not at whatever the hull is shooting.
+	auto const pTarget = this->Child->Target ? this->Child->Target : this->Parent->Target;
+
+	if (mode == 2 || !pTarget)
+	{
+		// hold (or nothing to react to): drift back to the anchor.
+		int const dist = TAExt_ISqrt(TAExt_LenSq(offset.X, offset.Y));
+		if (dist == 0)
+		{
+			offset.X = 0;
+			offset.Y = 0;
+			return;
+		}
+
+		step = std::min(speed, dist);
+		dirX = -(offset.X * 1024) / dist;
+		dirY = -(offset.Y * 1024) / dist;
+	}
+	else
+	{
+		auto const anchor = this->GetChildAnchor();
+		auto const targetCoords = pTarget->GetCoords();
+
+		int const toX = targetCoords.X - (anchor.X + offset.X);
+		int const toY = targetCoords.Y - (anchor.Y + offset.Y);
+		int const dist = TAExt_ISqrt(TAExt_LenSq(toX, toY));
+		if (dist == 0)
+			return; // sitting exactly on it; no meaningful direction
+
+		int const unitX = static_cast<int>((static_cast<long long>(toX) * 1024) / dist);
+		int const unitY = static_cast<int>((static_cast<long long>(toY) * 1024) / dist);
+
+		if (mode == 1)
+		{
+			// retreat: back away from the target as far as the radius allows.
+			step = speed;
+			dirX = -unitX;
+			dirY = -unitY;
+		}
+		else
+		{
+			// approach: hold the desired standoff distance. Range 0 means "my own
+			// weapon range", which is the interesting case -- the attachment creeps
+			// out until it can shoot and no further.
+			int desired = this->ResolveMoveRange();
+			if (desired <= 0)
+			{
+				if (auto const pWeapon = this->Child->GetTechnoType()->GetWeapon(0))
+					if (pWeapon->WeaponType)
+						desired = pWeapon->WeaponType->Range;
+			}
+
+			int const error = dist - desired;
+			if (error == 0)
+				return;
+
+			step = std::min(speed, error > 0 ? error : -error);
+			dirX = error > 0 ? unitX : -unitX;
+			dirY = error > 0 ? unitY : -unitY;
+		}
+	}
+
+	offset.X += (dirX * step) / 1024;
+	offset.Y += (dirY * step) / 1024;
+
+	// Clamp back inside the leash. Scaling both axes keeps the direction intact
+	// rather than squaring the reachable area off.
+	int const strayed = TAExt_ISqrt(TAExt_LenSq(offset.X, offset.Y));
+	if (strayed > radius)
+	{
+		offset.X = (offset.X * radius) / strayed;
+		offset.Y = (offset.Y * radius) / strayed;
+	}
 }
 
 AttachmentClass::~AttachmentClass()
@@ -577,6 +739,30 @@ bool AttachmentClass::ResolveSpinsOrbit()
 		? this->Data->Spins_Orbit.Get() : this->GetType()->Spins_Orbit;
 }
 
+int AttachmentClass::ResolveMoveRadius()
+{
+	return (this->Data && this->Data->Move_Radius.isset())
+		? this->Data->Move_Radius.Get() : this->GetType()->Move_Radius;
+}
+
+int AttachmentClass::ResolveMoveMode()
+{
+	return (this->Data && this->Data->Move_Mode.isset())
+		? this->Data->Move_Mode.Get() : this->GetType()->Move_Mode;
+}
+
+int AttachmentClass::ResolveMoveRange()
+{
+	return (this->Data && this->Data->Move_Range.isset())
+		? this->Data->Move_Range.Get() : this->GetType()->Move_Range;
+}
+
+int AttachmentClass::ResolveMoveSpeed()
+{
+	return (this->Data && this->Data->Move_Speed.isset())
+		? this->Data->Move_Speed.Get() : this->GetType()->Move_Speed;
+}
+
 bool AttachmentClass::ResolveSlides()
 {
 	return (this->Data && this->Data->Slides.isset())
@@ -812,6 +998,9 @@ void AttachmentClass::AI()
 		// Don't position/sync a hidden (limbo'd) child.
 		if (this->Child->InLimbo)
 			return;
+
+		// Reactive stray first, so this tick's SetLocation already reflects it.
+		this->UpdateMoveOffset();
 
 		this->Child->SetLocation(this->GetChildLocation());
 

@@ -290,6 +290,31 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<int> slotMoveRadius;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Move.Radius", static_cast<int>(i));
+		slotMoveRadius.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotMoveRange;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Move.Range", static_cast<int>(i));
+		slotMoveRange.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotMoveSpeed;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Move.Speed", static_cast<int>(i));
+		slotMoveSpeed.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotMoveMode;
+		{
+			char modeBuffer[16];
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Move.Mode", static_cast<int>(i));
+			if (pINI->ReadString(pSection, tempBuffer, "", modeBuffer, sizeof(modeBuffer)) > 0)
+			{
+				if (_strcmpi(modeBuffer, "approach") == 0)     slotMoveMode = 0;
+				else if (_strcmpi(modeBuffer, "retreat") == 0) slotMoveMode = 1;
+				else if (_strcmpi(modeBuffer, "hold") == 0)    slotMoveMode = 2;
+				else Debug::INIParseFailed(pSection, tempBuffer, modeBuffer,
+					"Expected approach, retreat or hold");
+			}
+		}
 		Nullable<bool> slotSlides;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Slides", static_cast<int>(i));
 		slotSlides.Read(exINI, pSection, tempBuffer);
@@ -390,6 +415,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse,
 			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotSpins, slotSpinsPeriod, slotSpinsOrbit,
+			slotMoveRadius, slotMoveMode, slotMoveRange, slotMoveSpeed,
 			slotSlides, slotSlidesAxis, slotSlidesRange, slotSlidesPeriod, slotSlidesPhase,
 			slotBobs, slotBobsAmp, slotBobsPeriod, slotBobsPhase,
 			slotAmmoParent, slotIntangible, slotOccupiesCell, slotLowSelPri, slotDecorative, slotDwChild, slotDwParent, slotPdMission, slotPdetMission, slotConvKeepHp, slotConvKeepVet };
@@ -522,6 +548,10 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Move_Radius)
+		.Process(this->Move_Mode)
+		.Process(this->Move_Range)
+		.Process(this->Move_Speed)
 		.Process(this->Slides)
 		.Process(this->Slides_Axis)
 		.Process(this->Slides_Range)
