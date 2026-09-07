@@ -424,6 +424,55 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   ⏸ Still blocked: spinning the body/turret/barrel of a NON-attachment techno is
   render-side, same wall as J2 translucency.
 
+### Should attachments use real locomotors? (Rex 2026-09-05) — analysed
+Feasible, and not a bad instinct, but it is a **second attachment MODE**, not a
+drop-in swap. Two facts from the code decide the shape:
+
+1. **`AttachmentLocomotionClass` is a PROXY, not a stub.** Nearly every method
+   forwards to the *parent's* locomotor (Is_Moving, Is_Moving_Now,
+   Is_Really_Moving_Now, Draw_Matrix, layer queries...). Its `Process()` also does
+   the bookkeeping a moving object needs: layer transitions +
+   `DisplayClass::Submit`, `AircraftTracker` add/remove/update (so AA can find it),
+   `SensorsSight` relocation, and bridge state. Replacing it with a stock locomotor
+   loses the delegation — the child would report ITS movement state instead of the
+   parent's, so walk animations and "is it moving" checks would disagree with what
+   the host is visibly doing.
+2. **The locomotor is not what pins the child.** `AttachmentClass::AI` calls
+   `Child->SetLocation(GetChildLocation())` every frame, and our tick runs AFTER
+   the locomotor. A real locomotor would move the child and we would overwrite it
+   the same frame. Swapping the locomotor alone changes nothing.
+
+So the design is a mode switch:
+- **Rigid (today).** Proxy loco + pinned position. Correct for turrets, armour,
+  cosmetic pieces — anything bolted to the hull.
+- 🔷 **Leashed (proposed).** Give the child a REAL locomotor, STOP pinning its
+  position, and instead issue it a destination near the parent each frame. The
+  engine then does pathing, acceleration, turning and hover wobble for free — the
+  "don't reinvent the wheel" win Rex is after. FLH becomes an anchor, not a position.
+
+**Costs of leashed mode — these are exactly the things we spent effort removing:**
+- The child becomes a real pathfinding unit again: it occupies cells, blocks, and
+  costs pathfinding every frame.
+- The historic building-host freeze came from this class of interaction (a child
+  that could NOT relocate being told to). A child that *can* move may be safer
+  there — or may open new interactions. Needs the freeze test re-run.
+- `OccupiesCell=no` / `Intangible=yes` interact badly with real movement: a
+  non-occupying pathfinding unit can walk through things.
+- Rigid-mode features (Spins/Slides/Bobs, FLH precision) stop meaning the same
+  thing once the engine owns the position.
+
+**Cheaper wheel for the drone case:** vanilla's **spawner** (`SpawnManagerClass`)
+already implements "escorts that orbit their owner, fly off to attack, and return".
+If the goal is autonomous drones rather than surface-mounted turrets, leashing a
+SPAWNEE is closer to the existing wheel than un-pinning an attachment.
+
+**Recommendation:** keep rigid as the default and add leashed as an opt-in
+(`Motion=rigid|leashed`), because it changes attachment semantics rather than
+extending them. Build the reactive leash (Move.Radius/Mode/Speed) FIRST — it gives
+target-seeking movement while keeping the position ours, which means no
+pathfinding, no cell occupation, and no risk to the freeze fix. Leashed mode is
+the bigger, riskier follow-up if procedural + reactive still is not enough.
+
 ### Attachment motion — where it goes next (Rex 2026-09-05)
 Rex asked for richer movement: slide over a range, a *radius* instead of fixed
 coordinates, and attachments that **move toward/away from enemies to hold weapon
