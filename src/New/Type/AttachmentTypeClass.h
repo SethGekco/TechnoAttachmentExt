@@ -226,6 +226,21 @@ public:
 	Valueable<bool> Spins;
 	Valueable<int> Spins_Period;
 	Valueable<bool> Spins_Orbit;
+	//   Slides=yes         -> the child slides back and forth along one axis
+	//   Slides.Axis=x      -> x | y | z. The axis is HOST-RELATIVE, because the FLH
+	//                         offset is already resolved through the host's
+	//                         transform -- so a sliding turret tracks the machine's
+	//                         surface as it turns, rather than drifting in world space.
+	//   Slides.Range=256   -> leptons of travel either side of the FLH point
+	//                         (total sweep = 2 x Range)
+	//   Slides.Period=60   -> frames per full there-and-back cycle
+	//   Slides.Phase=0     -> 0-255, as per Bobs.Phase
+	Valueable<bool> Slides;
+	Valueable<int> Slides_Axis;      // 0 = X, 1 = Y, 2 = Z
+	Valueable<int> Slides_Range;
+	Valueable<int> Slides_Period;
+	Valueable<int> Slides_Phase;
+
 	Valueable<bool> Bobs;
 	Valueable<int> Bobs_Amplitude;
 	Valueable<int> Bobs_Period;
@@ -320,6 +335,11 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Slides { false }
+		, Slides_Axis { 0 }
+		, Slides_Range { 256 }
+		, Slides_Period { 60 }
+		, Slides_Phase { 0 }
 		, Bobs { false }
 		, Bobs_Amplitude { 48 }
 		, Bobs_Period { 45 }

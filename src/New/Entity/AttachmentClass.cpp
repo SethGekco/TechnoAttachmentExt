@@ -88,6 +88,24 @@ int AttachmentClass::GetSpinRaw()
 	return reverse ? -raw : raw;
 }
 
+// Current slide offset in leptons along the configured axis, or 0. Same
+// frame-derived, integer, stateless construction as the spin and bob above.
+int AttachmentClass::GetSlideOffset()
+{
+	if (!this->ResolveSlides())
+		return 0;
+
+	int const range = this->ResolveSlidesRange();
+	int period = this->ResolveSlidesPeriod();
+	if (range == 0 || period <= 0)
+		return 0;
+
+	int const phase = static_cast<int>(Unsorted::CurrentFrame % static_cast<unsigned int>(period));
+	int const index = (phase * 256) / period + this->ResolveSlidesPhase();
+
+	return (range * TAExt_Sin1024(index)) / 1024;
+}
+
 // Current vertical bob offset in leptons, or 0.
 int AttachmentClass::GetBobZ()
 {
@@ -125,6 +143,18 @@ CoordStruct AttachmentClass::GetChildLocation()
 		int const y = flh.Y;
 		flh.X = (x * cos - y * sin) / 1024;
 		flh.Y = (x * sin + y * cos) / 1024;
+	}
+
+	// Slide along one host-relative axis. Applied AFTER any orbit rotation so the
+	// slide follows the rotated frame rather than fighting it.
+	if (int const slide = this->GetSlideOffset())
+	{
+		switch (this->ResolveSlidesAxis())
+		{
+		case 1:  flh.Y += slide; break;
+		case 2:  flh.Z += slide; break;
+		default: flh.X += slide; break;
+		}
 	}
 
 	flh.Z += this->GetBobZ();
@@ -545,6 +575,36 @@ bool AttachmentClass::ResolveSpinsOrbit()
 {
 	return (this->Data && this->Data->Spins_Orbit.isset())
 		? this->Data->Spins_Orbit.Get() : this->GetType()->Spins_Orbit;
+}
+
+bool AttachmentClass::ResolveSlides()
+{
+	return (this->Data && this->Data->Slides.isset())
+		? this->Data->Slides.Get() : this->GetType()->Slides;
+}
+
+int AttachmentClass::ResolveSlidesAxis()
+{
+	return (this->Data && this->Data->Slides_Axis.isset())
+		? this->Data->Slides_Axis.Get() : this->GetType()->Slides_Axis;
+}
+
+int AttachmentClass::ResolveSlidesRange()
+{
+	return (this->Data && this->Data->Slides_Range.isset())
+		? this->Data->Slides_Range.Get() : this->GetType()->Slides_Range;
+}
+
+int AttachmentClass::ResolveSlidesPeriod()
+{
+	return (this->Data && this->Data->Slides_Period.isset())
+		? this->Data->Slides_Period.Get() : this->GetType()->Slides_Period;
+}
+
+int AttachmentClass::ResolveSlidesPhase()
+{
+	return (this->Data && this->Data->Slides_Phase.isset())
+		? this->Data->Slides_Phase.Get() : this->GetType()->Slides_Phase;
 }
 
 bool AttachmentClass::ResolveBobs()

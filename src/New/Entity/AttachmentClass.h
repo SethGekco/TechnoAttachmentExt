@@ -93,6 +93,11 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	bool ResolveSlides();
+	int  ResolveSlidesAxis();
+	int  ResolveSlidesRange();
+	int  ResolveSlidesPeriod();
+	int  ResolveSlidesPhase();
 	bool ResolveBobs();
 	int  ResolveBobsAmplitude();
 	int  ResolveBobsPeriod();
@@ -103,6 +108,8 @@ public:
 	int  GetSpinRaw();
 	// Vertical bob offset in leptons; 0 when not bobbing.
 	int  GetBobZ();
+	// Slide offset in leptons along the configured axis; 0 when not sliding.
+	int  GetSlideOffset();
 	bool ResolveIntangible();
 	bool ResolveOccupiesCell();
 	bool ResolveLowSelectionPriority();

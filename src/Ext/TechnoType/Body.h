@@ -141,6 +141,11 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Nullable<bool> Slides;
+			Nullable<int> Slides_Axis;
+			Nullable<int> Slides_Range;
+			Nullable<int> Slides_Period;
+			Nullable<int> Slides_Phase;
 			Nullable<bool> Bobs;
 			Nullable<int> Bobs_Amplitude;
 			Nullable<int> Bobs_Period;

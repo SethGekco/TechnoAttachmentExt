@@ -171,6 +171,20 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Spins.Read(exINI, section, "Spins");
 	this->Spins_Period.Read(exINI, section, "Spins.Period");
 	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	this->Slides.Read(exINI, section, "Slides");
+	this->Slides_Range.Read(exINI, section, "Slides.Range");
+	this->Slides_Period.Read(exINI, section, "Slides.Period");
+	this->Slides_Phase.Read(exINI, section, "Slides.Phase");
+	{
+		char axisBuffer[16];
+		if (pINI->ReadString(section, "Slides.Axis", "", axisBuffer, sizeof(axisBuffer)) > 0)
+		{
+			if (_strcmpi(axisBuffer, "x") == 0)      this->Slides_Axis = 0;
+			else if (_strcmpi(axisBuffer, "y") == 0) this->Slides_Axis = 1;
+			else if (_strcmpi(axisBuffer, "z") == 0) this->Slides_Axis = 2;
+			else Debug::INIParseFailed(section, "Slides.Axis", axisBuffer, "Expected x, y or z");
+		}
+	}
 	this->Bobs.Read(exINI, section, "Bobs");
 	this->Bobs_Amplitude.Read(exINI, section, "Bobs.Amplitude");
 	this->Bobs_Period.Read(exINI, section, "Bobs.Period");
@@ -263,6 +277,11 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Slides)
+		.Process(this->Slides_Axis)
+		.Process(this->Slides_Range)
+		.Process(this->Slides_Period)
+		.Process(this->Slides_Phase)
 		.Process(this->Bobs)
 		.Process(this->Bobs_Amplitude)
 		.Process(this->Bobs_Period)

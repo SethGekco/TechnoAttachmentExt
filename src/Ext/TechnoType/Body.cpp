@@ -290,6 +290,34 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<bool> slotSlides;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Slides", static_cast<int>(i));
+		slotSlides.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotSlidesRange;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Slides.Range", static_cast<int>(i));
+		slotSlidesRange.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotSlidesPeriod;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Slides.Period", static_cast<int>(i));
+		slotSlidesPeriod.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotSlidesPhase;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Slides.Phase", static_cast<int>(i));
+		slotSlidesPhase.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotSlidesAxis;
+		{
+			char axisBuffer[16];
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Slides.Axis", static_cast<int>(i));
+			if (pINI->ReadString(pSection, tempBuffer, "", axisBuffer, sizeof(axisBuffer)) > 0)
+			{
+				if (_strcmpi(axisBuffer, "x") == 0)      slotSlidesAxis = 0;
+				else if (_strcmpi(axisBuffer, "y") == 0) slotSlidesAxis = 1;
+				else if (_strcmpi(axisBuffer, "z") == 0) slotSlidesAxis = 2;
+				else Debug::INIParseFailed(pSection, tempBuffer, axisBuffer, "Expected x, y or z");
+			}
+		}
 		Nullable<bool> slotBobs;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Bobs", static_cast<int>(i));
 		slotBobs.Read(exINI, pSection, tempBuffer);
@@ -361,7 +389,9 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotRequiresPassengers,
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse,
-			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotSpins, slotSpinsPeriod, slotSpinsOrbit, slotBobs, slotBobsAmp, slotBobsPeriod, slotBobsPhase,
+			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotSpins, slotSpinsPeriod, slotSpinsOrbit,
+			slotSlides, slotSlidesAxis, slotSlidesRange, slotSlidesPeriod, slotSlidesPhase,
+			slotBobs, slotBobsAmp, slotBobsPeriod, slotBobsPhase,
 			slotAmmoParent, slotIntangible, slotOccupiesCell, slotLowSelPri, slotDecorative, slotDwChild, slotDwParent, slotPdMission, slotPdetMission, slotConvKeepHp, slotConvKeepVet };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
@@ -492,6 +522,11 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Slides)
+		.Process(this->Slides_Axis)
+		.Process(this->Slides_Range)
+		.Process(this->Slides_Period)
+		.Process(this->Slides_Phase)
 		.Process(this->Bobs)
 		.Process(this->Bobs_Amplitude)
 		.Process(this->Bobs_Period)
