@@ -168,6 +168,13 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 		}
 	}
 
+	this->Spins.Read(exINI, section, "Spins");
+	this->Spins_Period.Read(exINI, section, "Spins.Period");
+	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	this->Bobs.Read(exINI, section, "Bobs");
+	this->Bobs_Amplitude.Read(exINI, section, "Bobs.Amplitude");
+	this->Bobs_Period.Read(exINI, section, "Bobs.Period");
+	this->Bobs_Phase.Read(exINI, section, "Bobs.Phase");
 	this->Ammo_Parent.Read(exINI, section, "Ammo.Parent");
 	this->Intangible.Read(exINI, section, "Intangible");
 	this->OccupiesCell.Read(exINI, section, "OccupiesCell");
@@ -253,6 +260,13 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Decorative)
 		.Process(this->Convert_KeepHealth)
 		.Process(this->Convert_KeepVeterancy)
+		.Process(this->Spins)
+		.Process(this->Spins_Period)
+		.Process(this->Spins_Orbit)
+		.Process(this->Bobs)
+		.Process(this->Bobs_Amplitude)
+		.Process(this->Bobs_Period)
+		.Process(this->Bobs_Phase)
 		.Process(this->Ammo_Parent)
 		.Process(this->Intangible)
 		.Process(this->OccupiesCell)

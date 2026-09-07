@@ -278,6 +278,33 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.InheritHeightStatus", static_cast<int>(i));
 		slotInhHeight.Read(exINI, pSection, tempBuffer);
 
+		Nullable<bool> slotSpins;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins", static_cast<int>(i));
+		slotSpins.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotSpinsPeriod;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Period", static_cast<int>(i));
+		slotSpinsPeriod.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotSpinsOrbit;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
+		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotBobs;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Bobs", static_cast<int>(i));
+		slotBobs.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotBobsAmp;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Bobs.Amplitude", static_cast<int>(i));
+		slotBobsAmp.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotBobsPeriod;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Bobs.Period", static_cast<int>(i));
+		slotBobsPeriod.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotBobsPhase;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Bobs.Phase", static_cast<int>(i));
+		slotBobsPhase.Read(exINI, pSection, tempBuffer);
 		Nullable<int> slotAmmoParent;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Ammo.Parent", static_cast<int>(i));
 		slotAmmoParent.Read(exINI, pSection, tempBuffer);
@@ -334,7 +361,8 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotRequiresPassengers,
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse,
-			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotAmmoParent, slotIntangible, slotOccupiesCell, slotLowSelPri, slotDecorative, slotDwChild, slotDwParent, slotPdMission, slotPdetMission, slotConvKeepHp, slotConvKeepVet };
+			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotSpins, slotSpinsPeriod, slotSpinsOrbit, slotBobs, slotBobsAmp, slotBobsPeriod, slotBobsPhase,
+			slotAmmoParent, slotIntangible, slotOccupiesCell, slotLowSelPri, slotDecorative, slotDwChild, slotDwParent, slotPdMission, slotPdetMission, slotConvKeepHp, slotConvKeepVet };
 		if (i == this->AttachmentData.size())
 			this->AttachmentData.push_back(entry);
 		else
@@ -461,6 +489,13 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->InheritStateEffects)
 		.Process(this->InheritDestruction)
 		.Process(this->InheritHeightStatus)
+		.Process(this->Spins)
+		.Process(this->Spins_Period)
+		.Process(this->Spins_Orbit)
+		.Process(this->Bobs)
+		.Process(this->Bobs_Amplitude)
+		.Process(this->Bobs_Period)
+		.Process(this->Bobs_Phase)
 		.Process(this->Ammo_Parent)
 		.Process(this->Intangible)
 		.Process(this->OccupiesCell)

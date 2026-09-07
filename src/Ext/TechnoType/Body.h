@@ -138,6 +138,13 @@ public:
 			Nullable<bool> InheritStateEffects;
 			Nullable<bool> InheritDestruction;
 			Nullable<bool> InheritHeightStatus;
+			Nullable<bool> Spins;
+			Nullable<int> Spins_Period;
+			Nullable<bool> Spins_Orbit;
+			Nullable<bool> Bobs;
+			Nullable<int> Bobs_Amplitude;
+			Nullable<int> Bobs_Period;
+			Nullable<int> Bobs_Phase;
 			Nullable<int> Ammo_Parent;
 			Nullable<bool> Intangible;
 			Nullable<bool> OccupiesCell;

@@ -29,9 +29,106 @@ TechnoTypeClass* AttachmentClass::GetChildType()
 		: nullptr;
 }
 
+// ---- J1 motion helpers -----------------------------------------------------
+//
+// Spin and bob are computed from Unsorted::CurrentFrame with INTEGER maths only.
+// Two reasons that matters:
+//  * facing and position are SYNCED state, so a per-client value (wall clock, or
+//    float drift) would desync -- the frame counter is identical on every peer.
+//  * deriving from the absolute frame rather than accumulating means no new
+//    serialized state and no drift after a save/load; the motion is a pure
+//    function of the frame number.
+//
+// The sine table is fixed-point (-1024..1024 over 256 steps) rather than std::sin
+// so the result is bit-identical everywhere, independent of FPU mode.
+
+namespace
+{
+	// sin(i * 2pi / 256) * 1024, quarter table mirrored below.
+	const short TAExt_SinQuarter[65] =
+	{
+		   0,   25,   50,   75,  100,  125,  150,  175,  200,  224,  249,  273,  297,  321,  345,  369,
+		 392,  415,  438,  460,  483,  505,  526,  548,  569,  590,  610,  630,  650,  669,  688,  706,
+		 724,  742,  759,  775,  792,  807,  822,  837,  851,  865,  878,  891,  903,  915,  926,  936,
+		 946,  955,  964,  972,  980,  987,  993,  999, 1004, 1009, 1013, 1016, 1019, 1021, 1023, 1024,
+		1024
+	};
+
+	// index 0..255 -> sin * 1024
+	int TAExt_Sin1024(int index)
+	{
+		index &= 0xFF;
+		if (index <= 64)   return  TAExt_SinQuarter[index];
+		if (index <= 128)  return  TAExt_SinQuarter[128 - index];
+		if (index <= 192)  return -TAExt_SinQuarter[index - 128];
+		return              -TAExt_SinQuarter[256 - index];
+	}
+
+	int TAExt_Cos1024(int index) { return TAExt_Sin1024(index + 64); }
+}
+
+// Current spin offset in raw facing units (65536 = one full turn), or 0.
+int AttachmentClass::GetSpinRaw()
+{
+	if (!this->ResolveSpins())
+		return 0;
+
+	int period = this->ResolveSpinsPeriod();
+	if (period == 0)
+		return 0; // a zero period would divide by zero; treat as "not spinning"
+
+	bool const reverse = period < 0;
+	if (reverse)
+		period = -period;
+
+	// Modulo FIRST so the multiply cannot overflow on long games.
+	int const phase = static_cast<int>(Unsorted::CurrentFrame % static_cast<unsigned int>(period));
+	int raw = static_cast<int>((static_cast<long long>(phase) * 65536) / period);
+
+	return reverse ? -raw : raw;
+}
+
+// Current vertical bob offset in leptons, or 0.
+int AttachmentClass::GetBobZ()
+{
+	if (!this->ResolveBobs())
+		return 0;
+
+	int const amplitude = this->ResolveBobsAmplitude();
+	int period = this->ResolveBobsPeriod();
+	if (amplitude == 0 || period <= 0)
+		return 0;
+
+	int const phase = static_cast<int>(Unsorted::CurrentFrame % static_cast<unsigned int>(period));
+	// Map the frame position into the 256-step table, plus the configured offset
+	// so sibling attachments can be told to bob out of step.
+	int const index = (phase * 256) / period + this->ResolveBobsPhase();
+
+	return (amplitude * TAExt_Sin1024(index)) / 1024;
+}
+
 CoordStruct AttachmentClass::GetChildLocation()
 {
-	auto& flh = this->Data->FLH.Get();
+	// COPY, never a reference: Data->FLH is the shared TYPE config, and the motion
+	// offsets below would otherwise corrupt it permanently for every user of it.
+	CoordStruct flh = this->Data->FLH.Get();
+
+	// Orbit: sweep the offset around the parent, so the centre of rotation is the
+	// PARENT rather than the child. (Spin without orbit turns it on the spot.)
+	if (this->ResolveSpins() && this->ResolveSpinsOrbit())
+	{
+		int const index = this->GetSpinRaw() >> 8; // raw facing -> 256-step table
+		int const cos = TAExt_Cos1024(index);
+		int const sin = TAExt_Sin1024(index);
+
+		int const x = flh.X;
+		int const y = flh.Y;
+		flh.X = (x * cos - y * sin) / 1024;
+		flh.Y = (x * sin + y * cos) / 1024;
+	}
+
+	flh.Z += this->GetBobZ();
+
 	return TechnoExt::GetFLHAbsoluteCoords(this->Parent, flh, this->Data->IsOnTurret);
 }
 
@@ -432,6 +529,48 @@ bool AttachmentClass::ResolveInheritHeightStatus()
 		? this->Data->InheritHeightStatus.Get() : this->GetType()->InheritHeightStatus;
 }
 
+bool AttachmentClass::ResolveSpins()
+{
+	return (this->Data && this->Data->Spins.isset())
+		? this->Data->Spins.Get() : this->GetType()->Spins;
+}
+
+int AttachmentClass::ResolveSpinsPeriod()
+{
+	return (this->Data && this->Data->Spins_Period.isset())
+		? this->Data->Spins_Period.Get() : this->GetType()->Spins_Period;
+}
+
+bool AttachmentClass::ResolveSpinsOrbit()
+{
+	return (this->Data && this->Data->Spins_Orbit.isset())
+		? this->Data->Spins_Orbit.Get() : this->GetType()->Spins_Orbit;
+}
+
+bool AttachmentClass::ResolveBobs()
+{
+	return (this->Data && this->Data->Bobs.isset())
+		? this->Data->Bobs.Get() : this->GetType()->Bobs;
+}
+
+int AttachmentClass::ResolveBobsAmplitude()
+{
+	return (this->Data && this->Data->Bobs_Amplitude.isset())
+		? this->Data->Bobs_Amplitude.Get() : this->GetType()->Bobs_Amplitude;
+}
+
+int AttachmentClass::ResolveBobsPeriod()
+{
+	return (this->Data && this->Data->Bobs_Period.isset())
+		? this->Data->Bobs_Period.Get() : this->GetType()->Bobs_Period;
+}
+
+int AttachmentClass::ResolveBobsPhase()
+{
+	return (this->Data && this->Data->Bobs_Phase.isset())
+		? this->Data->Bobs_Phase.Get() : this->GetType()->Bobs_Phase;
+}
+
 int AttachmentClass::ResolveAmmoParent()
 {
 	return (this->Data && this->Data->Ammo_Parent.isset())
@@ -620,6 +759,7 @@ void AttachmentClass::AI()
 			? this->Parent->SecondaryFacing.Current() : this->Parent->PrimaryFacing.Current();
 
 		childDir.Raw += DirStruct(this->Data->RotationAdjust).Raw; // overflow = free modulo for rotation
+		childDir.Raw += static_cast<unsigned short>(this->GetSpinRaw()); // J1 spin
 
 		this->Child->PrimaryFacing.SetCurrent(childDir);
 		// TODO handle secondary facing in case the turret is idle

@@ -209,6 +209,28 @@ public:
 	// Note: TechnoTypeClass::Ammo is shared by every unit of a type, so the
 	// capacity cannot simply be written -- it is substituted at the reload
 	// check instead. See Hooks.AttachedAmmo.cpp.
+	// J1 -- motion. Purely a per-frame adjustment to the facing/offset this DLL
+	// already applies to its children, so it needs NO render hooks (unlike
+	// translucency). Driven by Unsorted::CurrentFrame with integer maths, so every
+	// peer computes the same value -> online-safe even though facing is synced state.
+	//   Spins=yes          -> the child rotates continuously
+	//   Spins.Period=32    -> frames per full revolution; NEGATIVE = anticlockwise
+	//   Spins.Orbit=no     -> no  = spins in place (centre of rotation = the child)
+	//                         yes = the FLH offset also sweeps around the parent
+	//                               (centre of rotation = the parent)
+	//   Bobs=yes           -> the child oscillates vertically
+	//   Bobs.Amplitude=48  -> leptons travelled above/below the FLH point
+	//   Bobs.Period=45     -> frames per full up-down cycle
+	//   Bobs.Phase=0       -> 0-255, shifts the cycle so sibling attachments can
+	//                         bob out of step with each other
+	Valueable<bool> Spins;
+	Valueable<int> Spins_Period;
+	Valueable<bool> Spins_Orbit;
+	Valueable<bool> Bobs;
+	Valueable<int> Bobs_Amplitude;
+	Valueable<int> Bobs_Period;
+	Valueable<int> Bobs_Phase;
+
 	Valueable<int> Ammo_Parent;
 	Valueable<bool> Intangible;
 	Valueable<bool> OccupiesCell;
@@ -295,6 +317,13 @@ public:
 		, ConvertRules { }
 		, Convert_KeepHealth { true }
 		, Convert_KeepVeterancy { true }
+		, Spins { false }
+		, Spins_Period { 32 }
+		, Spins_Orbit { false }
+		, Bobs { false }
+		, Bobs_Amplitude { 48 }
+		, Bobs_Period { 45 }
+		, Bobs_Phase { 0 }
 		, Ammo_Parent { 0 }
 		, Intangible { false }
 		, OccupiesCell { true }

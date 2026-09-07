@@ -90,6 +90,19 @@ public:
 	bool ResolveInheritDestruction();
 	bool ResolveInheritHeightStatus();
 	int  ResolveAmmoParent();
+	bool ResolveSpins();
+	int  ResolveSpinsPeriod();
+	bool ResolveSpinsOrbit();
+	bool ResolveBobs();
+	int  ResolveBobsAmplitude();
+	int  ResolveBobsPeriod();
+	int  ResolveBobsPhase();
+
+	// J1 motion, derived from the synced frame counter (integer maths only).
+	// Spin offset in raw facing units; 0 when not spinning.
+	int  GetSpinRaw();
+	// Vertical bob offset in leptons; 0 when not bobbing.
+	int  GetBobZ();
 	bool ResolveIntangible();
 	bool ResolveOccupiesCell();
 	bool ResolveLowSelectionPriority();
