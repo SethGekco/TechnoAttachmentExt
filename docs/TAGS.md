@@ -307,6 +307,39 @@ reads it: the two reload-path reads (which govern capacity) plus the pip-max rea
 > running dry and the pip display are all correct. Report anything that looks off.
 
 
+### Motion — spin and bob
+```ini
+[SomeAttachmentType]
+Spins=yes            ; the child rotates continuously
+Spins.Period=32      ; frames per full revolution; NEGATIVE = anticlockwise
+Spins.Orbit=no       ; no  = spins on the spot (centre of rotation = the child)
+                     ; yes = the FLH offset sweeps around the parent instead
+                     ;       (centre of rotation = the parent)
+
+Bobs=yes             ; vertical oscillation
+Bobs.Amplitude=48    ; leptons above/below the FLH point
+Bobs.Period=45       ; frames per full up-down cycle
+Bobs.Phase=0         ; 0-255; shifts the cycle so sibling attachments bob out of step
+```
+All per-slot too (`AttachmentN.Spins=` etc).
+
+- **Period is in frames**, so smaller = faster. `Spins.Period=32` is one revolution
+  every 32 logic frames; `-32` spins the other way.
+- **Spin vs orbit** are the "centre of rotation" control: spin alone turns the
+  child where it stands, `Spins.Orbit=yes` also swings its offset around the host.
+  Use both together for a piece that circles the host while facing outward.
+- **`Bobs.Phase`** is what stops a row of attachments bobbing in lockstep — give
+  each slot a different value (e.g. 0, 64, 128, 192).
+
+> These are safe online: the motion is a pure function of the synced frame counter,
+> computed with integer maths and a fixed-point sine table (never `std::sin`, never
+> wall-clock), so every peer produces the same facing and position. It also means
+> there is no extra saved state and no drift across save/load.
+
+> Note this is the *attachment* half of the motion work. Spinning the body/turret/
+> barrel of a **non-attachment** unit is render-side and still blocked, together
+> with translucency.
+
 ---
 
 ## Presentation / behaviour

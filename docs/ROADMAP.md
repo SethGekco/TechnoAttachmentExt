@@ -406,6 +406,20 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   up as a general crash family in the encyclopedia (Syringe-Stub-Semantics.md); a
   repo-wide audit found no other instance.
 
+- ✅ **J1 attachment motion — Spins / Bobs (2026-09-05, commit dcd43e3).**
+  `Spins` + `.Period`/`.Orbit`, `Bobs` + `.Amplitude`/`.Period`/`.Phase`, all
+  per-slot. **No new game hooks**: we already write each child's facing and
+  position every frame in AttachmentClass::AI, so spin is an offset on the facing
+  and bob/orbit adjust the FLH we were already resolving. Deterministic by
+  construction — pure function of Unsorted::CurrentFrame, integer maths,
+  fixed-point sine table, `frame % period` before multiplying, no accumulated
+  state (so save/load cannot drift). NOT PLAY-TESTED.
+  ⚠ Fixed a latent trap while doing it: GetChildLocation held a REFERENCE to the
+  shared type FLH config; applying offsets through it would have permanently
+  corrupted the configured position for every user of that type.
+  ⏸ Still blocked: spinning the body/turret/barrel of a NON-attachment techno is
+  render-side, same wall as J2 translucency.
+
 ## Cross-project note (PayloadExt overlap)
 Items A2, B1 (and parts of C1) touch **cargo / open-topped / gunner /
 veterancy-index** mechanics that the separate **PayloadExt** project already

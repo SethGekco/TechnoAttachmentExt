@@ -322,6 +322,26 @@ return to reload).
 - [ ] Save/load with a bonus active.
 - [ ] Multiplayer: no desync with ammo bonuses in play.
 
+## 8f. Motion — Spins / Bobs
+- [ ] `Spins=yes` + `Spins.Period=32`: the attachment rotates smoothly, one turn
+      per 32 frames.
+- [ ] Negative period spins the **other way**.
+- [ ] `Spins.Orbit=yes`: the attachment also **circles** the host rather than only
+      turning on the spot.
+- [ ] `Bobs=yes` with amplitude/period: it rises and falls smoothly.
+- [ ] `Bobs.Phase` differing per slot → siblings bob **out of step**.
+- [ ] Spin + bob together on one attachment behaves sensibly.
+- [ ] **Zero/!invalid guards:** `Spins.Period=0` does not crash or freeze (treated
+      as not spinning); `Bobs.Period=0` likewise.
+- [ ] **Save/load mid-motion:** reload and the motion continues smoothly — it is
+      derived from the frame counter, so it should NOT jump or reset.
+- [ ] **Regression:** attachments without these tags do not move at all
+      (the tags are opt-in and the FLH config must be untouched).
+- [ ] **Config not corrupted:** two units of the same type, only one spinning via a
+      per-slot tag → the other keeps its exact configured FLH position.
+- [ ] **Multiplayer:** spinning/bobbing attachments on both peers stay in step over
+      several minutes (facing is synced state, so this is the real test).
+
 ## 9. Interaction / safety (where bugs hide)
 - [ ] **EMP a dark consumer**, then restore its power while EMP is still active →
       it must **stay dark** until EMP expires (we must not revive an EMP'd unit).
