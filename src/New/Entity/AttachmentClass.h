@@ -93,6 +93,8 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	int  ResolvePrerequisiteLostAction();
+	bool ResolveSpinsFacing();
 	int  ResolveMoveRadius();
 	int  ResolveMoveMode();
 	int  ResolveMoveRange();

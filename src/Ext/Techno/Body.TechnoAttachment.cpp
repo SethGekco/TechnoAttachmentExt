@@ -1,6 +1,7 @@
 #include "Body.h"
 
 #include <TechnoClass.h>
+#include <Utilities/Debug.h>
 
 #include <Helpers/Cast.h>
 #include <Locomotion/AttachmentLocomotionClass.h>
@@ -294,6 +295,54 @@ int TechnoExt::GetAmmoCapacityBonus(TechnoClass* pHost)
 	}
 
 	return bonus;
+}
+
+// An attachment child never paths, so PR #352 suppresses every "close the
+// distance" route and simply DROPS any target that is out of range. With Move.*
+// that became wrong: a leashed child CAN close the distance -- by straying up to
+// Move.Radius from its anchor -- so dropping the target the moment it is out of
+// range means it never gets the chance, loses its target, and (mode approach)
+// drifts back home. The reported "the drone flies away rather than towards its
+// target" is exactly that.
+//
+// So the reach test becomes "weapon range PLUS the leash" for a child that has
+// one. Unleashed children keep the original, stricter behaviour untouched.
+bool TechnoExt::HasMoveLeash(TechnoClass* pThis)
+{
+	if (!pThis)
+		return false;
+
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	auto const pSlot = pExt ? pExt->ParentAttachment : nullptr;
+
+	// hold (2) never chases, so it buys no reach.
+	return pSlot && pSlot->ResolveMoveRadius() > 0 && pSlot->ResolveMoveMode() != 2;
+}
+
+bool TechnoExt::CanReachViaLeash(TechnoClass* pThis, AbstractClass* pTarget, int weaponIndex)
+{
+	if (!pThis || !pTarget)
+		return false;
+
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	auto const pSlot = pExt ? pExt->ParentAttachment : nullptr;
+	if (!pSlot)
+		return false;
+
+	int const radius = pSlot->ResolveMoveRadius();
+	if (radius <= 0)
+		return false; // no leash -> no extra reach, original behaviour
+
+	// hold (2) never chases, so it gains no reach.
+	if (pSlot->ResolveMoveMode() == 2)
+		return false;
+
+	auto const pWeapon = pThis->GetWeapon(weaponIndex >= 0 ? weaponIndex : 0);
+	if (!pWeapon || !pWeapon->WeaponType)
+		return false;
+
+	// DistanceFrom is the same integer distance the engine's own range checks use.
+	return pThis->DistanceFrom(pTarget) <= pWeapon->WeaponType->Range + radius;
 }
 
 bool TechnoExt::IsIntangibleAsChild(TechnoClass* pThis)
@@ -599,6 +648,20 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 		}
 	}
 
+	// --- Prerequisite.LostAction=deactivate ------------------------------------
+	// The child stays on the field but dark while its dynamic prerequisite is
+	// unmet. Routed through the arbiter rather than poked directly so it composes
+	// with the power gates instead of fighting them over the Deactivated flag.
+	if (auto const pSelfSlot = pExt->ParentAttachment)
+	{
+		if (pSelfSlot->ResolvePrerequisiteLostAction() == 4
+			&& pSelfSlot->PrerequisiteDynamic()
+			&& !pSelfSlot->PrerequisitesMet())
+		{
+			reasons |= TAExtDeactivate_Prerequisite;
+		}
+	}
+
 	// --- External-structure power (PoweredBy), for ANY techno ------------------
 	// Vanilla PowersUnit semantics expressed on the consumer. This is NOT limited to
 	// attachment children: a plain unit or building can declare PoweredBy on its
@@ -691,6 +754,25 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 	// --- Reconcile: single owner of Deactivated, EMP-guarded reactivation. ---
 	int const previous = pExt->DeactivationReasons;
 	pExt->DeactivationReasons = reasons;
+
+	// A darkened techno cannot fire or move, which is indistinguishable in game
+	// from "the attachment is broken". Announce every transition once so a report
+	// of "it stopped firing" can be answered from the log instead of guessed at:
+	// a line here means WE darkened it and names the gate; silence means the cause
+	// is elsewhere (EMP, vanilla power, ammo, targeting).
+	if (reasons != previous)
+	{
+		auto const pType = pThis->GetTechnoType();
+		Debug::Log("[TAExt] gates: %s %s (reasons 0x%X -> 0x%X)%s%s%s%s%s\n",
+			pType ? pType->ID : "<null>",
+			reasons != TAExtDeactivate_None ? "DARKENED" : "revived",
+			previous, reasons,
+			(reasons & TAExtDeactivate_AttachmentPower) ? " AttachmentPower" : "",
+			(reasons & TAExtDeactivate_SlotRequirement) ? " SlotRequirement" : "",
+			(reasons & TAExtDeactivate_NetworkPower)    ? " NetworkPower"    : "",
+			(reasons & TAExtDeactivate_BuildingPower)   ? " BuildingPower"   : "",
+			(reasons & TAExtDeactivate_Prerequisite)    ? " Prerequisite"    : "");
+	}
 
 	if (reasons != TAExtDeactivate_None)
 	{

@@ -391,3 +391,41 @@ and points straight at INI parsing.
 - [ ] **Save/load mid-stray does NOT teleport the attachment** (the offset is
       serialized — this is the first motion feature with real state).
 - [ ] Online: two clients, an attachment straying at a target — no desync.
+
+## Spins.Facing / orbit decoupling
+
+- [ ] `Spins=yes`, `Spins.Orbit=yes`, `Spins.Facing=no` — the child circles the
+      parent WITHOUT its own sprite rotating.
+- [ ] `Spins.Facing=yes` (default) — unchanged from before: it orbits and spins.
+- [ ] `Spins.Orbit=no`, `Spins.Facing=yes` — spins on the spot, no orbit.
+
+## Move.* corrections
+
+- [ ] `Move.Mode=approach` with the target CLOSER than the child's weapon range —
+      the child stays put; it must NOT back away (this was the reported bug).
+- [ ] `Move.Mode=approach` with the target further away — it closes in and stops
+      at range.
+- [ ] `Move.Mode=maintain` — the old ring behaviour: closes in AND backs off.
+- [ ] A leashed child ACQUIRES and KEEPS a target that is out of its base weapon
+      range but within `range + Move.Radius`, and walks into range to fire.
+- [ ] A target beyond `range + Move.Radius` is still dropped (no infinite chase).
+- [ ] An attachment with NO `Move.Radius` behaves exactly as before.
+
+## Prerequisite.LostAction
+
+- [ ] `hide` (default / unset) — unchanged: limbo, returns with the prerequisite.
+- [ ] `kill` — death animation and debris play; `DestructionWeapon.Child` fires.
+- [ ] `vanish` — disappears with no effects at all.
+- [ ] `detach` — becomes a real independent unit, selectable and orderable.
+- [ ] `deactivate` — stays visible but dark (won't fire/move), and REVIVES when
+      the prerequisite is regained.
+- [ ] `deactivate` composes with the power gates: a child darkened by both only
+      wakes when BOTH clear.
+- [ ] `kill`/`vanish`/`detach` + `RespawnDelay` — a fresh child appears when the
+      prerequisite returns.
+
+## Diagnostic
+
+- [ ] `[TAExt] gates:` lines appear in the log when an attachment is darkened or
+      revived, naming the gate. **If an attachment stops firing and there is NO
+      such line, the cause is not our deactivation arbiter** — capture the log.

@@ -434,17 +434,26 @@ is real saved state and survives save/load.
 | Tag | Default | Meaning |
 | --- | --- | --- |
 | `Move.Radius` | `0` | Max stray from the anchor, in leptons (256 = one cell). `0` disables the feature. |
-| `Move.Mode` | `approach` | `approach` \| `retreat` \| `hold` |
+| `Move.Mode` | `approach` | `approach` \| `retreat` \| `hold` \| `maintain` |
 | `Move.Range` | `0` | Desired distance to the target. `0` = the child's own primary weapon range. |
 | `Move.Speed` | `8` | Leptons per frame, so it eases rather than snapping. |
 
 Also available per slot as `AttachmentN.Move.Radius`, `AttachmentN.Move.Mode`,
 `AttachmentN.Move.Range`, `AttachmentN.Move.Speed` (slot wins over AttachmentType).
 
-- `approach` holds the standoff: it creeps out when further than `Move.Range` and
-  pulls back in when closer, so it settles on a ring at that distance.
+- `approach` **only closes in**. It moves toward the target until it reaches
+  `Move.Range` and then stops; it never backs off. (It used to also retreat when
+  closer than the range, which read as "the drone flies away from its target" —
+  the common case, since the host usually engages from inside the child's range.)
+- `maintain` is the old ring behaviour, kept as its own mode: creeps out when too
+  far *and* pulls back in when too close, settling at `Move.Range`.
 - `retreat` simply backs away from the target as far as `Move.Radius` allows.
 - `hold` (and *any* mode with no target) drifts back to the anchor.
+
+A leashed child also gets its **reach extended for targeting purposes**: an
+attachment normally drops any target it isn't already in range of (it can't path,
+so it must not try to close the distance). With `Move.Radius` set it keeps targets
+within `weapon range + Move.Radius` and walks into range instead.
 
 The target is the **child's own** target if it has one, otherwise the host's.
 The offset is world-space and horizontal only — it points at the enemy regardless
@@ -457,4 +466,43 @@ Move.Radius=256      ; may stray one cell
 Move.Mode=approach
 Move.Range=0         ; = its own weapon range
 Move.Speed=6
+```
+
+### `Spins.Facing`
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `Spins.Facing` | `yes` | Whether `Spins` also turns the sprite. |
+
+`Spins` drives two things: the orbit (with `Spins.Orbit=yes`) and the child's own
+facing. `Spins.Facing=no` separates them — the attachment circles the parent
+without pirouetting, for a drone that keeps a fixed heading while orbiting.
+Per slot: `AttachmentN.Spins.Facing`.
+
+### `Prerequisite.LostAction`
+
+What happens when a **dynamic** prerequisite (`Prerequisite.Dynamic=yes`) stops
+being met. The old behaviour — silently blinking out of existence — is still the
+default, but it reads as a bug in game.
+
+| Value | Behaviour |
+| --- | --- |
+| `hide` (default) | Limbo'd; reappears when the prerequisite returns. |
+| `kill` | Dies properly: death animation, debris, `DestructionWeapon.Child`. |
+| `vanish` | Removed silently, no death effects. Permanent. |
+| `detach` | Becomes a free-standing unit and goes its own way. |
+| `deactivate` | Stays on the field but goes dark; wakes when the prerequisite returns. |
+
+`kill`, `vanish` and `detach` leave the slot empty, so `RespawnDelay` (if set)
+decides whether a fresh child appears once the prerequisite comes back.
+`deactivate` goes through the same arbiter as the power gates, so it composes with
+them rather than fighting over the deactivated flag.
+Per slot: `AttachmentN.Prerequisite.LostAction`.
+
+```ini
+[DroneAttachment]
+Prerequisite=GAROBO
+Prerequisite.Dynamic=yes
+Prerequisite.LostAction=kill   ; the drone falls out of the sky when the hub dies
+RespawnDelay=150               ; ...and a new one launches if you rebuild it
 ```

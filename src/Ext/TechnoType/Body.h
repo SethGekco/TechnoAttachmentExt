@@ -141,6 +141,8 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Nullable<int> Prerequisite_LostAction;
+			Nullable<bool> Spins_Facing;
 			Nullable<int> Move_Radius;
 			Nullable<int> Move_Mode;
 			Nullable<int> Move_Range;

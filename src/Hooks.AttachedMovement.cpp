@@ -129,7 +129,18 @@ DEFINE_HOOK(0x74132B, TechnoAttachmentExt_GetFireError_NoRange, 0x7)
 	GET(UnitClass*, pThis, ESI);
 	GET(const FireError, result, EAX);
 
-	if (result == FireError::RANGE && TechnoExt::HasAttachmentLoco(pThis))
+	// RANGE -> ILLEGAL stops anything trying to path closer. A leashed child can
+	// genuinely close the gap, so for those we leave RANGE intact and the target
+	// stays acquirable while Move.* walks it into range.
+	//
+	// Gated on "has a leash", NOT on a per-target reach test: this site is also
+	// reached from CanAutoTargetObject, where the object under test is a CANDIDATE,
+	// not pThis->Target -- testing pThis->Target here would answer about the wrong
+	// object, and the real argument only lives in an unverified stack slot. Being
+	// permissive here is safe because ApproachTarget below does the precise reach
+	// check against the genuine target and still drops what is truly unreachable.
+	if (result == FireError::RANGE && TechnoExt::HasAttachmentLoco(pThis)
+		&& !TechnoExt::HasMoveLeash(pThis))
 		R->EAX(FireError::ILLEGAL);
 
 	return 0;
@@ -153,7 +164,10 @@ DEFINE_HOOK(0x7414E0, TechnoAttachmentExt_ApproachTarget_NoMove, 0xA)
 		const auto pTarget = pThis->Target;
 		weaponIndex = pThis->SelectWeapon(pTarget);
 
-		if (!pThis->IsCloseEnough(pTarget, weaponIndex))
+		// Keep a target the leash can still reach -- UpdateMoveOffset will carry the
+		// child into range. Without this the child drops it and drifts home.
+		if (!pThis->IsCloseEnough(pTarget, weaponIndex)
+			&& !TechnoExt::CanReachViaLeash(pThis, pTarget, weaponIndex))
 		{
 			pThis->SetTarget(nullptr);
 			return 0x741690;

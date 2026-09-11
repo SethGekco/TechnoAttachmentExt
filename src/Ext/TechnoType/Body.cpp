@@ -290,6 +290,26 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<int> slotPrereqLostAction;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.LostAction", static_cast<int>(i));
+		{
+			char actionBuffer[16];
+			if (pINI->ReadString(pSection, tempBuffer, "", actionBuffer, sizeof(actionBuffer)) > 0)
+			{
+					if (_strcmpi(actionBuffer, "hide") == 0)            slotPrereqLostAction = 0;
+					else if (_strcmpi(actionBuffer, "kill") == 0)       slotPrereqLostAction = 1;
+					else if (_strcmpi(actionBuffer, "vanish") == 0)     slotPrereqLostAction = 2;
+					else if (_strcmpi(actionBuffer, "detach") == 0)     slotPrereqLostAction = 3;
+					else if (_strcmpi(actionBuffer, "deactivate") == 0) slotPrereqLostAction = 4;
+					else Debug::INIParseFailed(pSection, tempBuffer, actionBuffer,
+						"Expected hide, kill, vanish, detach or deactivate");
+			}
+		}
+
+		Nullable<bool> slotSpinsFacing;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Facing", static_cast<int>(i));
+		slotSpinsFacing.Read(exINI, pSection, tempBuffer);
+
 		Nullable<int> slotMoveRadius;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Move.Radius", static_cast<int>(i));
 		slotMoveRadius.Read(exINI, pSection, tempBuffer);
@@ -308,11 +328,12 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Move.Mode", static_cast<int>(i));
 			if (pINI->ReadString(pSection, tempBuffer, "", modeBuffer, sizeof(modeBuffer)) > 0)
 			{
-				if (_strcmpi(modeBuffer, "approach") == 0)     slotMoveMode = 0;
-				else if (_strcmpi(modeBuffer, "retreat") == 0) slotMoveMode = 1;
-				else if (_strcmpi(modeBuffer, "hold") == 0)    slotMoveMode = 2;
+				if (_strcmpi(modeBuffer, "approach") == 0)      slotMoveMode = 0;
+				else if (_strcmpi(modeBuffer, "retreat") == 0)  slotMoveMode = 1;
+				else if (_strcmpi(modeBuffer, "hold") == 0)     slotMoveMode = 2;
+				else if (_strcmpi(modeBuffer, "maintain") == 0) slotMoveMode = 3;
 				else Debug::INIParseFailed(pSection, tempBuffer, modeBuffer,
-					"Expected approach, retreat or hold");
+					"Expected approach, retreat, hold or maintain");
 			}
 		}
 		Nullable<bool> slotSlides;
@@ -415,6 +436,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse,
 			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotSpins, slotSpinsPeriod, slotSpinsOrbit,
+			slotPrereqLostAction, slotSpinsFacing,
 			slotMoveRadius, slotMoveMode, slotMoveRange, slotMoveSpeed,
 			slotSlides, slotSlidesAxis, slotSlidesRange, slotSlidesPeriod, slotSlidesPhase,
 			slotBobs, slotBobsAmp, slotBobsPeriod, slotBobsPhase,
@@ -548,6 +570,8 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Prerequisite_LostAction)
+		.Process(this->Spins_Facing)
 		.Process(this->Move_Radius)
 		.Process(this->Move_Mode)
 		.Process(this->Move_Range)

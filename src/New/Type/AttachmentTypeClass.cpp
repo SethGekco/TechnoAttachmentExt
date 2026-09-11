@@ -171,6 +171,20 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Spins.Read(exINI, section, "Spins");
 	this->Spins_Period.Read(exINI, section, "Spins.Period");
 	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	{
+		char actionBuffer[16];
+		if (pINI->ReadString(section, "Prerequisite.LostAction", "", actionBuffer, sizeof(actionBuffer)) > 0)
+		{
+			if (_strcmpi(actionBuffer, "hide") == 0)            this->Prerequisite_LostAction = 0;
+			else if (_strcmpi(actionBuffer, "kill") == 0)       this->Prerequisite_LostAction = 1;
+			else if (_strcmpi(actionBuffer, "vanish") == 0)     this->Prerequisite_LostAction = 2;
+			else if (_strcmpi(actionBuffer, "detach") == 0)     this->Prerequisite_LostAction = 3;
+			else if (_strcmpi(actionBuffer, "deactivate") == 0) this->Prerequisite_LostAction = 4;
+			else Debug::INIParseFailed(section, "Prerequisite.LostAction", actionBuffer,
+				"Expected hide, kill, vanish, detach or deactivate");
+		}
+	}
+	this->Spins_Facing.Read(exINI, section, "Spins.Facing");
 	this->Move_Radius.Read(exINI, section, "Move.Radius");
 	this->Move_Range.Read(exINI, section, "Move.Range");
 	this->Move_Speed.Read(exINI, section, "Move.Speed");
@@ -178,11 +192,12 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 		char modeBuffer[16];
 		if (pINI->ReadString(section, "Move.Mode", "", modeBuffer, sizeof(modeBuffer)) > 0)
 		{
-			if (_strcmpi(modeBuffer, "approach") == 0)     this->Move_Mode = 0;
-			else if (_strcmpi(modeBuffer, "retreat") == 0) this->Move_Mode = 1;
-			else if (_strcmpi(modeBuffer, "hold") == 0)    this->Move_Mode = 2;
+			if (_strcmpi(modeBuffer, "approach") == 0)      this->Move_Mode = 0;
+			else if (_strcmpi(modeBuffer, "retreat") == 0)  this->Move_Mode = 1;
+			else if (_strcmpi(modeBuffer, "hold") == 0)     this->Move_Mode = 2;
+			else if (_strcmpi(modeBuffer, "maintain") == 0) this->Move_Mode = 3;
 			else Debug::INIParseFailed(section, "Move.Mode", modeBuffer,
-				"Expected approach, retreat or hold");
+				"Expected approach, retreat, hold or maintain");
 		}
 	}
 	this->Slides.Read(exINI, section, "Slides");
@@ -291,6 +306,8 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Prerequisite_LostAction)
+		.Process(this->Spins_Facing)
 		.Process(this->Move_Radius)
 		.Process(this->Move_Mode)
 		.Process(this->Move_Range)

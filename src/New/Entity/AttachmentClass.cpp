@@ -290,9 +290,8 @@ void AttachmentClass::UpdateMoveOffset()
 		}
 		else
 		{
-			// approach: hold the desired standoff distance. Range 0 means "my own
-			// weapon range", which is the interesting case -- the attachment creeps
-			// out until it can shoot and no further.
+			// approach / maintain. Range 0 means "my own weapon range", which is the
+			// interesting case -- the attachment creeps out until it can shoot.
 			int desired = this->ResolveMoveRange();
 			if (desired <= 0)
 			{
@@ -302,6 +301,15 @@ void AttachmentClass::UpdateMoveOffset()
 			}
 
 			int const error = dist - desired;
+
+			// APPROACH ONLY CLOSES IN. It used to also back off when closer than the
+			// desired range, which reads as "the drone flies AWAY from its target" --
+			// the common case, because the host usually engages from inside the
+			// child's own weapon range. Holding the ring is a real behaviour, so it
+			// kept its own mode name (maintain) rather than being deleted.
+			if (error <= 0 && mode != 3)
+				return;
+
 			if (error == 0)
 				return;
 
@@ -739,6 +747,19 @@ bool AttachmentClass::ResolveSpinsOrbit()
 		? this->Data->Spins_Orbit.Get() : this->GetType()->Spins_Orbit;
 }
 
+int AttachmentClass::ResolvePrerequisiteLostAction()
+{
+	return (this->Data && this->Data->Prerequisite_LostAction.isset())
+		? this->Data->Prerequisite_LostAction.Get()
+		: this->GetType()->Prerequisite_LostAction;
+}
+
+bool AttachmentClass::ResolveSpinsFacing()
+{
+	return (this->Data && this->Data->Spins_Facing.isset())
+		? this->Data->Spins_Facing.Get() : this->GetType()->Spins_Facing;
+}
+
 int AttachmentClass::ResolveMoveRadius()
 {
 	return (this->Data && this->Data->Move_Radius.isset())
@@ -984,11 +1005,46 @@ void AttachmentClass::AI()
 			}
 		}
 
-		// Hide the child (limbo) while the host is in limbo OR (for a dynamic
-		// prerequisite) the prerequisite is unmet; show it again otherwise.
-		// Static prerequisites don't hide/show live (handled at create time).
-		bool const prereqHide = this->PrerequisiteDynamic() && !this->PrerequisitesMet();
-		bool const hide = this->Parent->InLimbo || prereqHide;
+		// A dynamic prerequisite that stops being met used to always limbo the child,
+		// which in game just looks like it blinked out of existence. LostAction lets
+		// the modder pick a reaction with some weight to it instead.
+		bool const prereqLost = this->PrerequisiteDynamic() && !this->PrerequisitesMet();
+		int const lostAction = prereqLost ? this->ResolvePrerequisiteLostAction() : 0;
+
+		// kill / vanish / detach are one-shot: they consume the child, so the branch
+		// cannot run twice. The slot is then empty, and RespawnDelay (if the modder
+		// set one) decides whether a replacement appears when the prerequisite
+		// returns -- exactly the path a destroyed child already takes.
+		if (prereqLost && lostAction != 0 && lostAction != 4)
+		{
+			switch (lostAction)
+			{
+			case 1: // kill -- dies properly: death anim, debris, DestructionWeapon
+				this->Destroy(nullptr);
+				return;
+
+			case 2: // vanish -- silent removal, no death effects
+			{
+				auto const pChild = this->Child;
+				if (auto const pChildExt = TechnoExt::ExtMap.Find(pChild))
+					pChildExt->ParentAttachment = nullptr;
+				this->Child = nullptr;
+				pChild->Limbo();
+				pChild->UnInit();
+				return;
+			}
+
+			case 3: // detach -- becomes a free-standing unit and goes its own way
+				this->DetachChild();
+				return;
+			}
+		}
+
+		// deactivate (4) is NOT one-shot: the child stays on the field and dark, and
+		// wakes again the moment the prerequisite returns. The arbiter owns the
+		// Deactivated flag, so it is applied there rather than here; all this branch
+		// has to do is decline to hide the child.
+		bool const hide = this->Parent->InLimbo || (prereqLost && lostAction == 0);
 
 		if (this->Child->InLimbo && !hide)
 			this->Unlimbo();
@@ -1008,7 +1064,11 @@ void AttachmentClass::AI()
 			? this->Parent->SecondaryFacing.Current() : this->Parent->PrimaryFacing.Current();
 
 		childDir.Raw += DirStruct(this->Data->RotationAdjust).Raw; // overflow = free modulo for rotation
-		childDir.Raw += static_cast<unsigned short>(this->GetSpinRaw()); // J1 spin
+		// Spins drives the ORBIT (in GetChildAnchor) and, unless Spins.Facing=no,
+		// the sprite's own rotation. Keeping them separable is what allows a drone
+		// that circles the host without pirouetting.
+		if (this->ResolveSpinsFacing())
+			childDir.Raw += static_cast<unsigned short>(this->GetSpinRaw()); // J1 spin
 
 		this->Child->PrimaryFacing.SetCurrent(childDir);
 		// TODO handle secondary facing in case the turret is idle

@@ -33,6 +33,7 @@ enum TAExtDeactivateReason : int
 	TAExtDeactivate_SlotRequirement = 1 << 1, // required parent slot / passengers missing
 	TAExtDeactivate_NetworkPower    = 1 << 2, // PowerConsumer not reached by the network
 	TAExtDeactivate_BuildingPower   = 1 << 3, // PoweredBy building missing/offline
+	TAExtDeactivate_Prerequisite    = 1 << 4, // Prerequisite.LostAction=deactivate
 };
 
 // Standalone port of Phobos's TechnoExt, stripped to ONLY the attachment
@@ -152,6 +153,12 @@ public:
 
 	static bool IsAttached(TechnoClass* pThis);
 	static bool HasAttachmentLoco(FootClass* pThis);
+	// True if pThis is an attachment child whose Move.* leash could carry it into
+	// weapon range of pTarget. The no-approach suppression must NOT drop such a
+	// target: the child closes the distance by straying, not by pathing.
+	static bool CanReachViaLeash(TechnoClass* pThis, AbstractClass* pTarget, int weaponIndex);
+	// True if pThis is a child with an active Move.* leash at all (no target needed).
+	static bool HasMoveLeash(TechnoClass* pThis);
 	static bool DoesntOccupyCellAsChild(TechnoClass* pThis);
 	// Intangible: the child is kept out of the cell content list entirely.
 	static bool IsIntangibleAsChild(TechnoClass* pThis);
