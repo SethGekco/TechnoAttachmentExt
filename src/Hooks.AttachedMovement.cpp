@@ -159,7 +159,18 @@ DEFINE_HOOK(0x7414E0, TechnoAttachmentExt_ApproachTarget_NoMove, 0xA)
 
 	int weaponIndex = -1;
 
-	if (TechnoExt::HasAttachmentLoco(pThis))
+	// HYGIENE, not a fix for any observed crash. We run at function entry and call
+	// SelectWeapon/IsCloseEnough unconditionally, and neither takes a null target.
+	// Vanilla very likely guarantees one by the time ApproachTarget is reached, but
+	// this is our call into the engine, so declining to pass null is cheaper than
+	// relying on that. With no target there is nothing to approach: leave the frame
+	// to vanilla and let WeaponIndex stay -1, exactly as for a non-attached unit.
+	//
+	// (For the record, since it has been proposed twice as one: this is NOT the
+	// C0000005 at 0x7FA9A0. That EIP is in .rdata, i.e. smashed control flow from a
+	// mis-declared vtable wrapper -- a bad pointer handed to SelectWeapon would
+	// fault inside it, in .text. See the encyclopedia's Weapon-Selection page.)
+	if (TechnoExt::HasAttachmentLoco(pThis) && pThis->Target)
 	{
 		const auto pTarget = pThis->Target;
 		weaponIndex = pThis->SelectWeapon(pTarget);
