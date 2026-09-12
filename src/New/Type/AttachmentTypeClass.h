@@ -240,17 +240,46 @@ public:
 	// the frame -- it eases toward a goal, so the current offset persists and IS
 	// serialized (otherwise a save/load teleports every attachment).
 	//   Move.Radius=256  -> how far it may stray from the anchor. 0 = feature off
-	//   Move.Mode=approach -> approach | retreat | hold
+	//   Move.Mode=approach -> approach | retreat | hold | maintain
 	//   Move.Range=0     -> desired distance to the target; 0 = the child's own
 	//                       primary weapon range
 	//   Move.Speed=8     -> leptons per frame, so it eases rather than snapping
 	// The offset is WORLD-space (applied after the host transform) so the child
 	// leans toward the enemy regardless of which way the host is facing.
-	// NOTE: Spins.Facing was removed in favour of Facing.Mode=spin|parent.
-	// See Facing_Mode above.
+	// (Spins.Facing was removed; Facing_Mode below covers it.)
+
+	// THE single control for which way the attachment's sprite points.
+	//   auto (default) whatever Spins asks for -- the historic behaviour, so
+	//                  existing attachments are unaffected
+	//   parent  hold the parent's facing (was Spins.Facing=no)
+	//   spin    rotate at the Spins rate (was Spins.Facing=yes). The one mode the
+	//           geometric options cannot express: with Spins.Orbit=no there is no
+	//           path to face along and no radius to point down, so "turn on the
+	//           spot" has to be stated directly
+	//   travel  along the path it is actually walking -- an orbiting drone banks
+	//           around the circle instead of sliding sideways through it
+	//   outward directly away from the parent
+	//   inward  back toward the parent
+	// Deliberately NOT a Spins.* tag: it applies with no spin at all, to Slides or
+	// to a static FLH. RotationAdjust applies on top of every mode, so it doubles
+	// as a trim for models whose art doesn't point down its own forward axis.
+	Valueable<int> Facing_Mode;
+
+	// What happens when a DYNAMIC prerequisite stops being met. Vanishing (limbo)
+	// was the only behaviour and is still the default, but it looks like a bug in
+	// game: the attachment silently blinks out. These give the modder a reaction
+	// with some diegetic weight.
+	//   hide       (default) limbo it; it reappears when the prerequisite returns
+	//   kill       it dies properly -- death anim, debris, DestructionWeapon
+	//   vanish     removed silently, no death effects (permanent)
+	//   detach     it becomes a free-standing unit of its own and goes its own way
+	//   deactivate it stays put but goes dark until the prerequisite returns
+	// kill/vanish/detach leave the slot empty, so RespawnDelay (if set) governs
+	// whether a fresh child appears once the prerequisite comes back.
+	Valueable<int> Prerequisite_LostAction;
 
 	Valueable<int> Move_Radius;
-	Valueable<int> Move_Mode;   // 0 approach, 1 retreat, 2 hold
+	Valueable<int> Move_Mode;   // 0 approach, 1 retreat, 2 hold, 3 maintain
 	Valueable<int> Move_Range;
 	Valueable<int> Move_Speed;
 

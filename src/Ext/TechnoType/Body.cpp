@@ -449,7 +449,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse,
 			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotSpins, slotSpinsPeriod, slotSpinsOrbit,
-			slotFacingMode, slotPrereqLostAction, slotSpinsFacing,
+			slotFacingMode, slotPrereqLostAction,
 			slotMoveRadius, slotMoveMode, slotMoveRange, slotMoveSpeed,
 			slotSlides, slotSlidesAxis, slotSlidesRange, slotSlidesPeriod, slotSlidesPhase,
 			slotBobs, slotBobsAmp, slotBobsPeriod, slotBobsPhase,
