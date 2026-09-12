@@ -329,11 +329,16 @@ Bobs.Phase=0         ; 0-255; shifts the cycle so sibling attachments bob out of
 ```
 All per-slot too (`AttachmentN.Spins=` etc).
 
+To control which way the sprite *points* while spinning or orbiting, see
+[`Facing.Mode`](#facingmode). It is deliberately not a `Spins.*` tag: it also
+applies with no spin at all, to `Slides` or to a static FLH.
+
 - **Period is in frames**, so smaller = faster. `Spins.Period=32` is one revolution
   every 32 logic frames; `-32` spins the other way.
 - **Spin vs orbit** are the "centre of rotation" control: spin alone turns the
   child where it stands, `Spins.Orbit=yes` also swings its offset around the host.
-  Use both together for a piece that circles the host while facing outward.
+  For a piece that circles the host while facing outward, use `Spins.Orbit=yes`
+  with `Facing.Mode=outward`.
 - **`Bobs.Phase`** is what stops a row of attachments bobbing in lockstep — give
   each slot a different value (e.g. 0, 64, 128, 192). `Slides.Phase` does the same.
 - **The slide axis is host-relative**, because the FLH offset is already resolved
