@@ -262,6 +262,17 @@ public:
 	//              prerequisite returns
 	// kill/vanish/detach leave the slot empty, so RespawnDelay (if set) governs
 	// whether a fresh child appears once the prerequisite comes back.
+	// Which way the attachment's sprite points.
+	//   parent  (default) the parent's facing (+ RotationAdjust, + Spins.Facing)
+	//   travel  along the path it is actually walking -- an orbiting drone banks
+	//           around the circle instead of sliding sideways through it
+	//   outward directly away from the parent
+	//   inward  back toward the parent
+	// travel/outward/inward REPLACE the Spins.Facing contribution rather than
+	// stacking with it; RotationAdjust still applies on top, so it doubles as a
+	// trim for models whose art doesn't point down its own +X axis.
+	Valueable<int> Facing_Mode;
+
 	Valueable<int> Prerequisite_LostAction;
 
 	Valueable<bool> Spins_Facing;
@@ -371,6 +382,7 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Facing_Mode { 0 }
 		, Prerequisite_LostAction { 0 }
 		, Spins_Facing { true }
 		, Move_Radius { 0 }

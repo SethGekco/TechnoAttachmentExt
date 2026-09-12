@@ -506,3 +506,40 @@ Prerequisite.Dynamic=yes
 Prerequisite.LostAction=kill   ; the drone falls out of the sky when the hub dies
 RespawnDelay=150               ; ...and a new one launches if you rebuild it
 ```
+
+### `Facing.Mode`
+
+Which way the attachment's sprite points. Orbiting previously always pointed the
+child at the parent's facing (or spun it at the orbit rate), so a drone circling
+its host slid sideways through its own path rather than flying along it.
+
+| Value | Behaviour |
+| --- | --- |
+| `parent` (default) | The parent's facing, plus `RotationAdjust` and `Spins.Facing`. Unchanged. |
+| `travel` | Along the path it is actually walking — an orbiting drone banks around the circle. |
+| `outward` | Directly away from the parent. |
+| `inward` | Back toward the parent. |
+
+`travel`/`outward`/`inward` **replace** the `Spins.Facing` contribution rather
+than stacking with it — spinning a sprite that was asked to hold a heading would
+just spin it off that heading. `RotationAdjust` still applies on top, so it
+doubles as a trim if the model doesn't point down its own forward axis.
+Per slot: `AttachmentN.Facing.Mode`.
+
+`travel` is computed by sampling the child's local path one frame apart. Orbit,
+slide and bob are all pure functions of the frame number, so this needs no saved
+state and no extra work — and it composes: an attachment that orbits *and* slides
+faces along the combined path. A child that is momentarily stationary keeps the
+parent's facing rather than snapping to an arbitrary one.
+
+> The `Move.*` leash stray is deliberately **not** part of the travel heading —
+> it is world-space and reactive, while the heading is computed in the parent's
+> local frame. An orbiting-and-leashed drone faces along its orbit.
+
+```ini
+[DroneAttachment]
+Spins=yes
+Spins.Orbit=yes
+Spins.Facing=no      ; don't pirouette...
+Facing.Mode=travel   ; ...fly along the circle instead
+```

@@ -184,6 +184,18 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 				"Expected hide, kill, vanish, detach or deactivate");
 		}
 	}
+	{
+		char facingBuffer[16];
+		if (pINI->ReadString(section, "Facing.Mode", "", facingBuffer, sizeof(facingBuffer)) > 0)
+		{
+			if (_strcmpi(facingBuffer, "parent") == 0)       this->Facing_Mode = 0;
+			else if (_strcmpi(facingBuffer, "travel") == 0)  this->Facing_Mode = 1;
+			else if (_strcmpi(facingBuffer, "outward") == 0) this->Facing_Mode = 2;
+			else if (_strcmpi(facingBuffer, "inward") == 0)  this->Facing_Mode = 3;
+			else Debug::INIParseFailed(section, "Facing.Mode", facingBuffer,
+				"Expected parent, travel, outward or inward");
+		}
+	}
 	this->Spins_Facing.Read(exINI, section, "Spins.Facing");
 	this->Move_Radius.Read(exINI, section, "Move.Radius");
 	this->Move_Range.Read(exINI, section, "Move.Range");
@@ -306,6 +318,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)
 		.Process(this->Spins_Facing)
 		.Process(this->Move_Radius)

@@ -429,3 +429,20 @@ and points straight at INI parsing.
 - [ ] `[TAExt] gates:` lines appear in the log when an attachment is darkened or
       revived, naming the gate. **If an attachment stops firing and there is NO
       such line, the cause is not our deactivation arbiter** — capture the log.
+
+## Facing.Mode
+
+- [ ] `Facing.Mode=travel` + `Spins.Orbit=yes` — the drone points along its
+      circular path (nose-first around the circle), not sideways.
+- [ ] Reverse the orbit (`Spins.Period` negative) — it faces the other way round.
+- [ ] `Facing.Mode=travel` + `Slides` (no orbit) — it faces along the slide and
+      flips at each end of the sweep.
+- [ ] `Facing.Mode=outward` / `inward` — points away from / toward the parent,
+      and stays pointed as it orbits.
+- [ ] `Facing.Mode=parent` or unset — identical to before this change.
+- [ ] `RotationAdjust` still trims the result in every mode.
+- [ ] `Facing.Mode` set + `Spins.Facing=yes` — the heading wins; no spinning.
+- [ ] Rotate the HOST while the child holds `outward` — the child stays radial.
+- [ ] Per-slot `AttachmentN.Facing.Mode` overrides the AttachmentType.
+- [ ] Online: two clients, an orbiting drone with `travel` — facings stay in
+      lockstep (the heading is integer/table-based, no FPU).

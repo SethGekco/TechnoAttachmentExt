@@ -93,6 +93,7 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	int  ResolveFacingMode();
 	int  ResolvePrerequisiteLostAction();
 	bool ResolveSpinsFacing();
 	int  ResolveMoveRadius();
@@ -112,10 +113,13 @@ public:
 	// J1 motion, derived from the synced frame counter (integer maths only).
 	// Spin offset in raw facing units; 0 when not spinning.
 	int  GetSpinRaw();
+	int  GetSpinRawAt(unsigned int frame);
 	// Vertical bob offset in leptons; 0 when not bobbing.
 	int  GetBobZ();
+	int  GetBobZAt(unsigned int frame);
 	// Slide offset in leptons along the configured axis; 0 when not sliding.
 	int  GetSlideOffset();
+	int  GetSlideOffsetAt(unsigned int frame);
 
 	// Reactive motion: ease the child's world-space offset toward the point that
 	// best satisfies Move.Mode. Call ONCE per tick -- it mutates stored state.
@@ -123,6 +127,10 @@ public:
 
 	// The child's position WITHOUT the reactive Move.* offset.
 	CoordStruct GetChildAnchor();
+	// Parent-local offset at an arbitrary frame (orbit+slide+bob are pure
+	// functions of the frame), and the facing offset Facing.Mode implies.
+	CoordStruct GetLocalOffsetAt(unsigned int frame);
+	int  GetFacingModeRaw();
 	bool ResolveIntangible();
 	bool ResolveOccupiesCell();
 	bool ResolveLowSelectionPriority();

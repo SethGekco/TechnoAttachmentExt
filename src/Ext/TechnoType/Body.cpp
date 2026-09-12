@@ -290,6 +290,21 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<int> slotFacingMode;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Facing.Mode", static_cast<int>(i));
+		{
+			char facingBuffer[16];
+			if (pINI->ReadString(pSection, tempBuffer, "", facingBuffer, sizeof(facingBuffer)) > 0)
+			{
+				if (_strcmpi(facingBuffer, "parent") == 0)       slotFacingMode = 0;
+				else if (_strcmpi(facingBuffer, "travel") == 0)  slotFacingMode = 1;
+				else if (_strcmpi(facingBuffer, "outward") == 0) slotFacingMode = 2;
+				else if (_strcmpi(facingBuffer, "inward") == 0)  slotFacingMode = 3;
+				else Debug::INIParseFailed(pSection, tempBuffer, facingBuffer,
+					"Expected parent, travel, outward or inward");
+			}
+		}
+
 		Nullable<int> slotPrereqLostAction;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Prerequisite.LostAction", static_cast<int>(i));
 		{
@@ -436,7 +451,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			slotPoweredBy, slotPoweredByRequireAll, slotPoweredByRequirePower, slotPoweredByRange, slotPoweredByHouse,
 			slotPassSelection, slotTransparentToMouse,
 			slotPoweredType, slotPowSibType, slotPowSibIdx, slotReqSlotIdx, slotReqSlotType, slotPreMinRank, slotPreMaxRank, slotPreMinHealth, slotPreMaxHealth, slotPreSibIdx, slotPreSibType, slotPreSibsIdx, slotPreSibsType, slotRespawnAtCreation, slotRespawnDelay, slotInhStop, slotInhDeploy, slotInhOwner, slotInhState, slotInhDestruction, slotInhHeight, slotSpins, slotSpinsPeriod, slotSpinsOrbit,
-			slotPrereqLostAction, slotSpinsFacing,
+			slotFacingMode, slotPrereqLostAction, slotSpinsFacing,
 			slotMoveRadius, slotMoveMode, slotMoveRange, slotMoveSpeed,
 			slotSlides, slotSlidesAxis, slotSlidesRange, slotSlidesPeriod, slotSlidesPhase,
 			slotBobs, slotBobsAmp, slotBobsPeriod, slotBobsPhase,
@@ -570,6 +585,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)
 		.Process(this->Spins_Facing)
 		.Process(this->Move_Radius)

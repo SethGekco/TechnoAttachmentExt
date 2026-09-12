@@ -90,6 +90,53 @@ namespace
 		return static_cast<int>(guess);
 	}
 
+	// Direction of the vector (x, y) as a DirStruct raw value (65536 = one turn),
+	// in the SAME convention as the orbit rotation below: index i corresponds to
+	// the unit vector (Cos1024(i), Sin1024(i)), so i=0 is +X and i=64 is +Y.
+	//
+	// Deterministic by construction: sign tests pick the quadrant, then a binary
+	// search over the fixed-point sine table narrows to one of 256 steps using
+	// only integer cross products. No FPU, so every peer gets the same facing.
+	// (YRMath::atan2 exists but is x87 -- fine for render, not for synced state.)
+	//
+	// 256 steps is not an approximation to apologise for: DirType is one byte, so
+	// 256 IS the engine's facing resolution.
+	int TAExt_Atan2Raw(int y, int x)
+	{
+		if (x == 0 && y == 0)
+			return 0;
+
+		// Quadrant first: within a 90-degree window the cross product below is
+		// monotonic in the index, which is what makes the binary search valid.
+		int lo, hi;
+		if (x >= 0 && y >= 0)      { lo = 0;   hi = 64;  }
+		else if (x < 0 && y >= 0)  { lo = 64;  hi = 128; }
+		else if (x < 0)            { lo = 128; hi = 192; }
+		else                       { lo = 192; hi = 256; }
+
+		// cross(v, d(mid)) = |v| * sin(mid - angle): positive means mid is past us.
+		while (hi - lo > 1)
+		{
+			int const mid = (lo + hi) / 2;
+			long long const cross = static_cast<long long>(x) * TAExt_Sin1024(mid)
+				- static_cast<long long>(y) * TAExt_Cos1024(mid);
+
+			if (cross >= 0)
+				hi = mid;
+			else
+				lo = mid;
+		}
+
+		// Pick whichever endpoint is nearer, then scale the 256-step index to raw.
+		long long const crossLo = static_cast<long long>(x) * TAExt_Sin1024(lo)
+			- static_cast<long long>(y) * TAExt_Cos1024(lo);
+		long long const crossHi = static_cast<long long>(x) * TAExt_Sin1024(hi)
+			- static_cast<long long>(y) * TAExt_Cos1024(hi);
+
+		int const best = (-crossLo <= crossHi) ? lo : hi;
+		return (best & 0xFF) * 256;
+	}
+
 	// x^2 + y^2 without overflow.
 	long long TAExt_LenSq(int x, int y)
 	{
@@ -98,7 +145,7 @@ namespace
 }
 
 // Current spin offset in raw facing units (65536 = one full turn), or 0.
-int AttachmentClass::GetSpinRaw()
+int AttachmentClass::GetSpinRawAt(unsigned int frame)
 {
 	if (!this->ResolveSpins())
 		return 0;
@@ -112,7 +159,7 @@ int AttachmentClass::GetSpinRaw()
 		period = -period;
 
 	// Modulo FIRST so the multiply cannot overflow on long games.
-	int const phase = static_cast<int>(Unsorted::CurrentFrame % static_cast<unsigned int>(period));
+	int const phase = static_cast<int>(frame % static_cast<unsigned int>(period));
 	int raw = static_cast<int>((static_cast<long long>(phase) * 65536) / period);
 
 	return reverse ? -raw : raw;
@@ -120,7 +167,7 @@ int AttachmentClass::GetSpinRaw()
 
 // Current slide offset in leptons along the configured axis, or 0. Same
 // frame-derived, integer, stateless construction as the spin and bob above.
-int AttachmentClass::GetSlideOffset()
+int AttachmentClass::GetSlideOffsetAt(unsigned int frame)
 {
 	if (!this->ResolveSlides())
 		return 0;
@@ -130,14 +177,14 @@ int AttachmentClass::GetSlideOffset()
 	if (range == 0 || period <= 0)
 		return 0;
 
-	int const phase = static_cast<int>(Unsorted::CurrentFrame % static_cast<unsigned int>(period));
+	int const phase = static_cast<int>(frame % static_cast<unsigned int>(period));
 	int const index = (phase * 256) / period + this->ResolveSlidesPhase();
 
 	return (range * TAExt_Sin1024(index)) / 1024;
 }
 
 // Current vertical bob offset in leptons, or 0.
-int AttachmentClass::GetBobZ()
+int AttachmentClass::GetBobZAt(unsigned int frame)
 {
 	if (!this->ResolveBobs())
 		return 0;
@@ -147,7 +194,7 @@ int AttachmentClass::GetBobZ()
 	if (amplitude == 0 || period <= 0)
 		return 0;
 
-	int const phase = static_cast<int>(Unsorted::CurrentFrame % static_cast<unsigned int>(period));
+	int const phase = static_cast<int>(frame % static_cast<unsigned int>(period));
 	// Map the frame position into the 256-step table, plus the configured offset
 	// so sibling attachments can be told to bob out of step.
 	int const index = (phase * 256) / period + this->ResolveBobsPhase();
@@ -155,17 +202,21 @@ int AttachmentClass::GetBobZ()
 	return (amplitude * TAExt_Sin1024(index)) / 1024;
 }
 
-CoordStruct AttachmentClass::GetChildAnchor()
-{
-	// COPY, never a reference: Data->FLH is the shared TYPE config, and the motion
-	// offsets below would otherwise corrupt it permanently for every user of it.
-	CoordStruct flh = this->Data->FLH.Get();
+int AttachmentClass::GetSpinRaw()     { return this->GetSpinRawAt(Unsorted::CurrentFrame); }
+int AttachmentClass::GetSlideOffset() { return this->GetSlideOffsetAt(Unsorted::CurrentFrame); }
+int AttachmentClass::GetBobZ()        { return this->GetBobZAt(Unsorted::CurrentFrame); }
 
-	// Orbit: sweep the offset around the parent, so the centre of rotation is the
-	// PARENT rather than the child. (Spin without orbit turns it on the spot.)
+// The child's offset from the parent in the PARENT-LOCAL frame (the frame FLH is
+// written in), for an arbitrary frame number. Orbit, slide and bob are all pure
+// functions of the frame, which is what lets the travel heading below be computed
+// analytically -- sampling frame-1 costs nothing and needs no saved state.
+CoordStruct AttachmentClass::GetLocalOffsetAt(unsigned int frame)
+{
+	CoordStruct flh = this->Data->FLH.Get(); // COPY -- shared type config
+
 	if (this->ResolveSpins() && this->ResolveSpinsOrbit())
 	{
-		int const index = this->GetSpinRaw() >> 8; // raw facing -> 256-step table
+		int const index = this->GetSpinRawAt(frame) >> 8;
 		int const cos = TAExt_Cos1024(index);
 		int const sin = TAExt_Sin1024(index);
 
@@ -175,9 +226,7 @@ CoordStruct AttachmentClass::GetChildAnchor()
 		flh.Y = (x * sin + y * cos) / 1024;
 	}
 
-	// Slide along one host-relative axis. Applied AFTER any orbit rotation so the
-	// slide follows the rotated frame rather than fighting it.
-	if (int const slide = this->GetSlideOffset())
+	if (int const slide = this->GetSlideOffsetAt(frame))
 	{
 		switch (this->ResolveSlidesAxis())
 		{
@@ -187,9 +236,63 @@ CoordStruct AttachmentClass::GetChildAnchor()
 		}
 	}
 
-	flh.Z += this->GetBobZ();
+	flh.Z += this->GetBobZAt(frame);
+	return flh;
+}
 
-	return TechnoExt::GetFLHAbsoluteCoords(this->Parent, flh, this->Data->IsOnTurret);
+// Facing offset (relative to the parent's facing) implied by Facing.Mode.
+//
+// CONVENTION, and why it is safe: the orbit code rotates the local FLH vector by
+// angle t while AI() adds the same t to the facing -- and that pairing is
+// confirmed working in game. So "local angle" and "facing offset" advance
+// together, which fixes the mapping: a local direction at table index i means a
+// facing offset of i*256 raw. TAExt_Atan2Raw is written in that same convention,
+// so no separate calibration is needed.
+int AttachmentClass::GetFacingModeRaw()
+{
+	int const mode = this->ResolveFacingMode();
+	if (mode == 0)
+		return 0;
+
+	if (mode == 1) // travel -- heading along the path actually being walked
+	{
+		// Sample this frame and the last: the difference IS the velocity. Works for
+		// orbit, slide and any combination of them without special-casing each.
+		// Frame 0 has no previous frame to difference against; sample forward
+		// instead of underflowing the unsigned counter.
+		unsigned int const frame = Unsorted::CurrentFrame;
+		auto const now = this->GetLocalOffsetAt(frame ? frame : 1u);
+		auto const before = this->GetLocalOffsetAt(frame ? frame - 1u : 0u);
+
+		int const dx = now.X - before.X;
+		int const dy = now.Y - before.Y;
+
+		// Standing still has no direction of travel; keep the parent's facing
+		// rather than snapping to an arbitrary one.
+		if (dx == 0 && dy == 0)
+			return 0;
+
+		return TAExt_Atan2Raw(dy, dx);
+	}
+
+	// outward / inward -- along the line from the parent through the child.
+	auto const here = this->GetLocalOffsetAt(Unsorted::CurrentFrame);
+	if (here.X == 0 && here.Y == 0)
+		return 0;
+
+	int raw = TAExt_Atan2Raw(here.Y, here.X);
+	if (mode == 3) // inward: face back toward the parent
+		raw += 32768;
+
+	return raw;
+}
+
+CoordStruct AttachmentClass::GetChildAnchor()
+{
+	// Single source of truth for the local motion (shared with the travel-facing
+	// sampler), then the host transform puts it in the world.
+	return TechnoExt::GetFLHAbsoluteCoords(
+		this->Parent, this->GetLocalOffsetAt(Unsorted::CurrentFrame), this->Data->IsOnTurret);
 }
 
 // Final child position: the anchor plus whatever reactive stray the Move.* logic
@@ -747,6 +850,12 @@ bool AttachmentClass::ResolveSpinsOrbit()
 		? this->Data->Spins_Orbit.Get() : this->GetType()->Spins_Orbit;
 }
 
+int AttachmentClass::ResolveFacingMode()
+{
+	return (this->Data && this->Data->Facing_Mode.isset())
+		? this->Data->Facing_Mode.Get() : this->GetType()->Facing_Mode;
+}
+
 int AttachmentClass::ResolvePrerequisiteLostAction()
 {
 	return (this->Data && this->Data->Prerequisite_LostAction.isset())
@@ -1064,11 +1173,25 @@ void AttachmentClass::AI()
 			? this->Parent->SecondaryFacing.Current() : this->Parent->PrimaryFacing.Current();
 
 		childDir.Raw += DirStruct(this->Data->RotationAdjust).Raw; // overflow = free modulo for rotation
-		// Spins drives the ORBIT (in GetChildAnchor) and, unless Spins.Facing=no,
-		// the sprite's own rotation. Keeping them separable is what allows a drone
-		// that circles the host without pirouetting.
-		if (this->ResolveSpinsFacing())
+
+		// Branch on the MODE, not on the returned raw: 0 is a perfectly valid
+		// heading (straight along the parent's own facing), so testing the value
+		// would silently hand those frames back to the spin path and jitter.
+		if (this->ResolveFacingMode() != 0)
+		{
+			int const facingRaw = this->GetFacingModeRaw();
+			// travel / outward / inward: an explicit heading REPLACES the spin
+			// contribution -- stacking the two would just spin the sprite off the
+			// heading it was asked to hold.
+			childDir.Raw += static_cast<unsigned short>(facingRaw);
+		}
+		else if (this->ResolveSpinsFacing())
+		{
+			// Spins drives the ORBIT (in GetChildAnchor) and, unless Spins.Facing=no,
+			// the sprite's own rotation. Keeping them separable is what allows a drone
+			// that circles the host without pirouetting.
 			childDir.Raw += static_cast<unsigned short>(this->GetSpinRaw()); // J1 spin
+		}
 
 		this->Child->PrimaryFacing.SetCurrent(childDir);
 		// TODO handle secondary facing in case the turret is idle
