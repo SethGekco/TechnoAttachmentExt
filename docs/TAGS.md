@@ -468,17 +468,6 @@ Move.Range=0         ; = its own weapon range
 Move.Speed=6
 ```
 
-### `Spins.Facing`
-
-| Tag | Default | Meaning |
-| --- | --- | --- |
-| `Spins.Facing` | `yes` | Whether `Spins` also turns the sprite. |
-
-`Spins` drives two things: the orbit (with `Spins.Orbit=yes`) and the child's own
-facing. `Spins.Facing=no` separates them — the attachment circles the parent
-without pirouetting, for a drone that keeps a fixed heading while orbiting.
-Per slot: `AttachmentN.Spins.Facing`.
-
 ### `Prerequisite.LostAction`
 
 What happens when a **dynamic** prerequisite (`Prerequisite.Dynamic=yes`) stops
@@ -509,28 +498,30 @@ RespawnDelay=150               ; ...and a new one launches if you rebuild it
 
 ### `Facing.Mode`
 
-Which way the attachment's sprite points. Orbiting previously always pointed the
-child at the parent's facing (or spun it at the orbit rate), so a drone circling
-its host slid sideways through its own path rather than flying along it.
+The single control for which way an attachment's sprite points.
 
 | Value | Behaviour |
 | --- | --- |
-| `parent` (default) | The parent's facing, plus `RotationAdjust` and `Spins.Facing`. Unchanged. |
-| `travel` | Along the path it is actually walking — an orbiting drone banks around the circle. |
+| `auto` (default) | `spin` if `Spins=yes`, otherwise `parent`. The historic behaviour, so existing attachments are unaffected. |
+| `parent` | Hold the parent's facing and nothing more. |
+| `spin` | Turn at the `Spins` rate. |
+| `travel` | Along the path it is actually walking — an orbiting drone banks around the circle instead of sliding sideways through it. |
 | `outward` | Directly away from the parent. |
 | `inward` | Back toward the parent. |
 
-`travel`/`outward`/`inward` **replace** the `Spins.Facing` contribution rather
-than stacking with it — spinning a sprite that was asked to hold a heading would
-just spin it off that heading. `RotationAdjust` still applies on top, so it
-doubles as a trim if the model doesn't point down its own forward axis.
+`RotationAdjust` applies on top of every mode, so it doubles as a trim if the
+model doesn't point down its own forward axis.
 Per slot: `AttachmentN.Facing.Mode`.
+
+`spin` earns its place rather than duplicating the geometric modes: with
+`Spins.Orbit=no` there is no path to face along and no radius to point down, so
+"turn on the spot" has to be stated directly.
 
 `travel` is computed by sampling the child's local path one frame apart. Orbit,
 slide and bob are all pure functions of the frame number, so this needs no saved
-state and no extra work — and it composes: an attachment that orbits *and* slides
-faces along the combined path. A child that is momentarily stationary keeps the
-parent's facing rather than snapping to an arbitrary one.
+state — and it composes: an attachment that orbits *and* slides faces along the
+combined path. A child that is momentarily stationary keeps the parent's facing
+rather than snapping to an arbitrary one.
 
 > The `Move.*` leash stray is deliberately **not** part of the travel heading —
 > it is world-space and reactive, while the heading is computed in the parent's
@@ -540,6 +531,12 @@ parent's facing rather than snapping to an arbitrary one.
 [DroneAttachment]
 Spins=yes
 Spins.Orbit=yes
-Spins.Facing=no      ; don't pirouette...
-Facing.Mode=travel   ; ...fly along the circle instead
+Facing.Mode=travel   ; fly along the circle rather than through it
 ```
+
+> **Removed:** `Spins.Facing`. `Facing.Mode=spin` (was `yes`) and
+> `Facing.Mode=parent` (was `no`) say the same thing, and having two tags for one
+> property meant they could contradict each other — `Spins.Facing=yes` with
+> `Facing.Mode=travel` was incoherent, and the mode silently won. The key is
+> detected on load and logs a line pointing at the replacement.
+

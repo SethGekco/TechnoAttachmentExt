@@ -246,36 +246,8 @@ public:
 	//   Move.Speed=8     -> leptons per frame, so it eases rather than snapping
 	// The offset is WORLD-space (applied after the host transform) so the child
 	// leans toward the enemy regardless of which way the host is facing.
-	// Spins.Facing=no lets the attachment ORBIT the parent without the sprite
-	// itself turning -- a drone that circles but always faces the same way, or a
-	// ring of satellites. Previously Spins drove both, so orbit implied spin and
-	// there was no way to separate them.
-	// What happens when a DYNAMIC prerequisite stops being met. Vanishing (limbo)
-	// was the only behaviour and is still the default, but it looks like a bug in
-	// game: the attachment silently blinks out. These give the modder a reaction
-	// with some diegetic weight.
-	//   hide       (default) limbo it; it reappears when the prerequisite returns
-	//   kill       it dies properly -- death anim, debris, DestructionWeapon
-	//   vanish     removed silently, no death effects (the old hide, but permanent)
-	//   detach     it becomes a free-standing unit of its own and flies/drives off
-	//   deactivate it stays put but goes dark (no fire, no move) until the
-	//              prerequisite returns
-	// kill/vanish/detach leave the slot empty, so RespawnDelay (if set) governs
-	// whether a fresh child appears once the prerequisite comes back.
-	// Which way the attachment's sprite points.
-	//   parent  (default) the parent's facing (+ RotationAdjust, + Spins.Facing)
-	//   travel  along the path it is actually walking -- an orbiting drone banks
-	//           around the circle instead of sliding sideways through it
-	//   outward directly away from the parent
-	//   inward  back toward the parent
-	// travel/outward/inward REPLACE the Spins.Facing contribution rather than
-	// stacking with it; RotationAdjust still applies on top, so it doubles as a
-	// trim for models whose art doesn't point down its own +X axis.
-	Valueable<int> Facing_Mode;
-
-	Valueable<int> Prerequisite_LostAction;
-
-	Valueable<bool> Spins_Facing;
+	// NOTE: Spins.Facing was removed in favour of Facing.Mode=spin|parent.
+	// See Facing_Mode above.
 
 	Valueable<int> Move_Radius;
 	Valueable<int> Move_Mode;   // 0 approach, 1 retreat, 2 hold
@@ -384,7 +356,6 @@ public:
 		, Spins_Orbit { false }
 		, Facing_Mode { 0 }
 		, Prerequisite_LostAction { 0 }
-		, Spins_Facing { true }
 		, Move_Radius { 0 }
 		, Move_Mode { 0 }
 		, Move_Range { 0 }

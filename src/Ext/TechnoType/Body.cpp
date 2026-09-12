@@ -296,12 +296,14 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			char facingBuffer[16];
 			if (pINI->ReadString(pSection, tempBuffer, "", facingBuffer, sizeof(facingBuffer)) > 0)
 			{
-				if (_strcmpi(facingBuffer, "parent") == 0)       slotFacingMode = 0;
-				else if (_strcmpi(facingBuffer, "travel") == 0)  slotFacingMode = 1;
-				else if (_strcmpi(facingBuffer, "outward") == 0) slotFacingMode = 2;
-				else if (_strcmpi(facingBuffer, "inward") == 0)  slotFacingMode = 3;
+				if (_strcmpi(facingBuffer, "auto") == 0)         slotFacingMode = 0;
+				else if (_strcmpi(facingBuffer, "parent") == 0)  slotFacingMode = 1;
+				else if (_strcmpi(facingBuffer, "spin") == 0)    slotFacingMode = 2;
+				else if (_strcmpi(facingBuffer, "travel") == 0)  slotFacingMode = 3;
+				else if (_strcmpi(facingBuffer, "outward") == 0) slotFacingMode = 4;
+				else if (_strcmpi(facingBuffer, "inward") == 0)  slotFacingMode = 5;
 				else Debug::INIParseFailed(pSection, tempBuffer, facingBuffer,
-					"Expected parent, travel, outward or inward");
+					"Expected auto, parent, spin, travel, outward or inward");
 			}
 		}
 
@@ -320,10 +322,6 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 						"Expected hide, kill, vanish, detach or deactivate");
 			}
 		}
-
-		Nullable<bool> slotSpinsFacing;
-		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Facing", static_cast<int>(i));
-		slotSpinsFacing.Read(exINI, pSection, tempBuffer);
 
 		Nullable<int> slotMoveRadius;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Move.Radius", static_cast<int>(i));
@@ -587,7 +585,6 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins_Orbit)
 		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)
-		.Process(this->Spins_Facing)
 		.Process(this->Move_Radius)
 		.Process(this->Move_Mode)
 		.Process(this->Move_Range)

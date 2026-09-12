@@ -240,7 +240,9 @@ CoordStruct AttachmentClass::GetLocalOffsetAt(unsigned int frame)
 	return flh;
 }
 
-// Facing offset (relative to the parent's facing) implied by Facing.Mode.
+// Facing offset (relative to the parent's facing) implied by Facing.Mode. This
+// is the ONE place the sprite's heading is decided -- there is no second tag that
+// can contradict it.
 //
 // CONVENTION, and why it is safe: the orbit code rotates the local FLH vector by
 // angle t while AI() adds the same t to the facing -- and that pairing is
@@ -250,16 +252,28 @@ CoordStruct AttachmentClass::GetLocalOffsetAt(unsigned int frame)
 // so no separate calibration is needed.
 int AttachmentClass::GetFacingModeRaw()
 {
-	int const mode = this->ResolveFacingMode();
+	int mode = this->ResolveFacingMode();
+
+	// auto: reproduce the historic behaviour, where Spins=yes turned the sprite.
+	// Keeping this as the default is what lets Facing.Mode be added without
+	// changing a single existing attachment.
 	if (mode == 0)
+		mode = this->ResolveSpins() ? 2 : 1;
+
+	switch (mode)
+	{
+	case 1: // parent -- inherit and nothing more
 		return 0;
 
-	if (mode == 1) // travel -- heading along the path actually being walked
+	case 2: // spin -- turn at the Spins rate. The one mode the geometric options
+		    // cannot express: with Spins.Orbit=no there is no path and no radius.
+		return this->GetSpinRaw();
+
+	case 3: // travel -- heading along the path actually being walked
 	{
 		// Sample this frame and the last: the difference IS the velocity. Works for
 		// orbit, slide and any combination of them without special-casing each.
-		// Frame 0 has no previous frame to difference against; sample forward
-		// instead of underflowing the unsigned counter.
+		// Frame 0 has no previous frame; sample forward instead of underflowing.
 		unsigned int const frame = Unsorted::CurrentFrame;
 		auto const now = this->GetLocalOffsetAt(frame ? frame : 1u);
 		auto const before = this->GetLocalOffsetAt(frame ? frame - 1u : 0u);
@@ -275,16 +289,18 @@ int AttachmentClass::GetFacingModeRaw()
 		return TAExt_Atan2Raw(dy, dx);
 	}
 
-	// outward / inward -- along the line from the parent through the child.
-	auto const here = this->GetLocalOffsetAt(Unsorted::CurrentFrame);
-	if (here.X == 0 && here.Y == 0)
-		return 0;
+	default: // outward (4) / inward (5) -- along the parent-to-child line
+	{
+		auto const here = this->GetLocalOffsetAt(Unsorted::CurrentFrame);
+		if (here.X == 0 && here.Y == 0)
+			return 0;
 
-	int raw = TAExt_Atan2Raw(here.Y, here.X);
-	if (mode == 3) // inward: face back toward the parent
-		raw += 32768;
-
-	return raw;
+		int raw = TAExt_Atan2Raw(here.Y, here.X);
+		if (mode == 5)
+			raw += 32768; // inward: face back toward the parent
+		return raw;
+	}
+	}
 }
 
 CoordStruct AttachmentClass::GetChildAnchor()
@@ -863,12 +879,6 @@ int AttachmentClass::ResolvePrerequisiteLostAction()
 		: this->GetType()->Prerequisite_LostAction;
 }
 
-bool AttachmentClass::ResolveSpinsFacing()
-{
-	return (this->Data && this->Data->Spins_Facing.isset())
-		? this->Data->Spins_Facing.Get() : this->GetType()->Spins_Facing;
-}
-
 int AttachmentClass::ResolveMoveRadius()
 {
 	return (this->Data && this->Data->Move_Radius.isset())
@@ -1174,24 +1184,8 @@ void AttachmentClass::AI()
 
 		childDir.Raw += DirStruct(this->Data->RotationAdjust).Raw; // overflow = free modulo for rotation
 
-		// Branch on the MODE, not on the returned raw: 0 is a perfectly valid
-		// heading (straight along the parent's own facing), so testing the value
-		// would silently hand those frames back to the spin path and jitter.
-		if (this->ResolveFacingMode() != 0)
-		{
-			int const facingRaw = this->GetFacingModeRaw();
-			// travel / outward / inward: an explicit heading REPLACES the spin
-			// contribution -- stacking the two would just spin the sprite off the
-			// heading it was asked to hold.
-			childDir.Raw += static_cast<unsigned short>(facingRaw);
-		}
-		else if (this->ResolveSpinsFacing())
-		{
-			// Spins drives the ORBIT (in GetChildAnchor) and, unless Spins.Facing=no,
-			// the sprite's own rotation. Keeping them separable is what allows a drone
-			// that circles the host without pirouetting.
-			childDir.Raw += static_cast<unsigned short>(this->GetSpinRaw()); // J1 spin
-		}
+		// Facing.Mode owns the heading outright -- one term, no second opinion.
+		childDir.Raw += static_cast<unsigned short>(this->GetFacingModeRaw());
 
 		this->Child->PrimaryFacing.SetCurrent(childDir);
 		// TODO handle secondary facing in case the turret is idle

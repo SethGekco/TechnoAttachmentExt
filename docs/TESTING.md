@@ -392,13 +392,6 @@ and points straight at INI parsing.
       serialized — this is the first motion feature with real state).
 - [ ] Online: two clients, an attachment straying at a target — no desync.
 
-## Spins.Facing / orbit decoupling
-
-- [ ] `Spins=yes`, `Spins.Orbit=yes`, `Spins.Facing=no` — the child circles the
-      parent WITHOUT its own sprite rotating.
-- [ ] `Spins.Facing=yes` (default) — unchanged from before: it orbits and spins.
-- [ ] `Spins.Orbit=no`, `Spins.Facing=yes` — spins on the spot, no orbit.
-
 ## Move.* corrections
 
 - [ ] `Move.Mode=approach` with the target CLOSER than the child's weapon range —
@@ -439,9 +432,13 @@ and points straight at INI parsing.
       flips at each end of the sweep.
 - [ ] `Facing.Mode=outward` / `inward` — points away from / toward the parent,
       and stays pointed as it orbits.
-- [ ] `Facing.Mode=parent` or unset — identical to before this change.
+- [ ] `Facing.Mode` unset + `Spins=yes` — spins exactly as it did before
+      (the `auto` default must not change any existing attachment).
+- [ ] `Facing.Mode=spin` — same as the old `Spins.Facing=yes`.
+- [ ] `Facing.Mode=parent` — same as the old `Spins.Facing=no`.
+- [ ] `Facing.Mode=spin` + `Spins.Orbit=no` — turns on the spot.
 - [ ] `RotationAdjust` still trims the result in every mode.
-- [ ] `Facing.Mode` set + `Spins.Facing=yes` — the heading wins; no spinning.
+- [ ] A leftover `Spins.Facing=` in an INI logs the "no longer used" line.
 - [ ] Rotate the HOST while the child holds `outward` — the child stays radial.
 - [ ] Per-slot `AttachmentN.Facing.Mode` overrides the AttachmentType.
 - [ ] Online: two clients, an orbiting drone with `travel` — facings stay in

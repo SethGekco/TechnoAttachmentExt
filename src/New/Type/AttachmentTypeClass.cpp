@@ -188,15 +188,25 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 		char facingBuffer[16];
 		if (pINI->ReadString(section, "Facing.Mode", "", facingBuffer, sizeof(facingBuffer)) > 0)
 		{
-			if (_strcmpi(facingBuffer, "parent") == 0)       this->Facing_Mode = 0;
-			else if (_strcmpi(facingBuffer, "travel") == 0)  this->Facing_Mode = 1;
-			else if (_strcmpi(facingBuffer, "outward") == 0) this->Facing_Mode = 2;
-			else if (_strcmpi(facingBuffer, "inward") == 0)  this->Facing_Mode = 3;
+			if (_strcmpi(facingBuffer, "auto") == 0)         this->Facing_Mode = 0;
+			else if (_strcmpi(facingBuffer, "parent") == 0)  this->Facing_Mode = 1;
+			else if (_strcmpi(facingBuffer, "spin") == 0)    this->Facing_Mode = 2;
+			else if (_strcmpi(facingBuffer, "travel") == 0)  this->Facing_Mode = 3;
+			else if (_strcmpi(facingBuffer, "outward") == 0) this->Facing_Mode = 4;
+			else if (_strcmpi(facingBuffer, "inward") == 0)  this->Facing_Mode = 5;
 			else Debug::INIParseFailed(section, "Facing.Mode", facingBuffer,
-				"Expected parent, travel, outward or inward");
+				"Expected auto, parent, spin, travel, outward or inward");
 		}
 	}
-	this->Spins_Facing.Read(exINI, section, "Spins.Facing");
+	// Spins.Facing is gone (Facing.Mode=spin|parent says the same thing, and the
+	// two could contradict each other). Say so out loud rather than ignoring the
+	// key silently -- a dead tag that still looks configured is a nasty trap.
+	{
+		char legacyBuffer[16];
+		if (pINI->ReadString(section, "Spins.Facing", "", legacyBuffer, sizeof(legacyBuffer)) > 0)
+			Debug::Log("[TAExt] [%s] Spins.Facing is no longer used -- "
+				"use Facing.Mode=spin (was yes) or Facing.Mode=parent (was no).\n", section);
+	}
 	this->Move_Radius.Read(exINI, section, "Move.Radius");
 	this->Move_Range.Read(exINI, section, "Move.Range");
 	this->Move_Speed.Read(exINI, section, "Move.Speed");
@@ -320,7 +330,6 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins_Orbit)
 		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)
-		.Process(this->Spins_Facing)
 		.Process(this->Move_Radius)
 		.Process(this->Move_Mode)
 		.Process(this->Move_Range)

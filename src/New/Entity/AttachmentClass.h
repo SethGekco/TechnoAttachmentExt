@@ -95,7 +95,6 @@ public:
 	bool ResolveSpinsOrbit();
 	int  ResolveFacingMode();
 	int  ResolvePrerequisiteLostAction();
-	bool ResolveSpinsFacing();
 	int  ResolveMoveRadius();
 	int  ResolveMoveMode();
 	int  ResolveMoveRange();
