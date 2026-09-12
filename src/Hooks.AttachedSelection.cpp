@@ -22,6 +22,8 @@
 #include <DisplayClass.h>
 
 #include <Utilities/Macro.h>
+#include <Utilities/Patch.h>
+#include <Utilities/Debug.h>
 #include <Helpers/Cast.h>
 
 #include <Ext/Techno/Body.h>
@@ -29,12 +31,68 @@
 #include <New/Type/AttachmentTypeClass.h>
 
 // ---- PassSelection ---------------------------------------------------------
+//
+// VTABLE CHAINING. DEFINE_HOOK breakpoints chain -- Syringe runs every consumer
+// at an address. DEFINE_FUNCTION_JUMP(VTABLE, ...) does NOT: it blindly
+// overwrites the slot, so the last DLL to patch wins and every earlier wrapper
+// is silently lost. SquadExt wraps these same four slots for its squad
+// selection modes, so a blind overwrite means the two DLLs cannot coexist --
+// whichever loads second erases the other's behaviour.
+//
+// Fix: read each slot BEFORE patching it, cache whatever was there, and have
+// the wrapper tail-call that cached pointer instead of a hardcoded 0x6FBFA0.
+// Both DLLs do this, so either load order composes:
+//
+//   TAExt first:  Squad -> TAExt -> real Select
+//   Squad first:  TAExt -> Squad -> real Select
+//
+// The chain terminates at the real function because the first DLL to patch
+// caches the genuine 0x6FBFA0.
 
-// The real ObjectClass::Select. NOTE: YRpp declares ObjectClass::Select() as an
-// R0 stub ({ return 0; }) -- unlike most virtuals it has NO JMP_THIS trampoline.
-// So a qualified non-virtual call (pThis->TechnoClass::Select()) binds to that
-// stub and silently no-ops: the unit never actually selects. We must invoke the
-// game function at its address directly.
+namespace
+{
+	using SelectFn = bool(__thiscall*)(TechnoClass*);
+
+	// The real ObjectClass::Select. NOTE: YRpp declares ObjectClass::Select() as
+	// an R0 stub ({ return 0; }) -- unlike most virtuals it has NO JMP_THIS
+	// trampoline. A qualified non-virtual call (pThis->TechnoClass::Select())
+	// binds to that stub and silently no-ops: the unit never actually selects.
+	// We must reach the handler by address.
+	constexpr DWORD RealSelectAddr = 0x6FBFA0;
+
+	constexpr DWORD VTable_Unit     = 0x7F5DBC;
+	constexpr DWORD VTable_Infantry = 0x7EB1A4;
+	constexpr DWORD VTable_Building = 0x7E4008;
+	constexpr DWORD VTable_Aircraft = 0x7E23F0;
+
+	SelectFn g_PrevUnit = nullptr;
+	SelectFn g_PrevInfantry = nullptr;
+	SelectFn g_PrevBuilding = nullptr;
+	SelectFn g_PrevAircraft = nullptr;
+
+	bool g_Installed = false;
+
+	SelectFn PrevFor(TechnoClass* pThis)
+	{
+		switch (pThis->WhatAmI())
+		{
+		case AbstractType::Unit:      return g_PrevUnit;
+		case AbstractType::Infantry:  return g_PrevInfantry;
+		case AbstractType::Building:  return g_PrevBuilding;
+		case AbstractType::Aircraft:  return g_PrevAircraft;
+		default:                      return nullptr;
+		}
+	}
+
+	bool CallPrev(TechnoClass* pThis)
+	{
+		if (auto const prev = PrevFor(pThis))
+			return prev(pThis);
+
+		return reinterpret_cast<SelectFn>(RealSelectAddr)(pThis);
+	}
+}
+
 bool __fastcall TechnoClass_Select_Wrapper_TAExt(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
@@ -42,17 +100,46 @@ bool __fastcall TechnoClass_Select_Wrapper_TAExt(TechnoClass* pThis)
 
 	// PassSelection: select the host instead. Virtual call re-enters this wrapper
 	// for the parent and cascades up; the base case (non-attached ancestor) lands
-	// on the real Select below. The parent chain is acyclic by construction.
+	// on the chain below. The parent chain is acyclic by construction.
 	if (pAtt && pAtt->ResolvePassSelection() && pAtt->Parent)
 		return pAtt->Parent->Select();
 
-	return reinterpret_cast<bool(__thiscall*)(TechnoClass*)>(0x6FBFA0)(pThis);
+	return CallPrev(pThis);
 }
 
-DEFINE_FUNCTION_JUMP(VTABLE, 0x7F5DBC, TechnoClass_Select_Wrapper_TAExt); // UnitClass
-DEFINE_FUNCTION_JUMP(VTABLE, 0x7EB1A4, TechnoClass_Select_Wrapper_TAExt); // InfantryClass
-DEFINE_FUNCTION_JUMP(VTABLE, 0x7E4008, TechnoClass_Select_Wrapper_TAExt); // BuildingClass
-DEFINE_FUNCTION_JUMP(VTABLE, 0x7E23F0, TechnoClass_Select_Wrapper_TAExt); // AircraftClass
+// Called from ExeRun, after Patch::ApplyStatic. Deliberately NOT a
+// DEFINE_FUNCTION_JUMP -- see the chaining note above.
+void TAExt_InstallSelectWrappers()
+{
+	if (g_Installed)
+		return;
+	g_Installed = true;
+
+	auto const self = reinterpret_cast<void*>(&TechnoClass_Select_Wrapper_TAExt);
+
+	// Read first, patch second. Anything already in the slot becomes our tail.
+	auto const capture = [self](DWORD slot, SelectFn& out)
+	{
+		auto const current = *reinterpret_cast<SelectFn*>(slot);
+
+		// Guard against capturing ourselves (a double install would otherwise
+		// build an infinite self-recursive chain and blow the stack).
+		out = (reinterpret_cast<void*>(current) == self)
+			? reinterpret_cast<SelectFn>(RealSelectAddr)
+			: current;
+
+		Patch::Apply_VTABLE(slot, self);
+	};
+
+	capture(VTable_Unit, g_PrevUnit);
+	capture(VTable_Infantry, g_PrevInfantry);
+	capture(VTable_Building, g_PrevBuilding);
+	capture(VTable_Aircraft, g_PrevAircraft);
+
+	Debug::Log("[TAExt] Select wrappers installed; chaining to prior handlers "
+		"(unit=0x%X infantry=0x%X building=0x%X aircraft=0x%X).\n",
+		g_PrevUnit, g_PrevInfantry, g_PrevBuilding, g_PrevAircraft);
+}
 
 // ---- TransparentToMouse ----------------------------------------------------
 
