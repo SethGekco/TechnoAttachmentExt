@@ -24,6 +24,8 @@
 #include <TechnoClass.h>
 #include <MapClass.h>
 #include <CellClass.h>
+#include <AnimClass.h>
+#include <AnimTypeClass.h>
 #include <FootClass.h>
 #include <HouseClass.h>
 #include <ScenarioClass.h>
@@ -46,6 +48,47 @@ namespace
 		case TAExtSpawnOwner::Special:  return HouseClass::FindSpecial();
 		case TAExtSpawnOwner::Neutral:  return HouseClass::FindNeutral();
 		default:                        return pInvoker->Owner;
+		}
+	}
+
+	// Play one anim from `list` at `cell`. Cosmetic failure is silent on purpose:
+	// a missing puff of smoke must never cost the delivery.
+	//
+	// The pick uses ScenarioClass::Random rather than a hashed/render source
+	// because an AnimClass is SYNCED state, not decoration -- an AnimType with
+	// MakeInfantry= creates a real unit. For the same reason this is called
+	// unconditionally on every peer; never gate it on anything client-side.
+	void PlayAnim(std::vector<AnimTypeClass*> const& list, CellStruct const& cell,
+		HouseClass* pOwner, bool requireClear)
+	{
+		if (list.empty())
+			return;
+
+		auto const pCell = MapClass::Instance.TryGetCellAt(cell);
+		if (!pCell)
+			return;
+
+		// Draw FIRST, then apply RequireClear. Both orders happen to be safe here
+		// (cell contents are synced, so every peer would skip the same cells), but
+		// drawing before any early-out keeps the RNG consumption independent of map
+		// state, which is the habit that stays correct if a future condition is ever
+		// client-side. A single-entry list needs no draw at all.
+		int const pick = (list.size() == 1)
+			? 0
+			: ScenarioClass::Instance->Random.RandomRanged(0, static_cast<int>(list.size()) - 1);
+
+		// RequireClear: only play where nothing is standing.
+		if (requireClear && pCell->FirstObject)
+			return;
+
+		if (auto const pAnimType = list[pick])
+		{
+			if (auto const pAnim = GameCreate<AnimClass>(pAnimType, pCell->GetCoordsWithBridge()))
+			{
+				// Owner drives house remap AND is what an AnimType with MakeInfantry=
+				// hands its new infantry to.
+				pAnim->Owner = pOwner;
+			}
 		}
 	}
 
@@ -89,7 +132,7 @@ namespace
 	// Every caller must assume this can destroy the object: Unlimbo failing is
 	// destructive, and the destruction re-enters our hooks.
 	bool PlaceOne(TechnoClass* pInvoker, TechnoTypeClass* pType,
-		InstantSpawnRule const& rule, CellStruct const& anchor)
+		InstantSpawnRule const& rule, CellStruct const& anchor, CellStruct& usedCell)
 	{
 		auto const pOwner = ResolveSpawnOwner(pInvoker, rule.Owner);
 		if (!pOwner)
@@ -131,6 +174,7 @@ namespace
 		if (rule.Mission >= 0)
 			pObject->QueueMission(static_cast<Mission>(rule.Mission), false);
 
+		usedCell = cell;
 		return true;
 	}
 }
@@ -230,6 +274,12 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 
 		pExt->InstantSpawnLastFired[i] = now;
 
+		// H1b: the two once-per-activation anims. Source plays on the spawner even
+		// if every placement then fails -- it represents the ACT, not the result.
+		auto const pAnimOwner = ResolveSpawnOwner(pOwner, rule.AnimOwner);
+		PlayAnim(rule.AnimSource, pOwner->GetMapCoords(), pAnimOwner, rule.AnimRequireClear);
+		PlayAnim(rule.AnimDest, anchor, pAnimOwner, rule.AnimRequireClear);
+
 		// --- place ---
 		// The type list is copied by value into locals before placing: placement
 		// can destroy objects and re-enter our hooks, and `rules` points into
@@ -249,7 +299,15 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 				if (!pOwner->IsAlive)
 					return;
 
-				PlaceOne(pOwner, pSpawnType, ruleCopy, anchor);
+				CellStruct used {};
+				if (PlaceOne(pOwner, pSpawnType, ruleCopy, anchor, used))
+				{
+					PlayAnim(ruleCopy.AnimPerObject, used, pAnimOwner, ruleCopy.AnimRequireClear);
+				}
+				else
+				{
+					PlayAnim(ruleCopy.AnimBlocked, anchor, pAnimOwner, ruleCopy.AnimRequireClear);
+				}
 			}
 		}
 	}

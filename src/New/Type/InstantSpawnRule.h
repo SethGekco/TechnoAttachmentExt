@@ -18,6 +18,8 @@
 
 #include <TechnoTypeClass.h>
 
+class AnimTypeClass;
+
 class CCINIClass;
 
 // Which event runs a rule. A bitmask so one rule can take several.
@@ -86,6 +88,21 @@ struct InstantSpawnRule
 
 	int Cooldown = 0;
 	int Chance = 100;
+
+	// H1b -- animations. Four seats, each a list from which ONE is picked per
+	// activation with synced RNG.
+	//
+	// These are NOT decoration-only: an AnimType with MakeInfantry= creates a real
+	// unit, so an AnimClass is synced game state. That is why the pick uses
+	// ScenarioClass::Random and why creation must never be conditional on anything
+	// client-side -- both peers must create the same anim in the same order.
+	std::vector<AnimTypeClass*> AnimSource;    // on the spawner
+	std::vector<AnimTypeClass*> AnimDest;      // at the resolved location, once
+	std::vector<AnimTypeClass*> AnimPerObject; // at each placed object's cell
+	std::vector<AnimTypeClass*> AnimBlocked;   // when a placement fails
+
+	TAExtSpawnOwner AnimOwner = TAExtSpawnOwner::Invoker;
+	bool AnimRequireClear = false; // only play where the cell is clear
 };
 
 // Parse every InstantSpawn group in `section` and append to `out`.

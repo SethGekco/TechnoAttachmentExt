@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include <CCINIClass.h>
+#include <AnimTypeClass.h>
 #include <Utilities/Debug.h>
 
 namespace
@@ -49,6 +50,27 @@ namespace
 
 		out = mask;
 		return true;
+	}
+
+	// Comma list of AnimTypes. A bad name is reported and skipped rather than
+	// killing the rule: a missing puff of smoke must never cost the delivery.
+	void TAExt_ReadAnimList(CCINIClass* pINI, const char* section, const char* key,
+		std::vector<AnimTypeClass*>& out)
+	{
+		char buffer[256];
+		if (pINI->ReadString(section, key, "", buffer, sizeof(buffer)) <= 0)
+			return;
+
+		out.clear();
+		char* context = nullptr;
+		for (char* tok = strtok_s(buffer, ",", &context); tok; tok = strtok_s(nullptr, ",", &context))
+		{
+			tok = TAExt_Trim(tok);
+			if (auto const pAnim = AnimTypeClass::Find(tok))
+				out.push_back(pAnim);
+			else
+				Debug::INIParseFailed(section, key, tok, "not an AnimType");
+		}
 	}
 
 	const char* const TriggerNames[] = { "fire", "timer", "created", "destroyed" };
@@ -240,6 +262,27 @@ void TAExt_ReadInstantSpawnRules(CCINIClass* pINI, const char* section,
 
 			rule.Mission = pINI->ReadInteger(section, sub("Mission"), rule.Mission);
 		}
+
+		// --- animations (H1b) ---
+		TAExt_ReadAnimList(pINI, section, sub("Anim.Source"), rule.AnimSource);
+		TAExt_ReadAnimList(pINI, section, sub("Anim.Dest"), rule.AnimDest);
+		TAExt_ReadAnimList(pINI, section, sub("Anim.PerObject"), rule.AnimPerObject);
+		TAExt_ReadAnimList(pINI, section, sub("Anim.Blocked"), rule.AnimBlocked);
+
+		{
+			char animOwner[32];
+			if (pINI->ReadString(section, sub("Anim.Owner"), "", animOwner, sizeof(animOwner)) > 0)
+			{
+				if (_strcmpi(animOwner, "invoker") == 0)       rule.AnimOwner = TAExtSpawnOwner::Invoker;
+				else if (_strcmpi(animOwner, "civilian") == 0) rule.AnimOwner = TAExtSpawnOwner::Civilian;
+				else if (_strcmpi(animOwner, "special") == 0)  rule.AnimOwner = TAExtSpawnOwner::Special;
+				else if (_strcmpi(animOwner, "neutral") == 0)  rule.AnimOwner = TAExtSpawnOwner::Neutral;
+				else Debug::INIParseFailed(section, sub("Anim.Owner"), animOwner,
+					"Expected Invoker, Civilian, Special or Neutral");
+			}
+		}
+
+		rule.AnimRequireClear = pINI->ReadBool(section, sub("Anim.RequireClear"), rule.AnimRequireClear);
 
 		// --- gates ---
 		rule.Cooldown = pINI->ReadInteger(section, sub("Cooldown"), rule.Cooldown);
