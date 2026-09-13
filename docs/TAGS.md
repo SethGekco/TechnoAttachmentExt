@@ -645,6 +645,40 @@ implemented yet, rather than being silently ignored. The engine does not record
 *why* an object is going away, so each reason needs its own verified
 discriminator; see `docs/DESIGN-H1-InstantSpawn.md` §3.2.
 
+#### Count scaling and payload mode (H1c)
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `.Count.PerSlot` | `0` | + N per **active** attachment slot on the owner |
+| `.Count.PerSlotType` | none | only count slots holding these child types |
+| `.Count.PerAmmo` | `0` | + N per round of current ammo |
+| `.Count.PerRank` | `0` | + N per veterancy rank (rookie 0 / vet 1 / elite 2) |
+| `.Count.Max` | `0` | `0` = uncapped; else clamp the computed total |
+| `.Mode` | `all` | `all` \| `random` \| `weighted` \| `cycle` |
+| `.Weights` | all `1` | for `Mode=weighted` |
+
+```ini
+InstantSpawn=DRONA,DRONB,DRONC
+InstantSpawn.Count=1
+InstantSpawn.Count.PerSlot=1        ; +1 drone per active pod
+InstantSpawn.Count.PerSlotType=POD  ; ...but only pods count
+InstantSpawn.Count.Max=6
+InstantSpawn.Mode=weighted
+InstantSpawn.Weights=5,3,1          ; DRONA is common, DRONC rare
+```
+
+`Mode=all` places the **whole list** each iteration, so `Count=3` on a two-type
+list gives six objects. The other three modes place **one** type per iteration,
+so `Count=3` gives three objects.
+
+`Count.PerAmmo` ignores `Ammo=-1` — unlimited ammo scales nothing. Negative
+scaling terms are allowed but the total is clamped at zero.
+
+`Mode=cycle` remembers its position **per unit** and the position is saved, so a
+save/load does not restart the cycle. `Mode=weighted` pads short `Weights` lists
+with `1`; an all-zero list falls back to `random` with a log line rather than
+dividing by zero.
+
 #### Animations (H1b)
 
 | Tag | Plays |

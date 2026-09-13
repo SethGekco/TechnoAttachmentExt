@@ -489,6 +489,23 @@ and points straight at INI parsing.
 - [ ] Save/load mid-cooldown: the cooldown is preserved, no free activation.
 - [ ] Online: two clients, `Chance` and `Facing=random` in play — no desync.
 
+### Count scaling and modes (H1c)
+
+- [ ] `Count.PerSlot=1` — the number spawned tracks active pods as they are
+      attached and destroyed.
+- [ ] `Count.PerSlotType=POD` — only pods count, other active slots do not.
+- [ ] `Count.PerAmmo=1` — tracks ammo; an `Ammo=-1` unit is unaffected.
+- [ ] `Count.PerRank=1` — a veteran spawns one more, an elite two more.
+- [ ] `Count.Max=6` clamps a total that would otherwise exceed it.
+- [ ] Negative terms cannot spawn a negative/absurd number.
+- [ ] `Mode=all`, `Count=3`, two types — SIX objects.
+- [ ] `Mode=random`, `Count=3`, two types — THREE objects, mixed types.
+- [ ] `Mode=weighted` with `Weights=9,1` — the first type dominates.
+- [ ] `Mode=weighted` with `Weights=0,0` logs and behaves as `random`.
+- [ ] `Mode=cycle` steps A, B, C, A across activations...
+- [ ] ...and **save/load mid-cycle resumes where it left off**, not at A.
+- [ ] Online: `weighted` + `random` in play — no desync.
+
 ### Animations (H1b)
 
 - [ ] `.Anim.Source` plays on the spawner, `.Anim.Dest` once at the location.
