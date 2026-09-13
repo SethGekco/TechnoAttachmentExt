@@ -196,6 +196,63 @@ void TAExt_ReadInstantSpawnRules(CCINIClass* pINI, const char* section,
 
 		// --- count / placement ---
 		rule.Count = pINI->ReadInteger(section, sub("Count"), rule.Count);
+		rule.CountPerSlot = pINI->ReadInteger(section, sub("Count.PerSlot"), rule.CountPerSlot);
+		rule.CountPerAmmo = pINI->ReadInteger(section, sub("Count.PerAmmo"), rule.CountPerAmmo);
+		rule.CountPerRank = pINI->ReadInteger(section, sub("Count.PerRank"), rule.CountPerRank);
+		rule.CountMax = pINI->ReadInteger(section, sub("Count.Max"), rule.CountMax);
+
+		{
+			char typeBuf[256];
+			if (pINI->ReadString(section, sub("Count.PerSlotType"), "", typeBuf, sizeof(typeBuf)) > 0)
+			{
+				char* tctx = nullptr;
+				for (char* tok = strtok_s(typeBuf, ",", &tctx); tok; tok = strtok_s(nullptr, ",", &tctx))
+				{
+					tok = TAExt_Trim(tok);
+					if (auto const pT = TechnoTypeClass::Find(tok))
+						rule.CountPerSlotType.push_back(pT);
+					else
+						Debug::INIParseFailed(section, sub("Count.PerSlotType"), tok, "not a TechnoType");
+				}
+			}
+
+			char mode[32];
+			if (pINI->ReadString(section, sub("Mode"), "", mode, sizeof(mode)) > 0)
+			{
+				if (_strcmpi(mode, "all") == 0)           rule.Mode = TAExtSpawnMode::All;
+				else if (_strcmpi(mode, "random") == 0)   rule.Mode = TAExtSpawnMode::Random;
+				else if (_strcmpi(mode, "weighted") == 0) rule.Mode = TAExtSpawnMode::Weighted;
+				else if (_strcmpi(mode, "cycle") == 0)    rule.Mode = TAExtSpawnMode::Cycle;
+				else Debug::INIParseFailed(section, sub("Mode"), mode,
+					"Expected all, random, weighted or cycle");
+			}
+
+			char weights[256];
+			if (pINI->ReadString(section, sub("Weights"), "", weights, sizeof(weights)) > 0)
+			{
+				char* wctx = nullptr;
+				for (char* tok = strtok_s(weights, ",", &wctx); tok; tok = strtok_s(nullptr, ",", &wctx))
+					rule.Weights.push_back(atoi(TAExt_Trim(tok)));
+			}
+		}
+
+		// A weighted rule with no usable weights would divide by zero at pick time;
+		// pad short lists with 1 so every entry stays reachable.
+		if (rule.Mode == TAExtSpawnMode::Weighted)
+		{
+			rule.Weights.resize(rule.Types.size(), 1);
+
+			int total = 0;
+			for (int w : rule.Weights)
+				total += (w > 0) ? w : 0;
+
+			if (total <= 0)
+			{
+				Debug::INIParseFailed(section, sub("Weights"), "",
+					"all weights are zero or negative; falling back to Mode=random");
+				rule.Mode = TAExtSpawnMode::Random;
+			}
+		}
 		rule.Range = pINI->ReadInteger(section, sub("Range"), rule.Range);
 
 		{

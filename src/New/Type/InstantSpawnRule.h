@@ -49,6 +49,15 @@ enum class TAExtSpawnAt
 	Target = 1, // the owner's current target
 };
 
+// How the payload list is consumed.
+enum class TAExtSpawnMode
+{
+	All = 0,      // the whole list, Count times over  (default)
+	Random = 1,   // one at random per object, synced RNG
+	Weighted = 2, // as Random, biased by Weights
+	Cycle = 3,    // step through the list across activations (needs saved state)
+};
+
 // What to do when the chosen cell will not take the object.
 enum class TAExtSpawnBlocked
 {
@@ -78,7 +87,20 @@ struct InstantSpawnRule
 	TAExtSpawnAt At = TAExtSpawnAt::Self;
 	bool NoTargetFallsBackToSelf = false; // At=target with no target: skip by default
 
+	// H1c -- how many. Base plus scaling terms that ride the existing
+	// foundations: active attachment slots (F0), current ammo (G1), veterancy.
 	int Count = 1;
+	int CountPerSlot = 0;   // + N per ACTIVE attachment slot on the owner
+	std::vector<TechnoTypeClass*> CountPerSlotType; // empty = any child type counts
+	int CountPerAmmo = 0;   // + N per round of current ammo
+	int CountPerRank = 0;   // + N per veterancy rank (rookie 0 / vet 1 / elite 2)
+	int CountMax = 0;       // 0 = uncapped; else clamp the computed total
+
+	// H1c -- which payload. `all` places the whole list Count times over; the
+	// others place ONE type per object.
+	TAExtSpawnMode Mode = TAExtSpawnMode::All;
+	std::vector<int> Weights; // for Mode=weighted; short lists pad with 1
+
 	TAExtSpawnBlocked OnBlocked = TAExtSpawnBlocked::Nearest;
 	int Range = 1;
 

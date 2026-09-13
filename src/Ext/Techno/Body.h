@@ -91,6 +91,9 @@ public:
 		// the combined TechnoType+AttachmentType rule list. -1 = never. Serialized so
 		// a save/load does not hand every rule a free activation.
 		std::vector<int> InstantSpawnLastFired;
+		// H1c: Mode=cycle position per rule. Serialized -- otherwise a save/load
+		// restarts every cycle at the first entry.
+		std::vector<int> InstantSpawnCyclePos;
 
 		CoordStruct AttachmentMoveOffset;
 
@@ -106,6 +109,7 @@ public:
 			, DeactivationReasons { 0 }
 			, NetworkPowered { false }
 			, InstantSpawnLastFired { }
+			, InstantSpawnCyclePos { }
 			, AttachmentMoveOffset { }
 			, LastVeterancy { 0.0f }
 			, LastVeterancyValid { false }

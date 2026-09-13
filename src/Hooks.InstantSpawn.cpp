@@ -21,6 +21,8 @@
 // DETERMINISM: Chance and random facing use ScenarioClass::Random (synced). The
 // free-cell search is a fixed spiral, so ties resolve identically on every peer.
 
+#include <algorithm>
+
 #include <TechnoClass.h>
 #include <MapClass.h>
 #include <CellClass.h>
@@ -127,6 +129,105 @@ namespace
 		return false;
 	}
 
+	// H1c -- how many objects this activation places.
+	//
+	// Every term reads SYNCED state (active slots, ammo, veterancy) with integer
+	// maths, so both peers compute the same number. Clamped at zero so a negative
+	// scaling term cannot produce a nonsense loop bound.
+	int EffectiveCount(TechnoClass* pOwner, InstantSpawnRule const& rule)
+	{
+		int count = rule.Count;
+
+		if (rule.CountPerSlot != 0)
+		{
+			int slots = 0;
+			if (auto const pExt = TechnoExt::ExtMap.Find(pOwner))
+			{
+				for (auto const& pSlot : pExt->ChildAttachments)
+				{
+					if (!TAExt_ChildActive(pSlot.get()))
+						continue;
+
+					// An empty type filter counts every active slot.
+					if (!rule.CountPerSlotType.empty())
+					{
+						auto const pChildType = pSlot->Child->GetTechnoType();
+						if (!pChildType || std::find(rule.CountPerSlotType.begin(),
+							rule.CountPerSlotType.end(), pChildType) == rule.CountPerSlotType.end())
+							continue;
+					}
+
+					++slots;
+				}
+			}
+			count += slots * rule.CountPerSlot;
+		}
+
+		if (rule.CountPerAmmo != 0)
+		{
+			// Ammo is -1 for unlimited-ammo types; that must not scale anything.
+			int const ammo = pOwner->Ammo;
+			if (ammo > 0)
+				count += ammo * rule.CountPerAmmo;
+		}
+
+		if (rule.CountPerRank != 0)
+			count += static_cast<int>(pOwner->Veterancy.GetRemainingLevel()) * rule.CountPerRank;
+
+		if (rule.CountMax > 0)
+			count = std::min(count, rule.CountMax);
+
+		return std::max(count, 0);
+	}
+
+	// H1c -- which type this object should be. `cyclePos` is read AND advanced for
+	// Mode=cycle, which is why it comes in by reference from serialized state.
+	TechnoTypeClass* PickType(InstantSpawnRule const& rule, int& cyclePos)
+	{
+		if (rule.Types.empty())
+			return nullptr;
+
+		int const n = static_cast<int>(rule.Types.size());
+
+		switch (rule.Mode)
+		{
+		case TAExtSpawnMode::Random:
+			return rule.Types[ScenarioClass::Instance->Random.RandomRanged(0, n - 1)];
+
+		case TAExtSpawnMode::Weighted:
+		{
+			int total = 0;
+			for (int i = 0; i < n && i < static_cast<int>(rule.Weights.size()); ++i)
+				total += (rule.Weights[i] > 0) ? rule.Weights[i] : 0;
+
+			if (total <= 0)
+				return rule.Types[0]; // parser should have prevented this
+
+			int roll = ScenarioClass::Instance->Random.RandomRanged(1, total);
+			for (int i = 0; i < n && i < static_cast<int>(rule.Weights.size()); ++i)
+			{
+				int const w = (rule.Weights[i] > 0) ? rule.Weights[i] : 0;
+				roll -= w;
+				if (roll <= 0)
+					return rule.Types[i];
+			}
+			return rule.Types[n - 1];
+		}
+
+		case TAExtSpawnMode::Cycle:
+		{
+			if (cyclePos < 0 || cyclePos >= n)
+				cyclePos = 0;
+			auto const pType = rule.Types[cyclePos];
+			cyclePos = (cyclePos + 1) % n;
+			return pType;
+		}
+
+		default:
+			return nullptr; // All: the caller walks the whole list itself
+		}
+	}
+
 	// Place ONE object. Returns true if it is on the map afterwards.
 	//
 	// Every caller must assume this can destroy the object: Unlimbo failing is
@@ -220,6 +321,8 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 	// must be sized before any rule runs.
 	if (pExt->InstantSpawnLastFired.size() != rules.size())
 		pExt->InstantSpawnLastFired.assign(rules.size(), -1);
+	if (pExt->InstantSpawnCyclePos.size() != rules.size())
+		pExt->InstantSpawnCyclePos.assign(rules.size(), 0);
 
 	int const now = static_cast<int>(Unsorted::CurrentFrame);
 
@@ -286,28 +389,46 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 		// container-owned storage that a re-entrant path could touch.
 		auto const types = rule.Types;
 		auto const ruleCopy = rule;
+		int const count = EffectiveCount(pOwner, ruleCopy);
 
-		for (int n = 0; n < ruleCopy.Count; ++n)
+		// Placing one object, with the shared re-validation and anim handling.
+		auto const placeOneObject = [&](TechnoTypeClass* pSpawnType) -> bool
 		{
-			for (auto const pSpawnType : types)
+			if (!pSpawnType)
+				return true;
+
+			// Re-validate the invoker each time: a previous placement may have
+			// killed it (it can be standing in the cell we just filled).
+			if (!pOwner->IsAlive)
+				return false;
+
+			CellStruct used {};
+			if (PlaceOne(pOwner, pSpawnType, ruleCopy, anchor, used))
+				PlayAnim(ruleCopy.AnimPerObject, used, pAnimOwner, ruleCopy.AnimRequireClear);
+			else
+				PlayAnim(ruleCopy.AnimBlocked, anchor, pAnimOwner, ruleCopy.AnimRequireClear);
+
+			return true;
+		};
+
+		for (int n = 0; n < count; ++n)
+		{
+			if (ruleCopy.Mode == TAExtSpawnMode::All)
 			{
-				if (!pSpawnType)
-					continue;
-
-				// Re-validate the invoker each time: a previous placement may have
-				// killed it (it can be standing in the cell we just filled).
-				if (!pOwner->IsAlive)
+				// `all` means the WHOLE list per iteration, so Count=3 on a two-type
+				// list places six objects.
+				for (auto const pSpawnType : types)
+				{
+					if (!placeOneObject(pSpawnType))
+						return;
+				}
+			}
+			else
+			{
+				// The other modes place exactly one type per iteration. Cycle state is
+				// advanced through the ext, not the copy, so it persists.
+				if (!placeOneObject(PickType(ruleCopy, pExt->InstantSpawnCyclePos[i])))
 					return;
-
-				CellStruct used {};
-				if (PlaceOne(pOwner, pSpawnType, ruleCopy, anchor, used))
-				{
-					PlayAnim(ruleCopy.AnimPerObject, used, pAnimOwner, ruleCopy.AnimRequireClear);
-				}
-				else
-				{
-					PlayAnim(ruleCopy.AnimBlocked, anchor, pAnimOwner, ruleCopy.AnimRequireClear);
-				}
 			}
 		}
 	}
