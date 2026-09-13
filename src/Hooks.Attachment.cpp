@@ -104,6 +104,11 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	// A2: route any veterancy earned since the last tick to configured relatives.
 	TechnoExt::UpdateExperienceSharing(pThis);
 
+	// H2/H3: cull spawns above the current cap. Done from the synced tick rather
+	// than inside the SpawnManager's own update, because killing a spawn while the
+	// engine iterates SpawnedNodes is the re-entrancy hazard that crashed AI().
+	TechnoExt::UpdateSpawnCap(pThis);
+
 	return 0;
 }
 
@@ -127,6 +132,9 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 	// Experience.Multiplier is a TechnoType tag, so buildings need this too (they
 	// can earn veterancy); the sharing half is a no-op unless they are attached.
 	TechnoExt::UpdateExperienceSharing(pThis);
+
+	// H2/H3: buildings can carry a SpawnManager too, so they get the cull as well.
+	TechnoExt::UpdateSpawnCap(pThis);
 
 	return 0;
 }

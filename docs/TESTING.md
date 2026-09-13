@@ -443,3 +443,23 @@ and points straight at INI parsing.
 - [ ] Per-slot `AttachmentN.Facing.Mode` overrides the AttachmentType.
 - [ ] Online: two clients, an orbiting drone with `travel` — facings stay in
       lockstep (the heading is integer/table-based, no FPU).
+
+## Dynamic spawn count (H2/H3)
+
+- [ ] A carrier with NONE of the Spawns.* tags behaves exactly as vanilla.
+- [ ] `Spawns.Base=2`, `SpawnsNumber=6` — only 2 drones, and only 2 regenerate.
+- [ ] Attach a pod with `Spawns.Parent=2` — the cap rises and the extra drones
+      regenerate on their own without needing a re-dock.
+- [ ] Detach/destroy the pod — with `Spawns.Cull=yes` the surplus dies; with
+      `Spawns.Cull=no` it survives until killed but does not regenerate.
+- [ ] `Spawns.Parent` totals beyond `SpawnsNumber` clamp rather than overflow.
+- [ ] `Spawns.PerAmmo=1` — the drone count tracks ammo as it is spent/reloaded.
+- [ ] `Spawns.PerAmmo` on an `Ammo=-1` unit imposes no limit.
+- [ ] Per-slot `AttachmentN.Spawns.Parent` overrides the AttachmentType.
+- [ ] A building host with spawns gets the same treatment as a unit.
+- [ ] Cull while spawns are mid-flight/attacking does not crash (this is the
+      destruction re-entrancy path that crashed AI() — worth abusing).
+- [ ] Save/load with a capped carrier: the cap recomputes, nothing teleports or
+      double-spawns (the cap is derived, not serialized).
+- [ ] Online: two clients, cap changing as pods are destroyed — no desync (the
+      cull picks victims by node order, not iteration timing).

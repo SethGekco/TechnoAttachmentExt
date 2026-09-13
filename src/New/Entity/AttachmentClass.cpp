@@ -866,6 +866,12 @@ bool AttachmentClass::ResolveSpinsOrbit()
 		? this->Data->Spins_Orbit.Get() : this->GetType()->Spins_Orbit;
 }
 
+int AttachmentClass::ResolveSpawnsParent()
+{
+	return (this->Data && this->Data->Spawns_Parent.isset())
+		? this->Data->Spawns_Parent.Get() : this->GetType()->Spawns_Parent;
+}
+
 int AttachmentClass::ResolveFacingMode()
 {
 	return (this->Data && this->Data->Facing_Mode.isset())

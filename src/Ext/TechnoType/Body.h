@@ -66,6 +66,19 @@ public:
 		Valueable<int> PowerConsumer_House;
 		Valueable<int> PowerSource_House;
 
+		// ---- H2/H3: dynamic spawn count ----
+		// The engine allocates SpawnsNumber node slots once and never grows them, so
+		// these scale the number allowed to be ALIVE within that ceiling.
+		//   Spawns.Base=N    the count with no attachments. Unset = SpawnsNumber,
+		//                    i.e. the feature is inert and vanilla behaviour stands.
+		//   Spawns.PerAmmo=N >0 additionally clamps the cap to (Ammo * N)  [H3]
+		//   Spawns.Cull=yes  when the cap drops, kill the surplus. Without this the
+		//                    cap only gates regeneration and a lowered cap appears to
+		//                    do nothing until spawns die on their own.
+		Nullable<int> Spawns_Base;
+		Valueable<int> Spawns_PerAmmo;
+		Valueable<bool> Spawns_Cull;
+
 		// External-structure power for a PLAIN techno (unit or building), not just
 		// attachment children. Same tags as the AttachmentType version; an attached
 		// child's AttachmentType/slot settings override these.
@@ -141,6 +154,7 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Nullable<int> Spawns_Parent;
 			Nullable<int> Facing_Mode;
 			Nullable<int> Prerequisite_LostAction;
 			Nullable<int> Move_Radius;
@@ -198,6 +212,9 @@ public:
 			, PoweredBy_RequireAll { false }
 			, PoweredBy_RequirePower { true }
 			, PoweredBy_Range { 0 }
+			, Spawns_Base { }
+			, Spawns_PerAmmo { 0 }
+			, Spawns_Cull { true }
 			, PoweredBy_House { TAExtHouse_Owner }
 			, AttachmentData {}
 		{ }

@@ -545,3 +545,45 @@ Facing.Mode=travel   ; fly along the circle rather than through it
 > `Facing.Mode=travel` was incoherent, and the mode silently won. The key is
 > detected on load and logs a line pointing at the replacement.
 
+### Dynamic spawn count (`Spawns.*`)
+
+Scales how many spawns (Yuri-carrier style `Spawns=`) a unit may keep alive,
+based on its active attachments (H2) and its current ammo (H3).
+
+| Tag | Where | Default | Meaning |
+| --- | --- | --- | --- |
+| `Spawns.Parent` | AttachmentType, `AttachmentN.*` | `0` | While this child is active, the host may keep this many more spawns alive. Active slots sum. |
+| `Spawns.Base` | TechnoType | `SpawnsNumber` | The count with nothing attached. |
+| `Spawns.PerAmmo` | TechnoType | `0` | `>0` additionally clamps the cap to `Ammo * N`. |
+| `Spawns.Cull` | TechnoType | `yes` | When the cap drops, kill the surplus. |
+
+```ini
+[CARRIER]
+SpawnsNumber=6       ; the CEILING -- node slots allocated by the engine
+Spawns.Base=2        ; 2 drones with nothing attached
+Attachment0.Type=DronePod
+Attachment1.Type=DronePod
+
+[DronePod]
+Spawns.Parent=2      ; each active pod unlocks 2 more -> up to 6
+```
+
+**The cap works downward, and this is a hard engine constraint, not a choice.**
+`SpawnManagerClass` allocates its node slots once, in its constructor, from
+`SpawnsNumber` — the vector never grows, and attachments do not exist yet when
+that constructor runs. So set `SpawnsNumber` to the **maximum** and use
+`Spawns.Base` for the unattached count; attachments unlock the difference. A
+`Spawns.Parent` total that would exceed `SpawnsNumber` is clamped, not honoured.
+
+Two halves enforce it: regeneration is gated (a dead node will not come back
+while the host is at its cap, and returns on its own once the cap rises), and
+`Spawns.Cull` kills the surplus when the cap *drops*. Without the cull a lowered
+cap does nothing visible until spawns happen to die, which reads as a broken tag
+— so it defaults to on. Set `Spawns.Cull=no` if you would rather the fleet shrink
+only through attrition.
+
+`Spawns.PerAmmo` ignores unlimited ammo (`Ammo=-1`), which imposes no limit.
+
+Entirely inert unless one of these is set: with no `Spawns.Base`, no
+`Spawns.Parent` on any active slot and `Spawns.PerAmmo=0`, the cap returns "no
+limit" and the vanilla path runs untouched.

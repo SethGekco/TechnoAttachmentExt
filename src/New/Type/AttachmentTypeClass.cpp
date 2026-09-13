@@ -207,6 +207,7 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 			Debug::Log("[TAExt] [%s] Spins.Facing is no longer used -- "
 				"use Facing.Mode=spin (was yes) or Facing.Mode=parent (was no).\n", section);
 	}
+	this->Spawns_Parent.Read(exINI, section, "Spawns.Parent");
 	this->Move_Radius.Read(exINI, section, "Move.Radius");
 	this->Move_Range.Read(exINI, section, "Move.Range");
 	this->Move_Speed.Read(exINI, section, "Move.Speed");
@@ -328,6 +329,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Spawns_Parent)
 		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)
 		.Process(this->Move_Radius)

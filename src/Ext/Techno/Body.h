@@ -193,6 +193,12 @@ public:
 	static bool IsIntangibleAsChild(TechnoClass* pThis);
 	// G1: extra ammo CAPACITY this techno gets from its active attachment slots.
 	static int GetAmmoCapacityBonus(TechnoClass* pHost);
+	// H2/H3: how many spawns this techno may currently keep alive, or -1 for
+	// "unlimited / feature not configured" (the vanilla path, cost-free).
+	static int GetEffectiveSpawnCap(TechnoClass* pHost);
+	// Kill spawns above the cap. Runs from the synced tick, never from a hook
+	// inside the SpawnManager's own update.
+	static void UpdateSpawnCap(TechnoClass* pHost);
 	static bool IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep = true);
 	static bool AreRelatives(TechnoClass* pThis, TechnoClass* pThat);
 	static TechnoClass* GetTopLevelParent(TechnoClass* pThis);

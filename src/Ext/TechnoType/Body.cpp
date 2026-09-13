@@ -68,6 +68,10 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	}
 
 	// External-structure power on a plain TechnoType (unit or building).
+	this->Spawns_Base.Read(exINI, pSection, "Spawns.Base");
+	this->Spawns_PerAmmo.Read(exINI, pSection, "Spawns.PerAmmo");
+	this->Spawns_Cull.Read(exINI, pSection, "Spawns.Cull");
+
 	this->PoweredBy.Read(exINI, pSection, "PoweredBy");
 	this->PoweredBy_RequireAll.Read(exINI, pSection, "PoweredBy.RequireAll");
 	this->PoweredBy_RequirePower.Read(exINI, pSection, "PoweredBy.RequirePower");
@@ -290,6 +294,10 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<int> slotSpawnsParent;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spawns.Parent", static_cast<int>(i));
+		slotSpawnsParent.Read(exINI, pSection, tempBuffer);
+
 		Nullable<int> slotFacingMode;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Facing.Mode", static_cast<int>(i));
 		{
@@ -498,6 +506,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.Spawns_Parent               = slotSpawnsParent,
 			.Facing_Mode                   = slotFacingMode,
 			.Prerequisite_LostAction       = slotPrereqLostAction,
 			.Move_Radius                   = slotMoveRadius,
@@ -571,6 +580,9 @@ void TechnoTypeExt::ExtData::Serialize(T& Stm)
 		.Process(this->PoweredBy_RequireAll)
 		.Process(this->PoweredBy_RequirePower)
 		.Process(this->PoweredBy_Range)
+		.Process(this->Spawns_Base)
+		.Process(this->Spawns_PerAmmo)
+		.Process(this->Spawns_Cull)
 		.Process(this->PoweredBy_House)
 		.Process(this->AttachmentData)
 		;
@@ -654,6 +666,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Spawns_Parent)
 		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)
 		.Process(this->Move_Radius)

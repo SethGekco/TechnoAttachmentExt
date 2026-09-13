@@ -263,6 +263,16 @@ public:
 	// Deliberately NOT a Spins.* tag: it applies with no spin at all, to Slides or
 	// to a static FLH. RotationAdjust applies on top of every mode, so it doubles
 	// as a trim for models whose art doesn't point down its own forward axis.
+	// H2 -- spawn count driven by attachments. While this attachment's child is
+	// active, the HOST may field this many more spawns. Bonuses from several active
+	// slots sum. Exactly parallel to Ammo.Parent (G1).
+	//
+	// Note the ceiling: the engine allocates SpawnsNumber node slots once, at
+	// SpawnManager construction, and attachments do not exist yet at that point.
+	// So the bonus counts UP toward SpawnsNumber, it cannot exceed it. Set
+	// SpawnsNumber to the MAXIMUM and Spawns.Base to the unattached count.
+	Valueable<int> Spawns_Parent;
+
 	Valueable<int> Facing_Mode;
 
 	// What happens when a DYNAMIC prerequisite stops being met. Vanishing (limbo)
@@ -383,6 +393,7 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Spawns_Parent { 0 }
 		, Facing_Mode { 0 }
 		, Prerequisite_LostAction { 0 }
 		, Move_Radius { 0 }

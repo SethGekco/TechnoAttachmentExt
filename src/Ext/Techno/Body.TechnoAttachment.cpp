@@ -1,6 +1,7 @@
 #include "Body.h"
 
 #include <TechnoClass.h>
+#include <SpawnManagerClass.h>
 #include <Utilities/Debug.h>
 
 #include <Helpers/Cast.h>
@@ -343,6 +344,103 @@ bool TechnoExt::CanReachViaLeash(TechnoClass* pThis, AbstractClass* pTarget, int
 
 	// DistanceFrom is the same integer distance the engine's own range checks use.
 	return pThis->DistanceFrom(pTarget) <= pWeapon->WeaponType->Range + radius;
+}
+
+// ---------------------------------------------------------------------------
+// H2/H3 -- dynamic spawn count.
+//
+// SpawnManagerClass allocates its node slots ONCE, in the constructor, from
+// TechnoTypeClass::SpawnsNumber -- and attachments do not exist yet at that
+// point. The slot count therefore cannot be grown later, so the cap works
+// DOWNWARD from SpawnsNumber: the modder sets SpawnsNumber to the maximum and
+// Spawns.Base to the count with nothing attached.
+//
+// Returns -1 when nothing is configured, so the vanilla path pays nothing.
+// ---------------------------------------------------------------------------
+int TechnoExt::GetEffectiveSpawnCap(TechnoClass* pHost)
+{
+	if (!pHost)
+		return -1;
+
+	auto const pManager = pHost->SpawnManager;
+	if (!pManager)
+		return -1;
+
+	auto const pType = pHost->GetTechnoType();
+	auto const pTypeExt = pType ? TechnoTypeExt::ExtMap.Find(pType) : nullptr;
+	if (!pTypeExt)
+		return -1;
+
+	int const ceiling = pManager->SpawnCount;
+
+	// Attachment bonus: sum Spawns.Parent over every ACTIVE slot.
+	int bonus = 0;
+	if (auto const pExt = TechnoExt::ExtMap.Find(pHost))
+	{
+		for (auto const& pSlot : pExt->ChildAttachments)
+		{
+			if (TAExt_ChildActive(pSlot.get()))
+				bonus += pSlot->ResolveSpawnsParent();
+		}
+	}
+
+	bool const perAmmo = pTypeExt->Spawns_PerAmmo > 0;
+
+	// Nothing configured anywhere -> no limit, and no per-frame work.
+	if (!pTypeExt->Spawns_Base.isset() && bonus == 0 && !perAmmo)
+		return -1;
+
+	int cap = pTypeExt->Spawns_Base.Get(ceiling) + bonus;
+
+	// H3: additionally limited by ammo on hand.
+	if (perAmmo)
+	{
+		int const ammo = pHost->Ammo;
+		if (ammo >= 0) // -1 is unlimited ammo; it imposes no limit
+			cap = std::min(cap, ammo * pTypeExt->Spawns_PerAmmo);
+	}
+
+	return std::clamp(cap, 0, ceiling);
+}
+
+void TechnoExt::UpdateSpawnCap(TechnoClass* pHost)
+{
+	int const cap = TechnoExt::GetEffectiveSpawnCap(pHost);
+	if (cap < 0)
+		return; // not configured
+
+	auto const pType = pHost->GetTechnoType();
+	auto const pTypeExt = pType ? TechnoTypeExt::ExtMap.Find(pType) : nullptr;
+	if (!pTypeExt || !pTypeExt->Spawns_Cull)
+		return; // gating regeneration only; existing spawns are left to die naturally
+
+	auto const pManager = pHost->SpawnManager;
+	if (!pManager)
+		return;
+
+	// Kill the surplus from the END of the node list, so the choice of victim is a
+	// function of synced state (node order) and not of iteration timing -- the same
+	// spawn dies on every peer.
+	int alive = pManager->CountAliveSpawns();
+	if (alive <= cap)
+		return;
+
+	for (int i = pManager->SpawnedNodes.Count - 1; i >= 0 && alive > cap; --i)
+	{
+		auto const pNode = pManager->SpawnedNodes.GetItem(i);
+		if (!pNode)
+			continue;
+
+		// Re-read Unit each iteration: killing one spawn runs destruction logic that
+		// can invalidate other nodes. (See the AI() null-Child crash -- an engine
+		// call that destroys an object re-enters our hooks and clears pointers.)
+		auto const pUnit = pNode->Unit;
+		if (!pUnit || !pUnit->IsAlive)
+			continue;
+
+		TechnoExt::Kill(pUnit, pHost);
+		--alive;
+	}
 }
 
 bool TechnoExt::IsIntangibleAsChild(TechnoClass* pThis)
