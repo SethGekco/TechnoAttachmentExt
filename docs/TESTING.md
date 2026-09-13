@@ -488,3 +488,18 @@ and points straight at INI parsing.
 - [ ] Spawning into a full/blocked area does not crash or leak objects.
 - [ ] Save/load mid-cooldown: the cooldown is preserved, no free activation.
 - [ ] Online: two clients, `Chance` and `Facing=random` in play — no desync.
+
+### Animations (H1b)
+
+- [ ] `.Anim.Source` plays on the spawner, `.Anim.Dest` once at the location.
+- [ ] `.Anim.PerObject` plays once per placed object.
+- [ ] With `OnBlocked=nearest` relocating an object, `.Anim.PerObject` plays where
+      it LANDED, not at the anchor.
+- [ ] `.Anim.Blocked` plays when placement fails (try a fully walled-in cell).
+- [ ] `.Anim.Source` still plays when every placement fails.
+- [ ] A two-entry anim list visibly varies between activations.
+- [ ] `.Anim.RequireClear=yes` suppresses the anim on occupied cells.
+- [ ] `.Anim.Owner=Neutral` on an anim with `MakeInfantry=` gives the infantry to
+      the neutral house, not the spawner's.
+- [ ] A bad AnimType name logs and is skipped — the spawn still happens.
+- [ ] Online: anim lists + `MakeInfantry=` — no desync (anims are synced state).

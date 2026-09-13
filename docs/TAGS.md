@@ -645,6 +645,35 @@ implemented yet, rather than being silently ignored. The engine does not record
 *why* an object is going away, so each reason needs its own verified
 discriminator; see `docs/DESIGN-H1-InstantSpawn.md` §3.2.
 
+#### Animations (H1b)
+
+| Tag | Plays |
+| --- | --- |
+| `.Anim.Source` | on the spawner |
+| `.Anim.Dest` | at the resolved location, once per activation |
+| `.Anim.PerObject` | at each placed object's own cell |
+| `.Anim.Blocked` | at the anchor when a placement fails |
+| `.Anim.Owner` | `Invoker` (default) \| `Civilian` \| `Special` \| `Neutral` |
+| `.Anim.RequireClear` | `no` — when `yes`, only play where nothing is standing |
+
+Each of the four is a **list**, and one entry is picked per activation.
+
+```ini
+InstantSpawn.Anim.Source=GUNFIRE
+InstantSpawn.Anim.Dest=TELEPORT1,TELEPORT2   ; one is picked
+InstantSpawn.Anim.PerObject=PUFF
+InstantSpawn.Anim.Blocked=FIZZLE
+```
+
+`.Anim.Source` plays even if every placement then fails — it represents the act,
+not the result. `.Anim.PerObject` follows the object, so with `OnBlocked=nearest`
+it plays where the object actually landed, not at the anchor.
+
+`.Anim.Owner` matters for more than remap colour: it is what an AnimType with
+`MakeInfantry=` hands its new infantry to. Which is also why these animations are
+**synced game state** rather than decoration — the pick uses the synced RNG, and
+the anims are created identically on every peer.
+
 #### Placement
 
 `OnBlocked=nearest` searches outward in a fixed spiral up to `.Range` cells and
