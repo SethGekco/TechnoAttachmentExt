@@ -516,6 +516,16 @@ and points straight at INI parsing.
 - [ ] `Count.PerAmmo=1` — tracks ammo; an `Ammo=-1` unit is unaffected.
 - [ ] `Count.PerRank=1` — a veteran spawns one more, an elite two more.
 - [ ] `Count.Max=6` clamps a total that would otherwise exceed it.
+- [ ] `Max=4` with `Count=2` — spawns 2, then 2, then STOPS at four alive.
+- [ ] Kill one of the four — the next activation spawns exactly one replacement.
+- [ ] `Max` with `Mode=all` and a two-type list does not overshoot the cap.
+- [ ] Two rules on one unit have independent `Max` counts.
+- [ ] `Max=0` (default) is uncapped and does not accumulate memory over a long
+      game (spawn thousands and watch it stay flat).
+- [ ] **Save/load with `Max` objects alive** — the cap still counts them; it must
+      not allow a fresh full batch.
+- [ ] Spawned objects killed by any means (combat, crushed, sold, grinder) free
+      their slot — no permanent leak of cap headroom.
 - [ ] Negative terms cannot spawn a negative/absurd number.
 - [ ] `Mode=all`, `Count=3`, two types — SIX objects.
 - [ ] `Mode=random`, `Count=3`, two types — THREE objects, mixed types.

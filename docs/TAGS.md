@@ -686,7 +686,8 @@ child has no cell of its own yet.
 | `.Count.PerSlotType` | none | only count slots holding these child types |
 | `.Count.PerAmmo` | `0` | + N per round of current ammo |
 | `.Count.PerRank` | `0` | + N per veterancy rank (rookie 0 / vet 1 / elite 2) |
-| `.Count.Max` | `0` | `0` = uncapped; else clamp the computed total |
+| `.Count.Max` | `0` | `0` = uncapped; else clamp **one activation** |
+| `.Max` | `0` | `0` = uncapped; else max objects from this rule **alive at once** |
 | `.Mode` | `all` | `all` \| `random` \| `weighted` \| `cycle` |
 | `.Weights` | all `1` | for `Mode=weighted` |
 
@@ -706,6 +707,12 @@ so `Count=3` gives three objects.
 
 `Count.PerAmmo` ignores `Ammo=-1` — unlimited ammo scales nothing. Negative
 scaling terms are allowed but the total is clamped at zero.
+
+`.Count.Max` and `.Max` are different caps: `Count.Max` limits a single
+activation, `.Max` is a standing population limit across activations. A rule with
+`.Max=4` and `Count=2` spawns two at a time until four are alive, then stops
+until some die. Objects are counted per rule, so two rules on the same unit have
+independent caps.
 
 `Mode=cycle` remembers its position **per unit** and the position is saved, so a
 save/load does not restart the cycle. `Mode=weighted` pads short `Weights` lists
