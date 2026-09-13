@@ -734,10 +734,29 @@ DEFINE_HOOK(0x717094, TechnoTypeClass_Save_Suffix_TAExt, 0x5)
 	return 0;
 }
 
+// Defined in Hooks.AttachedSelection.cpp. Idempotent (guarded by its own flag).
+extern void TAExt_InstallSelectWrappers();
+
 DEFINE_HOOK(0x716123, TechnoTypeClass_LoadFromINI_TAExt, 0x5)
 {
 	GET(TechnoTypeClass*, pItem, EBP);
 	GET_STACK(CCINIClass*, pINI, 0x380);
 	TechnoTypeExt::ExtMap.LoadFromINI(pItem, pINI);
+
+	// Install the Select vtable wrappers here rather than from ExeRun.
+	//
+	// ExeRun is driven by DEFINE_HOOK(0x7CD810), an address that nearly every
+	// Phobos-derived standalone DLL hooks. In Rex's 25-DLL setup ours never
+	// fired -- proven by the total absence of the unconditional install log
+	// line, while this DLL's other log lines appeared normally. Anything that
+	// depended on ExeRun (Patch::ApplyStatic, so every static/vtable patch,
+	// including the old DEFINE_FUNCTION_JUMP PassSelection wrappers) was
+	// silently dead. DEFINE_HOOK breakpoints are applied by Syringe itself and
+	// do not depend on ExeRun, so this hook is a reliable place to do it.
+	//
+	// Runs per type, but the install guards itself and is a single bool test
+	// after the first call. Rules parsing is well before any Select can occur.
+	TAExt_InstallSelectWrappers();
+
 	return 0;
 }
