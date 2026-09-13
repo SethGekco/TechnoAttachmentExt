@@ -76,6 +76,9 @@ public:
 		//                    cap only gates regeneration and a lowered cap appears to
 		//                    do nothing until spawns die on their own.
 		Nullable<int> Spawns_Base;
+		// H1a instant spawn rules on a plain TechnoType (see InstantSpawnRule.h).
+		std::vector<InstantSpawnRule> InstantSpawnRules;
+
 		Valueable<int> Spawns_PerAmmo;
 		Valueable<bool> Spawns_Cull;
 
@@ -213,6 +216,7 @@ public:
 			, PoweredBy_RequirePower { true }
 			, PoweredBy_Range { 0 }
 			, Spawns_Base { }
+			, InstantSpawnRules { }
 			, Spawns_PerAmmo { 0 }
 			, Spawns_Cull { true }
 			, PoweredBy_House { TAExtHouse_Owner }

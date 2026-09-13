@@ -68,6 +68,9 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	}
 
 	// External-structure power on a plain TechnoType (unit or building).
+	this->InstantSpawnRules.clear();
+	TAExt_ReadInstantSpawnRules(pINI, pSection, this->InstantSpawnRules);
+
 	this->Spawns_Base.Read(exINI, pSection, "Spawns.Base");
 	this->Spawns_PerAmmo.Read(exINI, pSection, "Spawns.PerAmmo");
 	this->Spawns_Cull.Read(exINI, pSection, "Spawns.Cull");

@@ -109,6 +109,10 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	// engine iterates SpawnedNodes is the re-entrancy hazard that crashed AI().
 	TechnoExt::UpdateSpawnCap(pThis);
 
+	// H1a: the timer trigger. Frame-derived inside, so this is a cheap no-op for
+	// anything without a timer rule.
+	TAExt_RunInstantSpawns(pThis, TAExtSpawn_Timer, -1);
+
 	return 0;
 }
 
@@ -135,6 +139,10 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 
 	// H2/H3: buildings can carry a SpawnManager too, so they get the cull as well.
 	TechnoExt::UpdateSpawnCap(pThis);
+
+	// H1a: the timer trigger. Frame-derived inside, so this is a cheap no-op for
+	// anything without a timer rule.
+	TAExt_RunInstantSpawns(pThis, TAExtSpawn_Timer, -1);
 
 	return 0;
 }

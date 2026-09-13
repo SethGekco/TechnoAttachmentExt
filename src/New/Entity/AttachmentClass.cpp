@@ -684,6 +684,13 @@ void AttachmentClass::CreateChild()
 		if (const auto pTechno = abstract_cast<TechnoClass*>(pChildType->CreateObject(this->Parent->Owner)))
 		{
 			this->AttachChild(pTechno);
+
+			// H1a `created` trigger. Fired AFTER the attach so the new child already
+			// has its ParentAttachment and its AttachmentType rules are reachable --
+			// and re-checked, because AttachChild places the object and placement can
+			// destroy it.
+			if (this->Child == pTechno && pTechno->IsAlive)
+				TAExt_RunInstantSpawns(pTechno, TAExtSpawn_Created, -1);
 		}
 		else
 		{

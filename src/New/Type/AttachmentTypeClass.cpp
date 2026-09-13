@@ -207,6 +207,9 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 			Debug::Log("[TAExt] [%s] Spins.Facing is no longer used -- "
 				"use Facing.Mode=spin (was yes) or Facing.Mode=parent (was no).\n", section);
 	}
+	this->InstantSpawnRules.clear();
+	TAExt_ReadInstantSpawnRules(pINI, section, this->InstantSpawnRules);
+
 	this->Spawns_Parent.Read(exINI, section, "Spawns.Parent");
 	this->Move_Radius.Read(exINI, section, "Move.Radius");
 	this->Move_Range.Read(exINI, section, "Move.Range");

@@ -8,6 +8,8 @@
 
 #include <TechnoTypeClass.h>
 
+#include <New/Type/InstantSpawnRule.h>
+
 class BuildingTypeClass;
 class HouseTypeClass;
 
@@ -188,6 +190,9 @@ public:
 		int MaxRank = -1;
 	};
 	std::vector<ConvertRule> ConvertRules;
+
+	// H1a instant spawn. INI-derived, identical on every peer -> not serialized.
+	std::vector<InstantSpawnRule> InstantSpawnRules;
 	// Carry state across a conversion. Health is carried as a PERCENTAGE, so the
 	// replacement keeps the same damage ratio even with a different Strength.
 	Valueable<bool> Convert_KeepHealth;
@@ -388,6 +393,7 @@ public:
 		, Decorative { false }
 		, ExperienceRules { }
 		, ConvertRules { }
+		, InstantSpawnRules { }
 		, Convert_KeepHealth { true }
 		, Convert_KeepVeterancy { true }
 		, Spins { false }

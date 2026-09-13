@@ -17,6 +17,10 @@
 
 class WeaponTypeClass;
 
+// H1a instant spawn (Hooks.InstantSpawn.cpp). Runs every rule on pOwner that
+// listens for `trigger`; weaponIndex is only meaningful for the fire trigger.
+void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex);
+
 // NOTE: AttachmentRelation now lives in New/Type/AttachmentTypeClass.h so the
 // INI parser shim (AttachmentParsers.h) can see its enumerators without pulling
 // in this header (which would be circular).
@@ -83,6 +87,11 @@ public:
 		// from its FLH anchor, in WORLD space. Unlike Spins/Slides/Bobs this is NOT
 		// derivable from the frame counter -- it eases toward a goal -- so it MUST be
 		// serialized or a save/load teleports every attachment back to its anchor.
+		// H1a: frame each instant-spawn rule last fired, indexed by its position in
+		// the combined TechnoType+AttachmentType rule list. -1 = never. Serialized so
+		// a save/load does not hand every rule a free activation.
+		std::vector<int> InstantSpawnLastFired;
+
 		CoordStruct AttachmentMoveOffset;
 
 		float LastVeterancy;
@@ -96,6 +105,7 @@ public:
 			, PendingExitScatter { false }
 			, DeactivationReasons { 0 }
 			, NetworkPowered { false }
+			, InstantSpawnLastFired { }
 			, AttachmentMoveOffset { }
 			, LastVeterancy { 0.0f }
 			, LastVeterancyValid { false }
