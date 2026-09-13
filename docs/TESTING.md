@@ -463,3 +463,28 @@ and points straight at INI parsing.
       double-spawns (the cap is derived, not serialized).
 - [ ] Online: two clients, cap changing as pods are destroyed — no desync (the
       cull picks victims by node order, not iteration timing).
+
+## Instant spawn (H1a)
+
+- [ ] `On=fire` — objects appear each time the unit fires.
+- [ ] `On.Weapon=1` — only the secondary weapon triggers it.
+- [ ] `On=timer`, `On.Rate=90` — a steady trickle, and `On.Rate` unset logs an
+      error and drops the timer trigger rather than firing every frame.
+- [ ] `On=created` on an AttachmentType — fires when the child is created.
+- [ ] `On=destroyed` — fires when the unit is KILLED...
+- [ ] ...and does NOT fire when the unit is SOLD, undeployed or transformed.
+- [ ] `On.Reason=sold` logs "not implemented yet" and does not silently do nothing.
+- [ ] `At=target` places at the target; with no target and `NoTarget=skip`
+      nothing happens; with `NoTarget=self` it places on the firer.
+- [ ] `Count=3` with a two-type list places six objects.
+- [ ] `OnBlocked=nearest` fills outward when the exact cell is occupied;
+      `Range=0` behaves like `skip`.
+- [ ] `Owner=Neutral` — the spawned objects are hostile to nobody.
+- [ ] `Facing=random` varies; `Facing=N` is consistent; `Facing=64` works.
+- [ ] `Cooldown=60` genuinely throttles a `fire` rule on a fast-firing weapon.
+- [ ] `Chance=50` roughly halves activations.
+- [ ] Unindexed and `[0]` groups BOTH fire (they are separate rules).
+- [ ] A TechnoType rule and an AttachmentType rule on the same child BOTH fire.
+- [ ] Spawning into a full/blocked area does not crash or leak objects.
+- [ ] Save/load mid-cooldown: the cooldown is preserved, no free activation.
+- [ ] Online: two clients, `Chance` and `Facing=random` in play — no desync.

@@ -587,3 +587,67 @@ only through attrition.
 Entirely inert unless one of these is set: with no `Spawns.Base`, no
 `Spawns.Parent` on any active slot and `Spawns.PerAmmo=0`, the cap returns "no
 limit" and the vanilla path runs untouched.
+
+### Instant spawn (`InstantSpawn.*`) — H1a
+
+Place objects immediately at the owner or its target when something happens.
+Distinct from `Spawns=`, which launches aircraft from a bay over time.
+
+Rules come in **groups**: an unindexed group plus contiguous `[0]`, `[1]`, …
+The unindexed group and `[0]` are **separate rules**, not aliases.
+
+```ini
+[SOMEUNIT]
+InstantSpawn=DRON,DRON       ; what to place
+InstantSpawn.On=fire         ; fire | timer | created | destroyed (comma list)
+InstantSpawn.At=target       ; self (default) | target
+InstantSpawn.Count=1
+InstantSpawn.Cooldown=60
+InstantSpawn.Chance=50
+
+InstantSpawn[0]=TERROR       ; a second, independent rule
+InstantSpawn.On[0]=destroyed
+```
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `InstantSpawn` | none | TechnoTypes to place |
+| `.On` | `fire` | `fire` \| `timer` \| `created` \| `destroyed` |
+| `.On.Weapon` | `-1` | with `fire`, only this weapon index (`-1` = any) |
+| `.On.Rate` | `0` | with `timer`, frames between activations (required) |
+| `.On.Reason` | `combat` | with `destroyed`, which removals count — see below |
+| `.At` | `self` | `self` \| `target` |
+| `.NoTarget` | `skip` | `At=target` with no target: `skip` \| `self` |
+| `.Count` | `1` | how many times to place the whole list |
+| `.OnBlocked` | `nearest` | `nearest` \| `skip` \| `stack` |
+| `.Range` | `1` | how far `nearest` may search |
+| `.Owner` | `Invoker` | `Invoker` \| `Civilian` \| `Special` \| `Neutral` |
+| `.Facing` | owner's | `N NE E SE S SW W NW` \| `random` \| `0`-`255` |
+| `.Mission` | type default | starting mission index |
+| `.Cooldown` | `0` | frames before this rule may fire again |
+| `.Chance` | `100` | percent, synced RNG |
+
+Available on **TechnoType** and **AttachmentType**. Both lists run — they are
+**additive**, not overriding, because these are whole rules rather than single
+values. For the same reason there is no `AttachmentN.InstantSpawn*`: whole rule
+lists are AttachmentType-scoped in this DLL, exactly as `ExperienceTo` and
+`Convert` already are.
+
+#### `.On.Reason` — only `combat` works today
+
+`destroyed` means **killed by damage**, and that is the only removal reason
+implemented. Selling, undeploying, transforming and script removal do not fire
+it — so "bursts into a swarm" will not trigger when you sell the unit.
+
+The other seventeen designed reasons (`crushed`, `sold`, `erased`, `absorbed`,
+`deployed`, …) are **parsed and rejected with a log line** saying they are not
+implemented yet, rather than being silently ignored. The engine does not record
+*why* an object is going away, so each reason needs its own verified
+discriminator; see `docs/DESIGN-H1-InstantSpawn.md` §3.2.
+
+#### Placement
+
+`OnBlocked=nearest` searches outward in a fixed spiral up to `.Range` cells and
+takes the first cell the type can occupy. `skip` places nothing if the exact cell
+is unavailable. `stack` places regardless — note that a placement the engine
+rejects **destroys** the object, so `stack` can silently produce nothing.
