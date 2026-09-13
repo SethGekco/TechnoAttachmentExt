@@ -1088,6 +1088,18 @@ void AttachmentClass::ConvertChildTo(TechnoTypeClass* pNewType)
 void AttachmentClass::AI()
 {
 	TAEXT_DIAG_COUNT("AttachmentClass::AI");
+
+	// Parent is nullable BY DESIGN: InvalidatePointer clears it when the host techno
+	// is removed. AI() then dereferences it about sixteen times (the first being
+	// Parent->InLimbo below), so one early-out is far cleaner than sixteen guards.
+	// An attachment with no host has nothing to position against anyway.
+	//
+	// Defensive, unlike the Child re-check further down: this one has NOT been seen
+	// in a dump. It is the same class of bug and reachable by design, so it is worth
+	// closing, but it is not the crash that was being investigated.
+	if (!this->Parent)
+		return;
+
 	AttachmentTypeClass* pType = this->GetType();
 
 	if (!this->Child)
@@ -1169,6 +1181,18 @@ void AttachmentClass::AI()
 			this->Unlimbo();
 		else if (!this->Child->InLimbo && hide)
 			this->Limbo();
+
+		// RE-CHECK: the two calls above reach into the engine (TechnoClass::Unlimbo),
+		// and placing an object can destroy it -- at which point our own destruction
+		// hook runs ChildDestroyed() and clears this->Child re-entrantly, underneath
+		// us. The guard at the top of this block is stale from here on.
+		//
+		// Dump-confirmed, ten identical snapshots: C0000005 READ at 0x00000081
+		// (TechnoClass::InLimbo) in AI(), immediately after the inlined Unlimbo().
+		// It correlated with "something just died" because a death is what changes
+		// cell occupancy and makes the child's placement fail.
+		if (!this->Child)
+			return;
 
 		// Don't position/sync a hidden (limbo'd) child.
 		if (this->Child->InLimbo)
