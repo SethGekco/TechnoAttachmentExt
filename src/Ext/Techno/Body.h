@@ -95,6 +95,19 @@ public:
 		// restarts every cycle at the first entry.
 		std::vector<int> InstantSpawnCyclePos;
 
+		// H1e: objects currently alive from each InstantSpawn rule, as two parallel
+		// flat vectors (object, owning rule index) rather than a vector-of-vectors,
+		// because the savegame layer handles std::vector<T> but not nested ones.
+		//
+		// These hold RAW TechnoClass* across frames, which is only safe because
+		// ExtContainer overrides InvalidateExtDataIgnorable (see below) so
+		// InvalidatePointer actually runs and scrubs them before the object is
+		// freed. Without that override these would be dangling pointers, and an
+		// IsAlive check would not save us -- reading that flag off freed memory is
+		// already undefined.
+		std::vector<TechnoClass*> InstantSpawnLive;
+		std::vector<int> InstantSpawnLiveRule;
+
 		CoordStruct AttachmentMoveOffset;
 
 		float LastVeterancy;
@@ -110,6 +123,8 @@ public:
 			, NetworkPowered { false }
 			, InstantSpawnLastFired { }
 			, InstantSpawnCyclePos { }
+			, InstantSpawnLive { }
+			, InstantSpawnLiveRule { }
 			, AttachmentMoveOffset { }
 			, LastVeterancy { 0.0f }
 			, LastVeterancyValid { false }

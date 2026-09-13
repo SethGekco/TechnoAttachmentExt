@@ -200,6 +200,7 @@ void TAExt_ReadInstantSpawnRules(CCINIClass* pINI, const char* section,
 		rule.CountPerAmmo = pINI->ReadInteger(section, sub("Count.PerAmmo"), rule.CountPerAmmo);
 		rule.CountPerRank = pINI->ReadInteger(section, sub("Count.PerRank"), rule.CountPerRank);
 		rule.CountMax = pINI->ReadInteger(section, sub("Count.Max"), rule.CountMax);
+		rule.Max = pINI->ReadInteger(section, sub("Max"), rule.Max);
 
 		{
 			char typeBuf[256];

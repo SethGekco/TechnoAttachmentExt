@@ -22,6 +22,18 @@ TechnoExt::ExtData::~ExtData() = default;
 
 void TechnoExt::ExtData::InvalidatePointer(void* ptr, bool bRemoved)
 {
+	// H1e: drop any live-spawn record for the object going away, BEFORE it is
+	// freed. The two vectors are parallel, so they must be erased in lockstep.
+	for (size_t i = this->InstantSpawnLive.size(); i-- > 0; )
+	{
+		if (this->InstantSpawnLive[i] == ptr)
+		{
+			this->InstantSpawnLive.erase(this->InstantSpawnLive.begin() + i);
+			if (i < this->InstantSpawnLiveRule.size())
+				this->InstantSpawnLiveRule.erase(this->InstantSpawnLiveRule.begin() + i);
+		}
+	}
+
 	for (auto const& pAttachment : this->ChildAttachments)
 		pAttachment->InvalidatePointer(ptr);
 
@@ -40,6 +52,8 @@ void TechnoExt::ExtData::Serialize(T& Stm)
 		.Process(this->DeactivationReasons)
 		.Process(this->InstantSpawnLastFired)
 		.Process(this->InstantSpawnCyclePos)
+		.Process(this->InstantSpawnLive)
+		.Process(this->InstantSpawnLiveRule)
 		.Process(this->AttachmentMoveOffset)
 		.Process(this->LastVeterancy)
 		.Process(this->LastVeterancyValid)

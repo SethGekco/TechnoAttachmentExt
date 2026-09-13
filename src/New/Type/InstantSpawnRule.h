@@ -96,6 +96,11 @@ struct InstantSpawnRule
 	int CountPerRank = 0;   // + N per veterancy rank (rookie 0 / vet 1 / elite 2)
 	int CountMax = 0;       // 0 = uncapped; else clamp the computed total
 
+	// H1e -- max objects from THIS rule alive at once (0 = uncapped). Unlike
+	// Count.Max, which clamps a single activation, this is a standing population
+	// cap across activations, so it needs a live-object list per instance.
+	int Max = 0;
+
 	// H1c -- which payload. `all` places the whole list Count times over; the
 	// others place ONE type per object.
 	TAExtSpawnMode Mode = TAExtSpawnMode::All;

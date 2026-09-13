@@ -129,6 +129,37 @@ namespace
 		return false;
 	}
 
+	// H1e -- drop records whose object has died, and count what remains for one
+	// rule. Purging here (rather than on death) keeps the cost proportional to
+	// activations instead of to every death in the game.
+	//
+	// Reading IsAlive is safe ONLY because InvalidatePointer scrubs entries before
+	// the object is freed -- see TechnoExt::ExtData::InstantSpawnLive. A dead but
+	// not-yet-freed object is still valid memory; a freed one is never in the list.
+	int PurgeAndCountLive(TechnoExt::ExtData* pExt, int ruleIndex)
+	{
+		int count = 0;
+
+		for (size_t i = pExt->InstantSpawnLive.size(); i-- > 0; )
+		{
+			auto const pObj = pExt->InstantSpawnLive[i];
+			bool const dead = !pObj || !pObj->IsAlive || pObj->InLimbo;
+
+			if (dead)
+			{
+				pExt->InstantSpawnLive.erase(pExt->InstantSpawnLive.begin() + i);
+				if (i < pExt->InstantSpawnLiveRule.size())
+					pExt->InstantSpawnLiveRule.erase(pExt->InstantSpawnLiveRule.begin() + i);
+				continue;
+			}
+
+			if (i < pExt->InstantSpawnLiveRule.size() && pExt->InstantSpawnLiveRule[i] == ruleIndex)
+				++count;
+		}
+
+		return count;
+	}
+
 	// H1d -- attach the new object into one of the spawner's declared slots.
 	//
 	// Deliberately does NOT place the object: AttachChild performs the locomotor
@@ -139,7 +170,8 @@ namespace
 	// because the OnFull=replace path destroys a child -- which runs destruction
 	// logic that re-enters our hooks. A pointer taken before that is not safe to
 	// use after it.
-	bool AttachOne(TechnoClass* pInvoker, TechnoTypeClass* pType, InstantSpawnRule const& rule)
+	bool AttachOne(TechnoClass* pInvoker, TechnoTypeClass* pType, InstantSpawnRule const& rule,
+		TechnoClass*& spawned)
 	{
 		auto pExt = TechnoExt::ExtMap.Find(pInvoker);
 		if (!pExt)
@@ -211,6 +243,7 @@ namespace
 			return false;
 		}
 
+		spawned = pObject;
 		return true;
 	}
 
@@ -325,7 +358,8 @@ namespace
 	// Every caller must assume this can destroy the object: Unlimbo failing is
 	// destructive, and the destruction re-enters our hooks.
 	bool PlaceOne(TechnoClass* pInvoker, TechnoTypeClass* pType,
-		InstantSpawnRule const& rule, CellStruct const& anchor, CellStruct& usedCell)
+		InstantSpawnRule const& rule, CellStruct const& anchor, CellStruct& usedCell,
+		TechnoClass*& spawned)
 	{
 		auto const pOwner = ResolveSpawnOwner(pInvoker, rule.Owner);
 		if (!pOwner)
@@ -368,6 +402,7 @@ namespace
 			pObject->QueueMission(static_cast<Mission>(rule.Mission), false);
 
 		usedCell = cell;
+		spawned = pObject;
 		return true;
 	}
 }
@@ -513,7 +548,39 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 		// container-owned storage that a re-entrant path could touch.
 		auto const types = rule.Types;
 		auto const ruleCopy = rule;
-		int const count = EffectiveCount(pOwner, ruleCopy);
+		int count = EffectiveCount(pOwner, ruleCopy);
+
+		// H1e: a standing population cap for this rule. Purge first so objects that
+		// died since the last activation free up their slots.
+		if (ruleCopy.Max > 0)
+		{
+			int const live = PurgeAndCountLive(pExt, static_cast<int>(i));
+			int const headroom = ruleCopy.Max - live;
+			if (headroom <= 0)
+				continue; // at the cap; the cooldown was already stamped above
+
+			// `all` mode places the whole list per iteration, so headroom has to be
+			// converted into iterations rather than objects, or a two-type list
+			// would overshoot by up to one list-length.
+			int const perIteration = (ruleCopy.Mode == TAExtSpawnMode::All)
+				? static_cast<int>(types.size()) : 1;
+
+			count = std::min(count, std::max(headroom / std::max(perIteration, 1), 0));
+			if (count <= 0)
+				continue;
+		}
+
+		// H1e: remember what this rule produced, so the cap can count it later.
+		// Only recorded when the rule actually has a cap -- an uncapped rule must
+		// not accumulate an unbounded list for no reason.
+		auto const Register = [&](TechnoClass* pSpawned)
+		{
+			if (!pSpawned || ruleCopy.Max <= 0)
+				return;
+
+			pExt->InstantSpawnLive.push_back(pSpawned);
+			pExt->InstantSpawnLiveRule.push_back(static_cast<int>(i));
+		};
 
 		// Placing one object, with the shared re-validation and anim handling.
 		auto const placeOneObject = [&](TechnoTypeClass* pSpawnType) -> bool
@@ -526,14 +593,18 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 			if (!pOwner->IsAlive)
 				return false;
 
+			TechnoClass* spawned = nullptr;
+
 			if (ruleCopy.Attach)
 			{
 				// The child has no cell of its own yet -- the attachment AI positions
 				// it next tick -- so its anims play on the spawner.
-				if (AttachOne(pOwner, pSpawnType, ruleCopy))
+				if (AttachOne(pOwner, pSpawnType, ruleCopy, spawned))
 					PlayAnim(ruleCopy.AnimPerObject, pOwner->GetMapCoords(), pAnimOwner, ruleCopy.AnimRequireClear);
 				else
 					PlayAnim(ruleCopy.AnimBlocked, pOwner->GetMapCoords(), pAnimOwner, ruleCopy.AnimRequireClear);
+
+				Register(spawned);
 
 				// Attaching can destroy things (OnFull=replace); re-check the invoker
 				// before the next iteration touches it.
@@ -541,11 +612,12 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 			}
 
 			CellStruct used {};
-			if (PlaceOne(pOwner, pSpawnType, ruleCopy, anchor, used))
+			if (PlaceOne(pOwner, pSpawnType, ruleCopy, anchor, used, spawned))
 				PlayAnim(ruleCopy.AnimPerObject, used, pAnimOwner, ruleCopy.AnimRequireClear);
 			else
 				PlayAnim(ruleCopy.AnimBlocked, anchor, pAnimOwner, ruleCopy.AnimRequireClear);
 
+			Register(spawned);
 			return true;
 		};
 
