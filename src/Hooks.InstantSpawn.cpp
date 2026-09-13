@@ -22,6 +22,8 @@
 // free-cell search is a fixed spiral, so ties resolve identically on every peer.
 
 #include <TechnoClass.h>
+#include <MapClass.h>
+#include <CellClass.h>
 #include <FootClass.h>
 #include <HouseClass.h>
 #include <ScenarioClass.h>
@@ -68,8 +70,8 @@ namespace
 					CellStruct cell { static_cast<short>(origin.X + dx),
 					                  static_cast<short>(origin.Y + dy) };
 
-					if (MapClass::Instance->IsWithinUsableArea(cell, false)
-						&& MapClass::Instance->GetCellAt(cell)->IsClearToMove(
+					if (MapClass::Instance.IsWithinUsableArea(cell, false)
+						&& MapClass::Instance.GetCellAt(cell)->IsClearToMove(
 							speed, false, false, -1, mzone, -1, false))
 					{
 						out = cell;
@@ -110,9 +112,9 @@ namespace
 		if (facing == -2)
 			facing = ScenarioClass::Instance->Random.RandomRanged(0, 255);
 		else if (facing < 0)
-			facing = pInvoker->PrimaryFacing.Current().GetDir();
+			facing = static_cast<int>(pInvoker->PrimaryFacing.Current().GetDir());
 
-		auto const coords = MapClass::Instance->GetCellAt(cell)->GetCoordsWithBridge();
+		auto const coords = MapClass::Instance.GetCellAt(cell)->GetCoordsWithBridge();
 
 		++Unsorted::ScenarioInit; // suppress placement side effects, as Unlimbo callers do
 		bool const placed = pObject->Unlimbo(coords, static_cast<DirType>(facing));
