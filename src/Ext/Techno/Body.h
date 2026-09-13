@@ -5,6 +5,7 @@
 #include <optional>
 #include <vector>
 
+#include <AbstractClass.h>
 #include <TechnoClass.h>
 #include <FootClass.h>
 
@@ -116,6 +117,34 @@ public:
 	public:
 		ExtContainer();
 		~ExtContainer();
+
+		// MUST be overridden or ExtData::InvalidatePointer is NEVER called.
+		//
+		// Container::PointerGotInvalid gates the whole invalidation pass behind
+		// InvalidateExtDataIgnorable, and the base implementation returns true
+		// (= ignore everything). Without this override the AnnounceInvalidPointer
+		// hook in Hooks.Attachment.cpp does nothing, despite being commented
+		// there as CRITICAL: our Parent/Child raw TechnoClass* pointers are never
+		// scrubbed, so a child consumed or killed (terror drone, etc.) leaves a
+		// dangling pointer for the next attachment AI tick.
+		//
+		// Found via the sibling SquadExt, which crashed in-game from exactly this
+		// omission at 0x5F6467 (inside AbstractClass::DistanceFrom) on a freed
+		// pointer. Note that an IsAlive check is NOT protection -- reading that
+		// flag off freed memory is already undefined.
+		virtual bool InvalidateExtDataIgnorable(void* const ptr) const override
+		{
+			switch (static_cast<AbstractClass*>(ptr)->WhatAmI())
+			{
+			case AbstractType::Unit:
+			case AbstractType::Infantry:
+			case AbstractType::Building:
+			case AbstractType::Aircraft:
+				return false; // we hold raw pointers to these
+			default:
+				return true;
+			}
+		}
 	};
 
 	static ExtContainer ExtMap;
