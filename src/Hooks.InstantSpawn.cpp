@@ -129,6 +129,91 @@ namespace
 		return false;
 	}
 
+	// H1d -- attach the new object into one of the spawner's declared slots.
+	//
+	// Deliberately does NOT place the object: AttachChild performs the locomotor
+	// swap and the attachment AI positions the child on its next tick, so calling
+	// Unlimbo here as well would place it twice.
+	//
+	// Slots are addressed by INDEX throughout rather than by cached pointer,
+	// because the OnFull=replace path destroys a child -- which runs destruction
+	// logic that re-enters our hooks. A pointer taken before that is not safe to
+	// use after it.
+	bool AttachOne(TechnoClass* pInvoker, TechnoTypeClass* pType, InstantSpawnRule const& rule)
+	{
+		auto pExt = TechnoExt::ExtMap.Find(pInvoker);
+		if (!pExt)
+			return false;
+
+		size_t const total = pExt->ChildAttachments.size();
+		if (total == 0)
+			return false; // no declared slots: nothing to fill
+
+		// Resolve the slot index.
+		size_t index = total; // sentinel
+		if (rule.AttachSlot >= 0)
+		{
+			if (static_cast<size_t>(rule.AttachSlot) < total)
+				index = static_cast<size_t>(rule.AttachSlot);
+		}
+		else
+		{
+			for (size_t i = 0; i < total; ++i)
+			{
+				auto const pSlot = pExt->ChildAttachments[i].get();
+				if (pSlot && !pSlot->Child)
+				{
+					index = i;
+					break;
+				}
+			}
+		}
+
+		if (index >= total)
+			return false; // no free slot, or an out-of-range Attach.Slot
+
+		{
+			auto const pSlot = pExt->ChildAttachments[index].get();
+			if (!pSlot)
+				return false;
+
+			if (pSlot->Child)
+			{
+				if (!rule.AttachReplace)
+					return false; // OnFull=skip
+
+				pSlot->Destroy(nullptr);
+
+				// Destroy ran destruction logic. Re-acquire everything through the
+				// index; the ext and the slot list may both have been touched.
+				pExt = TechnoExt::ExtMap.Find(pInvoker);
+				if (!pExt || index >= pExt->ChildAttachments.size())
+					return false;
+			}
+		}
+
+		auto const pSlot = pExt->ChildAttachments[index].get();
+		if (!pSlot || pSlot->Child)
+			return false; // Destroy did not actually free it
+
+		auto const pHouse = ResolveSpawnOwner(pInvoker, rule.Owner);
+		if (!pHouse)
+			return false;
+
+		auto const pObject = static_cast<TechnoClass*>(pType->CreateObject(pHouse));
+		if (!pObject)
+			return false;
+
+		if (!pSlot->AttachChild(pObject))
+		{
+			// Never leak a created-but-unattached object into the game's arrays.
+			pObject->UnInit();
+			return false;
+		}
+
+		return true;
+	}
+
 	// H1c -- how many objects this activation places.
 	//
 	// Every term reads SYNCED state (active slots, ammo, veterancy) with integer
@@ -289,10 +374,42 @@ namespace
 
 // Run every rule on `pOwner` that listens for `trigger`. `weaponIndex` is only
 // meaningful for the fire trigger (-1 = not applicable).
+namespace
+{
+	// Re-entrancy depth. This feature can genuinely chain: Attach.OnFull=replace
+	// destroys a child, Destroy routes through Kill -> ReceiveDamage -> our own
+	// 0x702050 seat, which runs the dying child's `destroyed` rules -- which may
+	// themselves spawn or replace. Slot counts bound most of it, but a mod can
+	// build a cycle, and a runaway here would hang the frame rather than crash
+	// (the frame counter never advances, so a spin-loop diagnostic is what you
+	// would see, not an exception).
+	//
+	// Bounded rather than forbidden: one level of chaining is a legitimate design
+	// (a pod dies and its death spawns something), so only runaway depth is cut.
+	int RunDepth = 0;
+	constexpr int MaxRunDepth = 4;
+
+	struct RunDepthGuard
+	{
+		bool Ok;
+		RunDepthGuard() : Ok(RunDepth < MaxRunDepth) { ++RunDepth; }
+		~RunDepthGuard() { --RunDepth; }
+	};
+}
+
 void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 {
 	if (!pOwner)
 		return;
+
+	RunDepthGuard const depth;
+	if (!depth.Ok)
+	{
+		Debug::Log("[TAExt] InstantSpawn recursion depth %d exceeded on %s; "
+			"chain cut. Check for a spawn rule that triggers itself.\n",
+			MaxRunDepth, pOwner->GetTechnoType() ? pOwner->GetTechnoType()->ID : "<null>");
+		return;
+	}
 
 	auto const pExt = TechnoExt::ExtMap.Find(pOwner);
 	if (!pExt)
@@ -408,6 +525,20 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 			// killed it (it can be standing in the cell we just filled).
 			if (!pOwner->IsAlive)
 				return false;
+
+			if (ruleCopy.Attach)
+			{
+				// The child has no cell of its own yet -- the attachment AI positions
+				// it next tick -- so its anims play on the spawner.
+				if (AttachOne(pOwner, pSpawnType, ruleCopy))
+					PlayAnim(ruleCopy.AnimPerObject, pOwner->GetMapCoords(), pAnimOwner, ruleCopy.AnimRequireClear);
+				else
+					PlayAnim(ruleCopy.AnimBlocked, pOwner->GetMapCoords(), pAnimOwner, ruleCopy.AnimRequireClear);
+
+				// Attaching can destroy things (OnFull=replace); re-check the invoker
+				// before the next iteration touches it.
+				return pOwner->IsAlive;
+			}
 
 			CellStruct used {};
 			if (PlaceOne(pOwner, pSpawnType, ruleCopy, anchor, used))

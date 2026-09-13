@@ -320,6 +320,21 @@ void TAExt_ReadInstantSpawnRules(CCINIClass* pINI, const char* section,
 			rule.Mission = pINI->ReadInteger(section, sub("Mission"), rule.Mission);
 		}
 
+		// --- attach (H1d) ---
+		rule.Attach = pINI->ReadBool(section, sub("Attach"), rule.Attach);
+		rule.AttachSlot = pINI->ReadInteger(section, sub("Attach.Slot"), rule.AttachSlot);
+
+		{
+			char onFull[32];
+			if (pINI->ReadString(section, sub("Attach.OnFull"), "", onFull, sizeof(onFull)) > 0)
+			{
+				if (_strcmpi(onFull, "skip") == 0)         rule.AttachReplace = false;
+				else if (_strcmpi(onFull, "replace") == 0) rule.AttachReplace = true;
+				else Debug::INIParseFailed(section, sub("Attach.OnFull"), onFull,
+					"Expected skip or replace");
+			}
+		}
+
 		// --- animations (H1b) ---
 		TAExt_ReadAnimList(pINI, section, sub("Anim.Source"), rule.AnimSource);
 		TAExt_ReadAnimList(pINI, section, sub("Anim.Dest"), rule.AnimDest);

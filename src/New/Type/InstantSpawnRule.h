@@ -123,6 +123,20 @@ struct InstantSpawnRule
 	std::vector<AnimTypeClass*> AnimPerObject; // at each placed object's cell
 	std::vector<AnimTypeClass*> AnimBlocked;   // when a placement fails
 
+	// H1d -- attach the new object to the spawner instead of placing it loose.
+	//
+	// Slots are NOT created at runtime. AttachmentDataEntry lives in the TYPE's
+	// AttachmentData vector, shared by every unit of that type, so appending one
+	// would grow every unit's slot list at once -- and AttachmentClass holds a raw
+	// pointer into that vector, so per-instance entries would be a lifetime
+	// problem. Attach therefore FILLS AN EXISTING DECLARED SLOT that is currently
+	// empty. The modder declares AttachmentN.Type= slots as capacity and this fills
+	// them, exactly the "ceiling in INI, runtime fills it" shape that SpawnsNumber
+	// and Spawns.Base already use.
+	bool Attach = false;
+	int AttachSlot = -1;      // -1 = the first empty slot; else that slot index
+	bool AttachReplace = false; // slot occupied: no = skip, yes = destroy and replace
+
 	TAExtSpawnOwner AnimOwner = TAExtSpawnOwner::Invoker;
 	bool AnimRequireClear = false; // only play where the cell is clear
 };
