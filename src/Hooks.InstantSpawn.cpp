@@ -143,15 +143,22 @@ namespace
 			int slots = 0;
 			if (auto const pExt = TechnoExt::ExtMap.Find(pOwner))
 			{
-				for (auto const& pSlot : pExt->ChildAttachments)
+				// Uses the public slot API (IsSlotActive) rather than the container's
+				// file-local active test, so "active" means exactly what it means
+				// everywhere else: the child exists, is alive and is not in limbo.
+				size_t const total = pExt->ChildAttachments.size();
+				for (size_t idx = 0; idx < total; ++idx)
 				{
-					if (!TAExt_ChildActive(pSlot.get()))
+					if (!TechnoExt::IsSlotActive(pOwner, idx))
 						continue;
 
 					// An empty type filter counts every active slot.
 					if (!rule.CountPerSlotType.empty())
 					{
-						auto const pChildType = pSlot->Child->GetTechnoType();
+						auto const pSlot = TechnoExt::GetChildSlot(pOwner, idx);
+						auto const pChildType = (pSlot && pSlot->Child)
+							? pSlot->Child->GetTechnoType() : nullptr;
+
 						if (!pChildType || std::find(rule.CountPerSlotType.begin(),
 							rule.CountPerSlotType.end(), pChildType) == rule.CountPerSlotType.end())
 							continue;
