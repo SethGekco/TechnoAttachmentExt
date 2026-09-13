@@ -61,9 +61,8 @@ count that scales with ammo) it adds new keys rather than redefining old ones.
 | Value | Fires when | Notes |
 |---|---|---|
 | `fire` *(default)* | the owner fires a weapon | filterable by `.On.Weapon=` (index) |
-| `hit` | the owner's projectile detonates | location defaults to the impact point |
 | `created` | the attachment child is created | AttachmentType/slot rules only |
-| `destroyed` | the owner or child dies | the "it bursts into swarm" case |
+| `destroyed` | the owner or child is removed | filtered by `.On.Reason=`, default `combat` (§3.2) |
 | `detached` | the child is detached | distinct from `destroyed` |
 | `timer` | every `.On.Rate=` frames | a passive generator |
 | `deploy` | the deploy gesture | pairs with the existing Deploy work |
@@ -81,10 +80,142 @@ Gates that apply to every trigger:
 | `InstantSpawn.RequiresSlot.Index=` | none | reuses the B1 requirement primitive |
 | `InstantSpawn.RequiresSlot.Type=` | none | ditto |
 
-**Open question 1.** `hit` is arguably a *warhead* feature, not a techno feature —
-it belongs on the projectile that lands, not the unit that fired. WeaponExt is
-the more natural home. Recommend **cutting `hit` from H1** and revisiting it as a
-warhead tag; keeping it here means duplicating detonation plumbing.
+**DECIDED — `hit` is cut.** It is a warhead feature: it belongs to the projectile
+that lands, not the unit that fired. Handed to WeaponExt (§3.1).
+
+### 3.1 Handoff to WeaponExt — "spawn on detonation"
+
+*(Self-contained; written to be passed to the WeaponExt design as-is.)*
+
+**What it is.** When a projectile detonates, place one or more objects at the
+impact point — units, infantry, buildings, terrain — instead of, or as well as,
+dealing damage. The mortar that scatters mines, the pod that lands a squad, the
+warhead that leaves a wall behind, the artillery shell that drops a sensor.
+
+**Why the warhead and not the firer.** By detonation time the interesting facts
+belong to the impact, not the shooter:
+
+* the **impact point** is a cell the firer never knew — it moved, the target
+  moved, the shot scattered, or it was fired at the ground;
+* the shot may **outlive its firer**, so a firer-side rule has nobody to hang on;
+* the same warhead is reused across many weapons and units, so warhead-side
+  configuration is written once instead of on every firer;
+* the firer may not be the owner (superweapons, map triggers, `Damage=` from a
+  script), and a warhead already carries its invoker.
+
+A firer-side "on fire, spawn at my target" tag is a *different* feature and stays
+in TechnoAttachmentExt as `InstantSpawn.On=fire` + `At=target`. It fires at the
+moment of shooting, at the target's cell as it was then, and does not know
+whether the shot hit, missed, or was intercepted. Detonation-time spawning cannot
+be expressed that way.
+
+**What it needs.** The detonation site, the impact `CoordStruct`, and the
+invoking house. The rest is the shared delivery vocabulary below.
+
+**Suggested tags** — deliberately the same key names and value spaces as
+`FreeUnit.*` (FreeUnitExt) and `InstantSpawn.*` (here), so all three read alike:
+
+```ini
+[SomeWarhead]
+SpawnOnDetonate=DRON,DRON      ; what to place
+SpawnOnDetonate.Count=1
+SpawnOnDetonate.Chance=100     ; percent, synced RNG
+SpawnOnDetonate.Owner=Invoker  ; Invoker|Civilian|Special|Neutral|Random|RandomAlly|RandomEnemy
+SpawnOnDetonate.Facing=random  ; N NE E SE S SW W NW | random | 0-255
+SpawnOnDetonate.Cell=          ; which side of the impact
+SpawnOnDetonate.Spacing=0
+SpawnOnDetonate.Range=1        ; how far to search for a free cell
+SpawnOnDetonate.Scatter=0
+SpawnOnDetonate.OnBlocked=nearest   ; nearest | skip | stack
+SpawnOnDetonate.Mission=
+SpawnOnDetonate.Anim=
+```
+
+**The one hazard worth stating up front.** A failed placement in this engine is
+*destructive* — the engine destroys the object rather than leaving it half
+placed, and that destruction re-enters any removal hooks the DLL has registered.
+Treat every placement call as able to destroy the object and invalidate pointers
+held across it, and never place while iterating a live engine collection. See the
+YR Hook Encyclopedia, `Techno-Instance-Lifecycle.md`.
+
+**Determinism.** `Chance`, `Scatter` and any random facing or random pick must
+use `ScenarioClass::Random`, and the free-cell search must be a fixed spiral, or
+the two peers place different objects in different cells.
+
+### 3.2 `destroyed` — which removals count (`InstantSpawn.On.Reason=`)
+
+**DECIDED: default `combat`.** "Bursts into a swarm" must not fire when the
+player *sells* the unit. But a fixed combat-only trigger is too blunt — a chrono
+erasure, a grinder and a sale are all interesting and all different — so the
+trigger takes a reason filter.
+
+```ini
+InstantSpawn.On=destroyed
+InstantSpawn.On.Reason=combat,crushed      ; default is just `combat`
+```
+
+#### The candidate reasons
+
+Grouped by what a modder would actually want to distinguish, not by engine path.
+
+| Group | Reason | Meaning |
+|---|---|---|
+| **destruction** | `combat` | killed by damage |
+| | `crushed` | squashed by a vehicle |
+| | `sunk` | naval unit lost over water |
+| | `crashed` | aircraft shot down |
+| | `suicide` | kamikaze / terrorist / self-detonation |
+| **erasure** (no corpse) | `erased` | Chrono Legionnaire temporal erasure |
+| | `warpfail` | chronoshifted into invalid terrain |
+| | `expired` | a lifetime or timer ran out |
+| **owner-initiated** | `sold` | refunded — building sale, service depot |
+| | `absorbed` | grinder, Bio Reactor, Slave Miner |
+| | `abandoned` | crew leaves a `Crewed=` vehicle |
+| **transformation** | `deployed` | MCV↔ConYard and deploy transforms |
+| | `converted` | `Convert=` / our own `ConvertChildTo` |
+| | `mutated` | Genetic Mutator or a mutation warhead |
+| **off-map, still alive** | `limbo` | entered a transport, garrison or tunnel |
+| | `leftmap` | flew off the edge / evacuated |
+| **administrative** | `scenario` | trigger or script removal |
+| | `cleanup` | house defeated, game end, map teardown |
+
+`captured` and `stolen` are deliberately **not** here: an ownership change is not
+a removal, and infiltration is IntelExt's subject. If a spawn-on-capture is
+wanted it should be its own trigger, not a fake death.
+
+#### Why this ships one reason at a time
+
+The engine does not record *why* an object is going away, and the destructor —
+the one universal site — is both too late to read position and completely
+uninformative about cause. The encyclopedia has measured what happens to code
+that tries to infer it from a shared teardown path
+(`Techno-Instance-Lifecycle.md`):
+
+* `ObjectClass::IsAlive` is **still true** for every removal, including all real
+  deaths — 3172 and then 3302 removals logged, not one with `IsAlive == false`.
+  Testing `!IsAlive` to mean "this died" silently never fires.
+* `InfantryClass::Remove` fires for transports, garrisons, teleports, grinders
+  and selling, on healthy units mid-walk. It is not a death notification.
+* Positively identifying a death there needed **two** facts (`Health <= 0` *and*
+  a death sequence), and even then 95 of 1129 removals were real deaths with no
+  death animation at all.
+
+So each reason needs its own verified discriminator, and a reason that cannot be
+positively identified must not ship: a trigger that silently never fires is worse
+than one that is absent, because it looks implemented.
+
+#### Status per reason
+
+| Reason | Seat | Status |
+|---|---|---|
+| `combat` | `0x702050` `TechnoClass::ReceiveDamage` (destroyed-by-damage) | **verified** — unit still present, coords and owner valid; on-death spawning already proven from a standalone DLL alongside Phobos |
+| `deployed` | our own `TechnoExt::DeployTransferSource` marker | **nearly free** — already exists |
+| `converted` | our own `ConvertChildTo` | **free** — we own the call |
+| `limbo` | our own limbo tracking | **free** |
+| everything else | — | needs a discriminator, one at a time, each with a logged in-game confirmation before being documented |
+
+**Ship order: `combat` (default), then `deployed`/`converted`/`limbo` because we
+already own those signals, then the rest on demand.**
 
 ---
 
@@ -154,7 +285,7 @@ see §8.
 | `InstantSpawn.Lifetime=` | `0` | `0` = permanent; else frames before it dies |
 | `InstantSpawn.Attach=` | `no` | attach the new object to the spawner as a child |
 
-`InstantSpawn.Attach=yes` is the interesting one: it makes instant spawn a way to
+**DECIDED: keep `Attach`.** `InstantSpawn.Attach=yes` is the interesting one: it makes instant spawn a way to
 *grow attachments at runtime*, which no current tag can do. It needs a free slot;
 `.Attach.Slot=` picks one, else the first free.
 
@@ -164,7 +295,7 @@ see §8.
 
 | Value | Meaning |
 |---|---|
-| `nearest` *(default)* | search outward up to `.Range=` for a free cell |
+| `nearest` *(default, DECIDED)* | search outward up to `.Range=` for a free cell |
 | `skip` | do not spawn this object |
 | `stack` | place anyway, accepting overlap |
 | `destroy` | place anyway and let the engine resolve it |
@@ -272,13 +403,12 @@ H1e is the one most likely to introduce a save/load or invalidation bug.
 
 ---
 
-## 11. Open questions for Rex
+## 11. Decisions (Rex, 2026-09-12)
 
-1. **Cut `hit`?** It reads as a warhead feature and would fit WeaponExt better.
-2. **Is `Attach=yes` wanted?** It is the only route to runtime attachment growth,
-   but it means an attachment slot can be filled by something other than the INI.
-3. **Default `OnBlocked`** — `nearest` is forgiving, `skip` is predictable.
-   Recommend `nearest` with `Range=1`.
-4. **Does `destroyed` fire for every death**, or only combat deaths? Vanilla's
-   destructor runs for sold/undeployed/transformed too, so "bursts into swarm"
-   would trigger on selling the unit unless filtered.
+1. **`hit` is cut** — handed to WeaponExt as a warhead tag (§3.1).
+2. **`Attach` is kept** — runtime attachment growth is wanted.
+3. **`OnBlocked=nearest`** is the default, with `Range=1`.
+4. **`destroyed` is combat-only by default**, via a `.On.Reason=` filter that can
+   widen it (§3.2). Reasons ship one at a time, each with a verified
+   discriminator; none is documented before it is confirmed firing in game.
+5. Build order §10 accepted as written.
