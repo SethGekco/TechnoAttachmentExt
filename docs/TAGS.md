@@ -645,6 +645,39 @@ implemented yet, rather than being silently ignored. The engine does not record
 *why* an object is going away, so each reason needs its own verified
 discriminator; see `docs/DESIGN-H1-InstantSpawn.md` §3.2.
 
+#### Attaching instead of placing (H1d)
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `.Attach` | `no` | make the new object a **child of the spawner** rather than placing it loose |
+| `.Attach.Slot` | `-1` | `-1` = the first empty slot; else that slot index |
+| `.Attach.OnFull` | `skip` | slot occupied: `skip` \| `replace` (destroy the current child first) |
+
+```ini
+[CARRIER]
+Attachment0.Type=DronePod    ; declared capacity...
+Attachment1.Type=DronePod
+InstantSpawn=DRON
+InstantSpawn.On=timer
+InstantSpawn.On.Rate=450
+InstantSpawn.Attach=yes      ; ...filled at runtime
+```
+
+**Slots are not created at runtime — this fills declared ones that are empty.**
+`AttachmentDataEntry` lives in the *TechnoType's* shared slot list, so appending
+one would grow the slot list of every unit of that type at once. Declare
+`AttachmentN.Type=` slots as capacity and let `Attach` fill them, the same shape
+as `SpawnsNumber` + `Spawns.Base`.
+
+With `Attach=yes` the placement tags (`OnBlocked`, `Range`, `Facing`, `Mission`,
+`At`) do **not** apply — the attachment system positions the child itself on the
+next tick. `.Anim.PerObject` and `.Anim.Blocked` play on the spawner, since the
+child has no cell of its own yet.
+
+> Rules can **chain**: `OnFull=replace` destroys a child, which can fire that
+> child's own `On=destroyed` rules. One level of that is a legitimate design, so
+> it is allowed; runaway depth is cut at 4 with a log line naming the owner.
+
 #### Count scaling and payload mode (H1c)
 
 | Tag | Default | Meaning |

@@ -489,6 +489,25 @@ and points straight at INI parsing.
 - [ ] Save/load mid-cooldown: the cooldown is preserved, no free activation.
 - [ ] Online: two clients, `Chance` and `Facing=random` in play — no desync.
 
+### Attach (H1d)
+
+- [ ] `Attach=yes` on a unit with an empty declared slot — the spawn becomes a
+      real child (moves with the host, shows in the slot).
+- [ ] A unit with NO declared slots spawns nothing and does not crash.
+- [ ] All slots full + `OnFull=skip` — nothing happens.
+- [ ] All slots full + `OnFull=replace` — the existing child dies and is replaced.
+- [ ] `Attach.Slot=1` targets that slot specifically; an out-of-range index is a
+      no-op rather than a crash.
+- [ ] The attached child is positioned correctly on the NEXT tick (not placed
+      loose on the ground first, and not double-placed).
+- [ ] `Attach=yes` ignores `OnBlocked`/`Facing`/`Mission` as documented.
+- [ ] Attached children inherit the usual attachment behaviour (power gates,
+      Facing.Mode, Move.*).
+- [ ] **Recursion:** a rule whose replaced child has its own `On=destroyed`
+      spawn rule chains once and then stops; the log names the depth cut rather
+      than the game hanging.
+- [ ] Save/load with runtime-attached children — they persist correctly.
+
 ### Count scaling and modes (H1c)
 
 - [ ] `Count.PerSlot=1` — the number spawned tracks active pods as they are
