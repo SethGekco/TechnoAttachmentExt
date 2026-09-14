@@ -566,3 +566,31 @@ and points straight at INI parsing.
       boarding order consistently.
 - [ ] Online: two clients loading/unloading a transport — no desync (the
       passenger list is walked in synced boarding order).
+
+## Gunner host profiles (I-a / I-b)
+
+**The first test decides whether the whole feature works.**
+
+- [ ] **Does the gunner survive his own trigger?** Load a GI into an IFV with
+      `GunnerProfile.Passenger=GI`. The IFV must convert AND keep the GI aboard.
+      If the GI is ejected, the host will convert/revert repeatedly — watch for a
+      stutter every `MinDwell` frames and report it; do not just lower MinDwell.
+- [ ] Converted host has the profile type's `Strength`, `Speed` and weapon.
+- [ ] Unload the GI — the host reverts to the base type.
+- [ ] `KeepHealth=yes` — a half-damaged IFV is still half-damaged after the swap
+      (a RATIO, so a tougher profile is not near-dead).
+- [ ] `KeepVeterancy=yes` — rank survives; `no` resets it.
+- [ ] Two rules (GI → rocket, Medic → medic) — the right one wins, and swapping
+      passengers swaps profiles.
+- [ ] `Index=0` only matches the first passenger aboard.
+- [ ] `MinDwell` — rapid load/unload does not thrash; changes are spaced.
+- [ ] Attachments on the host survive the conversion and re-key to the new
+      type's slot list (this is `HandleAttachmentConversion`).
+- [ ] An attachment CHILD that converts stays attached — it must NOT wander off
+      (the locomotor exception).
+- [ ] House unit counts, tech tree and the score screen are right after several
+      conversions (owner deregister/re-register).
+- [ ] Ammo is clamped when converting to a lower-capacity type.
+- [ ] Save/load while converted: reloads converted, and can still revert.
+- [ ] A building with GunnerProfile is rejected, not crashed.
+- [ ] Online: two clients, a transport loading/unloading — no desync.

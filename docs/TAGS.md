@@ -793,3 +793,56 @@ when both are satisfied.
 > touching the host's TechnoType. Changing the **host's own stats**
 > (`Strength=`, `Speed=`) per gunner still needs the conversion mechanism and is
 > not implemented; see `docs/ROADMAP.md` item I.
+
+### Gunner host profiles (`GunnerProfile.*`)
+
+Change the **host's own TechnoType** while a matching passenger rides, so
+`Strength=`, `Speed=`, armor and weapons all change at once. This is the half of
+the gunner system that `RequiresPassenger.*` cannot do — that one switches an
+*attachment* on and off, this one changes the vehicle itself.
+
+Rule groups follow the `Convert` / `InstantSpawn` grammar: unindexed plus
+contiguous `[N]`, all independent. On the **host's** TechnoType.
+
+```ini
+[IFV]
+GunnerProfile=IFV_ROCKET        ; become this type...
+GunnerProfile.Passenger=GI      ; ...while a GI is aboard
+GunnerProfile.Index=0           ; 0-based cargo position; -1 (default) = any
+
+GunnerProfile[0]=IFV_MEDIC      ; a second, independent rule
+GunnerProfile.Passenger[0]=MEDIC
+
+GunnerProfile.KeepHealth=yes    ; carry damage as a RATIO (default yes)
+GunnerProfile.KeepVeterancy=yes
+GunnerProfile.MinDwell=15       ; frames between changes (default 15)
+```
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `GunnerProfile` | none | the TechnoType to become |
+| `.Passenger` | none | passenger types that trigger it; empty = any |
+| `.Index` | `-1` | 0-based cargo position; `-1` = any position |
+| `.KeepHealth` | `yes` | preserve damage as a percentage across the swap |
+| `.KeepVeterancy` | `yes` | preserve rank |
+| `.MinDwell` | `15` | frames that must pass between changes |
+
+**First match wins, and no match reverts to the base type** — reverting is
+inherent, there is no revert flag. Rules are read from the *base* type, so a
+converted host still knows how to change again or revert.
+
+**`MinDwell` is an oscillation brake, not a cosmetic delay.** It applies in both
+directions. If a conversion could somehow displace the very passenger that
+triggered it, the host would convert and revert every single frame — which
+presents as a freeze, not a crash. The non-zero default exists so a mod cannot
+reach that by accident. Lower it only deliberately.
+
+> **Scope: Infantry, Unit and Aircraft only.** Buildings are rejected — a
+> structure's foundation, cell occupancy, base-node membership and power are all
+> computed at placement, so swapping a live building's type is a different and
+> much larger problem. Garrison "gunners" are a separate mechanic.
+
+> **Not yet validated at load:** that the profile type has at least as much
+> `Passengers=` capacity as the host. Converting a full transport into a
+> smaller-capacity type leaves it overfull. Keep capacities equal for now; the
+> parse-time check is I-c.

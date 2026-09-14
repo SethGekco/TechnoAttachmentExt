@@ -3,7 +3,7 @@
 Granting the **host** different stats (`Strength=`, `Speed=`, armor, `Primary=`)
 depending on who is riding in it. The gunner mechanic, beyond what shipped.
 
-Status: **I-a is BUILT** (`src/Ext/Techno/Body.TypeConversion.cpp`,
+Status: **I-a and I-b are BUILT** (`src/Ext/Techno/Body.TypeConversion.cpp`,
 `TechnoExt::UpdateType`). I-b onward is still design.
 
 **Already shipped and NOT part of this** — cargo-identity gating
@@ -159,8 +159,9 @@ principle as `On.Reason` naming its unimplemented values.
    attachment and rule-vector obligations, and keeping the attachment locomotor
    on a converted child so it is not cut loose from its parent. No trigger is
    wired to it yet, so it is currently unreachable from INI by design.
-2. **I-b — the cargo trigger.** `GunnerProfile.Passenger`/`.Index`, revert on
-   departure, `MinDwell`, oscillation guard.
+2. ~~**I-b — the cargo trigger.**~~ **DONE.** `GunnerProfile.*` on the host's
+   TechnoType, evaluated each synced tick. Rules are read from the BASE type so a
+   converted host is not stranded, and `MinDwell` brakes both directions.
 3. **I-c — parse-time validation** (§6).
 4. **I-d — save/load.** Base type serialized; verify a saved converted host
    reloads converted and can still revert.
