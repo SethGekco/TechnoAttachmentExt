@@ -555,8 +555,8 @@ and points straight at INI parsing.
 - [ ] `RequiresPassenger.Type=GI` — the attachment appears when a GI boards and
       goes dark when it leaves.
 - [ ] A different passenger type does NOT satisfy it.
-- [ ] `RequiresPassenger.Index=1` — only a GI in the second cargo position
-      counts; a GI at index 0 does not.
+- [ ] `RequiresPassenger.Index=0` — only a GI boarding FIRST counts; a GI in
+      the second position does not.
 - [ ] `Index` set, `Type` unset — any occupant at that index satisfies it.
 - [ ] Two slots with different `RequiresPassenger.Type` on one transport —
       loading a GI lights one, a Medic the other, both together light both.

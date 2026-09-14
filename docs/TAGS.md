@@ -764,7 +764,7 @@ appear only while a particular passenger is riding — the gunner mechanic.
 | --- | --- | --- |
 | `RequiresPassengers` | `0` | at least N passengers (existing) |
 | `RequiresPassenger.Type` | none | a passenger of one of these TechnoTypes |
-| `RequiresPassenger.Index` | `-1` | ...specifically at this cargo index; `-1` = any position |
+| `RequiresPassenger.Index` | `-1` | ...specifically at this cargo index, **0-based**; `-1` = any position |
 
 Both are available per slot as `AttachmentN.RequiresPassenger.*`.
 
@@ -772,17 +772,17 @@ Both are available per slot as `AttachmentN.RequiresPassenger.*`.
 [IFV]
 Attachment0.Type=RocketPod
 Attachment0.RequiresPassenger.Type=GI
-Attachment0.RequiresPassenger.Index=1   ; the vanilla IFV gunner slot
+Attachment0.RequiresPassenger.Index=0   ; the FIRST passenger aboard
 
 Attachment1.Type=MedicBeam
 Attachment1.RequiresPassenger.Type=MEDIC
-Attachment1.RequiresPassenger.Index=1
+Attachment1.RequiresPassenger.Index=0
 ```
 
-Cargo index counts **boarding order** from 0, which is what the engine's
-passenger list gives. Index 1 is the vanilla IFV gunner position. With `Index`
-unset any cargo position satisfies the type; with `Type` unset but `Index` set,
-that position merely has to be occupied.
+Cargo index counts **boarding order from 0**, matching every other index in this
+DLL (`Attachment0`, `RequiresSlot.Index`, `ExperienceTo.Slot`). Index `0` is the
+first passenger aboard. With `Index` unset any cargo position satisfies the type;
+with `Type` unset but `Index` set, that position merely has to be occupied.
 
 This runs through the same deactivation arbiter as the power gates, so an
 attachment can be gated on a passenger *and* on power at once, and it only wakes

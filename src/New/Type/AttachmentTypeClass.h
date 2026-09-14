@@ -122,8 +122,8 @@ public:
 	Valueable<int> RequiresPassengers;
 	// I1/I2 (gunner) -- gate the child on WHO is aboard, not just how many.
 	//   RequiresPassenger.Type=GI,GGI  -> a passenger of one of these types
-	//   RequiresPassenger.Index=1      -> ...specifically at this cargo index
-	//                                     (index 1 is the vanilla IFV gunner slot)
+	//   RequiresPassenger.Index=0      -> ...specifically at this cargo index,
+	//                                     0-based, so 0 is the first aboard
 	// With Index unset, any cargo position counts. With Type unset but Index set,
 	// that position merely has to be occupied.
 	//

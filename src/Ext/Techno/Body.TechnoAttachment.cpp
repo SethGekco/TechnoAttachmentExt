@@ -705,7 +705,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 
 			// I1/I2 -- gate on WHO is aboard. This is the tractable half of the
 			// gunner system: a passenger of a given type, optionally at a specific
-			// cargo index (1 is the vanilla IFV gunner slot), enables the child.
+			// cargo index (0-based, matching every other index in this DLL).
 			// The "profile" that gunner grants is then just the attachment's own
 			// TechnoType -- its weapon, art and behaviour -- which needs no host
 			// type change at all.
