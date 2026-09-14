@@ -549,3 +549,20 @@ and points straight at INI parsing.
       the neutral house, not the spawner's.
 - [ ] A bad AnimType name logs and is skipped — the spawn still happens.
 - [ ] Online: anim lists + `MakeInfantry=` — no desync (anims are synced state).
+
+## Gunner: cargo-identity gating
+
+- [ ] `RequiresPassenger.Type=GI` — the attachment appears when a GI boards and
+      goes dark when it leaves.
+- [ ] A different passenger type does NOT satisfy it.
+- [ ] `RequiresPassenger.Index=1` — only a GI in the second cargo position
+      counts; a GI at index 0 does not.
+- [ ] `Index` set, `Type` unset — any occupant at that index satisfies it.
+- [ ] Two slots with different `RequiresPassenger.Type` on one transport —
+      loading a GI lights one, a Medic the other, both together light both.
+- [ ] Unloading everyone darkens all of them.
+- [ ] Combined with a power gate: the child only wakes when BOTH are satisfied.
+- [ ] Ordering: board A then B vs B then A — the index-based rules follow
+      boarding order consistently.
+- [ ] Online: two clients loading/unloading a transport — no desync (the
+      passenger list is walked in synced boarding order).

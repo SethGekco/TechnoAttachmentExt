@@ -754,3 +754,42 @@ the anims are created identically on every peer.
 takes the first cell the type can occupy. `skip` places nothing if the exact cell
 is unavailable. `stack` places regardless — note that a placement the engine
 rejects **destroys** the object, so `stack` can silently produce nothing.
+
+### Gunner: cargo-identity gating (`RequiresPassenger.*`)
+
+Extends `RequiresPassengers` (a count) to **who** is aboard, so an attachment can
+appear only while a particular passenger is riding — the gunner mechanic.
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `RequiresPassengers` | `0` | at least N passengers (existing) |
+| `RequiresPassenger.Type` | none | a passenger of one of these TechnoTypes |
+| `RequiresPassenger.Index` | `-1` | ...specifically at this cargo index; `-1` = any position |
+
+Both are available per slot as `AttachmentN.RequiresPassenger.*`.
+
+```ini
+[IFV]
+Attachment0.Type=RocketPod
+Attachment0.RequiresPassenger.Type=GI
+Attachment0.RequiresPassenger.Index=1   ; the vanilla IFV gunner slot
+
+Attachment1.Type=MedicBeam
+Attachment1.RequiresPassenger.Type=MEDIC
+Attachment1.RequiresPassenger.Index=1
+```
+
+Cargo index counts **boarding order** from 0, which is what the engine's
+passenger list gives. Index 1 is the vanilla IFV gunner position. With `Index`
+unset any cargo position satisfies the type; with `Type` unset but `Index` set,
+that position merely has to be occupied.
+
+This runs through the same deactivation arbiter as the power gates, so an
+attachment can be gated on a passenger *and* on power at once, and it only wakes
+when both are satisfied.
+
+> **Scope.** The "profile" a gunner grants here is the attachment child itself —
+> its weapon, art and behaviour. That covers the gunner-weapon case without
+> touching the host's TechnoType. Changing the **host's own stats**
+> (`Strength=`, `Speed=`) per gunner still needs the conversion mechanism and is
+> not implemented; see `docs/ROADMAP.md` item I.

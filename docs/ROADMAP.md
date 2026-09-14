@@ -200,6 +200,20 @@ Parent.AddAmmo=3    ; add 3 to parent's ammo
   spawner/bay design — build the shared spawner primitive here.
 
 ### I. Advanced gunner system  (big; heavy PayloadExt overlap)
+> **Progress (item 7 started).** Cargo-identity gating is SHIPPED:
+> `RequiresPassenger.Type=` / `.Index=` on AttachmentType and per slot, gated
+> through the existing deactivation arbiter. That delivers I1's useful half and
+> I2's per-index addressing without a host type change, because the "profile" a
+> gunner grants is expressed as the attachment child itself.
+>
+> **Still open:** granting the HOST different stats (`Strength=`, `Speed=`) per
+> gunner. The only sane mechanism is converting the host's TechnoType, which
+> raises questions the design has not answered: what happens to the passengers
+> during the swap, whether the gunner himself survives it, and how the swap
+> interacts with save/load. Worth its own design pass before any code.
+>
+> A1 is NOT open: `Prerequisite.MinRank/MaxRank` + `Prerequisite.Dynamic=yes`
+> already give veterancy-driven attach/detach including reverse-on-de-vet.
 Vanilla IFV: `WeaponN=` picks a weapon by the passenger's gunner index. Rex
 wants each index to carry a **full profile**, not just a weapon — so entering
 infantry can grant designators, attachments, superweapons, cash production, a
