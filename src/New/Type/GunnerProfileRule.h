@@ -44,3 +44,7 @@ struct GunnerProfileRule
 // Parse every GunnerProfile group in `section` and append to `out`.
 void TAExt_ReadGunnerProfileRules(CCINIClass* pINI, const char* section,
 	std::vector<GunnerProfileRule>& out);
+
+// I-c: cross-type validation, once after ALL type data is loaded. Cannot be
+// done per-type: a named profile may belong to a section not yet parsed.
+void TAExt_ValidateGunnerProfiles();

@@ -1,5 +1,7 @@
 #include "Body.h"
 
+#include <New/Type/GunnerProfileRule.h>
+
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -31,5 +33,27 @@ DEFINE_HOOK(0x679A15, RulesData_LoadBeforeTypeData_TAExt, 0x6)
 
 	RulesExt::LoadBeforeTypeData(pItem, pINI);
 
+	return 0;
+}
+
+// ============================================================================
+// I-c -- cross-type validation, after ALL type data is loaded.
+//
+// Seat: 0x679CAF (RulesData_LoadAfterTypeData). Antares, Ares and Phobos all
+// chain here already, each reading and returning 0, so it is an established
+// multi-consumer address rather than one to contest.
+//
+// This has to run here rather than in the per-type parser: a GunnerProfile named
+// in [IFV] may point at a section that has not been read yet, so neither its
+// capacity nor its own rule list is knowable during that type's own parse.
+//
+// TAExt_ValidateGunnerProfiles logs a one-line summary whenever any profile was
+// configured, which doubles as the liveness proof for this seat -- "legal to
+// chain" and "actually ran" are not the same thing.
+// ============================================================================
+
+DEFINE_HOOK(0x679CAF, RulesData_LoadAfterTypeData_TAExt, 0x5)
+{
+	TAExt_ValidateGunnerProfiles();
 	return 0;
 }
