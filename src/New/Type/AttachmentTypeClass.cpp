@@ -47,6 +47,8 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 			this->PoweredBy_House = houseMask;
 	}
 	this->RequiresPassengers.Read(exINI, section, "RequiresPassengers");
+	this->RequiresPassenger_Type.Read(exINI, section, "RequiresPassenger.Type");
+	this->RequiresPassenger_Index.Read(exINI, section, "RequiresPassenger.Index");
 	this->RequiresSlot_Index.Read(exINI, section, "RequiresSlot.Index");
 	this->RequiresSlot_Type.Read(exINI, section, "RequiresSlot.Type");
 	this->Decorative.Read(exINI, section, "Decorative");
@@ -324,6 +326,8 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->PoweredBy_Range)
 		.Process(this->PoweredBy_House)
 		.Process(this->RequiresPassengers)
+		.Process(this->RequiresPassenger_Type)
+		.Process(this->RequiresPassenger_Index)
 		.Process(this->RequiresSlot_Index)
 		.Process(this->RequiresSlot_Type)
 		.Process(this->Decorative)

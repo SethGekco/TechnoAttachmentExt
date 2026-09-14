@@ -703,6 +703,52 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 				met = met && (pParent->Passengers.NumPassengers >= requiredPassengers);
 			}
 
+			// I1/I2 -- gate on WHO is aboard. This is the tractable half of the
+			// gunner system: a passenger of a given type, optionally at a specific
+			// cargo index (1 is the vanilla IFV gunner slot), enables the child.
+			// The "profile" that gunner grants is then just the attachment's own
+			// TechnoType -- its weapon, art and behaviour -- which needs no host
+			// type change at all.
+			auto const& reqPassType = pSelfSlot->ResolveRequiresPassengerType();
+			int const reqPassIndex = pSelfSlot->ResolveRequiresPassengerIndex();
+
+			if (!reqPassType.empty() || reqPassIndex >= 0)
+			{
+				required = true;
+
+				bool found = false;
+				int position = 0;
+
+				// PassengersClass is a NextObject linked list, in boarding order --
+				// which is what "cargo index" means here and is synced state, so
+				// every peer walks the same order.
+				for (auto pPassenger = pParent->Passengers.GetFirstPassenger();
+					pPassenger; pPassenger = abstract_cast<FootClass*>(pPassenger->NextObject), ++position)
+				{
+					if (reqPassIndex >= 0 && position != reqPassIndex)
+						continue;
+
+					if (!reqPassType.empty())
+					{
+						auto const pPassType = pPassenger->GetTechnoType();
+						if (!pPassType || std::find(reqPassType.begin(), reqPassType.end(),
+							pPassType) == reqPassType.end())
+						{
+							// Wrong occupant at the demanded index: no point looking
+							// further, the index can only hold one thing.
+							if (reqPassIndex >= 0)
+								break;
+							continue;
+						}
+					}
+
+					found = true;
+					break;
+				}
+
+				met = met && found;
+			}
+
 			auto const& rIdx = pSelfSlot->ResolveRequiresSlotIndex();
 			auto const& rType = pSelfSlot->ResolveRequiresSlotType();
 			if (!rIdx.empty() || !rType.empty())

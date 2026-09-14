@@ -174,6 +174,14 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiresPassengers", static_cast<int>(i));
 		slotRequiresPassengers.Read(exINI, pSection, tempBuffer);
 
+		ValueableVector<TechnoTypeClass*> slotReqPassType;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiresPassenger.Type", static_cast<int>(i));
+		slotReqPassType.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotReqPassIndex;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.RequiresPassenger.Index", static_cast<int>(i));
+		slotReqPassIndex.Read(exINI, pSection, tempBuffer);
+
 		ValueableVector<BuildingTypeClass*> slotPoweredBy;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.PoweredBy", static_cast<int>(i));
 		slotPoweredBy.Read(exINI, pSection, tempBuffer);
@@ -478,6 +486,8 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.PowersSiblings                = slotPowersSiblings,
 			.PoweredByParent               = slotPoweredByParent,
 			.RequiresPassengers            = slotRequiresPassengers,
+			.RequiresPassenger_Type        = slotReqPassType,
+			.RequiresPassenger_Index       = slotReqPassIndex,
 			.PoweredBy                     = slotPoweredBy,
 			.PoweredBy_RequireAll          = slotPoweredByRequireAll,
 			.PoweredBy_RequirePower        = slotPoweredByRequirePower,
@@ -638,6 +648,8 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->PowersSiblings)
 		.Process(this->PoweredByParent)
 		.Process(this->RequiresPassengers)
+		.Process(this->RequiresPassenger_Type)
+		.Process(this->RequiresPassenger_Index)
 		.Process(this->PoweredBy)
 		.Process(this->PoweredBy_RequireAll)
 		.Process(this->PoweredBy_RequirePower)

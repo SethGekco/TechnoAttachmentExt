@@ -873,6 +873,19 @@ bool AttachmentClass::ResolveSpinsOrbit()
 		? this->Data->Spins_Orbit.Get() : this->GetType()->Spins_Orbit;
 }
 
+const ValueableVector<TechnoTypeClass*>& AttachmentClass::ResolveRequiresPassengerType()
+{
+	return (this->Data && !this->Data->RequiresPassenger_Type.empty())
+		? this->Data->RequiresPassenger_Type : this->GetType()->RequiresPassenger_Type;
+}
+
+int AttachmentClass::ResolveRequiresPassengerIndex()
+{
+	return (this->Data && this->Data->RequiresPassenger_Index.isset())
+		? this->Data->RequiresPassenger_Index.Get()
+		: this->GetType()->RequiresPassenger_Index;
+}
+
 int AttachmentClass::ResolveSpawnsParent()
 {
 	return (this->Data && this->Data->Spawns_Parent.isset())

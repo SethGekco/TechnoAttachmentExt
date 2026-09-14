@@ -69,6 +69,8 @@ public:
 	bool ResolvePowersSiblings();
 	bool ResolvePoweredByParent();
 	int  ResolveRequiresPassengers();
+	const ValueableVector<TechnoTypeClass*>& ResolveRequiresPassengerType();
+	int  ResolveRequiresPassengerIndex();
 	const ValueableVector<BuildingTypeClass*>& ResolvePoweredBy();
 	bool ResolvePoweredByRequireAll();
 	bool ResolvePoweredByRequirePower();

@@ -120,6 +120,19 @@ public:
 	//   RequiresSlot.Type=<types>-> parent must have an active child of these types
 	// Index/Type union (any match satisfies); passengers is a separate AND gate.
 	Valueable<int> RequiresPassengers;
+	// I1/I2 (gunner) -- gate the child on WHO is aboard, not just how many.
+	//   RequiresPassenger.Type=GI,GGI  -> a passenger of one of these types
+	//   RequiresPassenger.Index=1      -> ...specifically at this cargo index
+	//                                     (index 1 is the vanilla IFV gunner slot)
+	// With Index unset, any cargo position counts. With Type unset but Index set,
+	// that position merely has to be occupied.
+	//
+	// This is the tractable half of the gunner system: the "profile" a gunner
+	// grants is expressed as an attachment child (its own weapon, art, behaviour),
+	// which needs no host type change. Host STAT changes (Strength/Speed) still
+	// need the conversion mechanism -- see ROADMAP item I.
+	ValueableVector<TechnoTypeClass*> RequiresPassenger_Type;
+	Valueable<int> RequiresPassenger_Index;
 	ValueableVector<int> RequiresSlot_Index;
 	ValueableVector<TechnoTypeClass*> RequiresSlot_Type;
 
@@ -388,6 +401,8 @@ public:
 		, PoweredBy_Range { 0 }
 		, PoweredBy_House { TAExtHouse_Owner }
 		, RequiresPassengers { 0 }
+		, RequiresPassenger_Type { }
+		, RequiresPassenger_Index { -1 }
 		, RequiresSlot_Index { }
 		, RequiresSlot_Type { }
 		, Decorative { false }
