@@ -22,14 +22,18 @@
 
 #include "Body.h"
 
+#include <algorithm>
+
 #include <InfantryClass.h>
 #include <UnitClass.h>
 #include <AircraftClass.h>
+#include <FootClass.h>
 #include <HouseClass.h>
 #include <TemporalClass.h>
 #include <LocomotionClass.h>
 
 #include <Locomotion/AttachmentLocomotionClass.h>
+#include <Ext/TechnoType/Body.h>
 
 bool TechnoExt::UpdateType(TechnoClass* pThis, TechnoTypeClass* pToType,
 	bool keepHealth, bool keepVeterancy)
@@ -168,4 +172,117 @@ bool TechnoExt::UpdateType(TechnoClass* pThis, TechnoTypeClass* pToType,
 
 	Debug::Log("[TAExt] converted %s -> %s\n", pFromType->ID, pToType->ID);
 	return true;
+}
+
+// ---------------------------------------------------------------------------
+// I-b -- the cargo trigger.
+//
+// Evaluated once per synced tick. Reads only synced state (cargo contents,
+// boarding order, frame counter) with no RNG, so every peer converts on the same
+// frame to the same type.
+//
+// Reverting is inherent: no matching rule means "go back to the base type",
+// which is why there is no separate revert flag.
+// ---------------------------------------------------------------------------
+void TechnoExt::UpdateGunnerProfile(TechnoClass* pThis)
+{
+	if (!pThis || pThis->InLimbo || !pThis->IsAlive)
+		return;
+
+	auto const pCurrentType = pThis->GetTechnoType();
+	if (!pCurrentType)
+		return;
+
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
+
+	// Rules are looked up on the BASE type, not the current one. A converted host
+	// is running as IFV_ROCKET, which has no profile rules of its own -- reading
+	// them from the current type would strand it in that profile forever.
+	auto const pRuleType = pExt->GunnerBaseType ? pExt->GunnerBaseType : pCurrentType;
+	auto const pRuleTypeExt = TechnoTypeExt::ExtMap.Find(pRuleType);
+	if (!pRuleTypeExt || pRuleTypeExt->GunnerProfiles.empty())
+		return;
+
+	// --- which profile does the current cargo call for? ---
+	TechnoTypeClass* pDesired = pRuleType; // no match -> revert to base
+	int minDwell = 0;
+	bool keepHealth = true;
+	bool keepVeterancy = true;
+
+	for (auto const& rule : pRuleTypeExt->GunnerProfiles)
+	{
+		if (!rule.To)
+			continue;
+
+		bool matched = false;
+		int position = 0;
+
+		// Boarding order, which is what "cargo index" means and is synced state.
+		for (auto pPassenger = pThis->Passengers.GetFirstPassenger();
+			pPassenger; pPassenger = abstract_cast<FootClass*>(pPassenger->NextObject), ++position)
+		{
+			if (rule.Index >= 0 && position != rule.Index)
+				continue;
+
+			if (!rule.Passenger.empty())
+			{
+				auto const pPassType = pPassenger->GetTechnoType();
+				if (!pPassType || std::find(rule.Passenger.begin(), rule.Passenger.end(),
+					pPassType) == rule.Passenger.end())
+				{
+					// A demanded index can hold only one thing, so a wrong occupant
+					// there settles the rule rather than letting a later position
+					// answer for it.
+					if (rule.Index >= 0)
+						break;
+					continue;
+				}
+			}
+
+			matched = true;
+			break;
+		}
+
+		if (matched)
+		{
+			pDesired = rule.To;
+			minDwell = rule.MinDwell;
+			keepHealth = rule.KeepHealth;
+			keepVeterancy = rule.KeepVeterancy;
+			break; // first match wins
+		}
+	}
+
+	if (pDesired == pCurrentType)
+		return; // already correct
+
+	// --- the oscillation brake ---
+	//
+	// MinDwell is taken from the rule we are converting TO; when reverting there
+	// is no such rule, so the widest dwell any rule asked for is used. Otherwise a
+	// revert could undo a conversion the very next frame and the pair would
+	// alternate forever -- a freeze, not a crash, and far harder to diagnose.
+	if (pDesired == pRuleType)
+	{
+		for (auto const& rule : pRuleTypeExt->GunnerProfiles)
+			minDwell = std::max(minDwell, rule.MinDwell);
+	}
+
+	int const now = static_cast<int>(Unsorted::CurrentFrame);
+	if (pExt->GunnerLastChange >= 0 && now - pExt->GunnerLastChange < minDwell)
+		return;
+
+	// Remember what we started as, before the first conversion overwrites it.
+	if (!pExt->GunnerBaseType)
+		pExt->GunnerBaseType = pCurrentType;
+
+	if (TechnoExt::UpdateType(pThis, pDesired, keepHealth, keepVeterancy))
+	{
+		// Stamp the frame even on a revert, so an immediate re-convert is braked
+		// too -- the brake has to apply in both directions or it only halves the
+		// oscillation rate.
+		pExt->GunnerLastChange = now;
+	}
 }

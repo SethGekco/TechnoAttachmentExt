@@ -68,6 +68,9 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	}
 
 	// External-structure power on a plain TechnoType (unit or building).
+	this->GunnerProfiles.clear();
+	TAExt_ReadGunnerProfileRules(pINI, pSection, this->GunnerProfiles);
+
 	this->InstantSpawnRules.clear();
 	TAExt_ReadInstantSpawnRules(pINI, pSection, this->InstantSpawnRules);
 

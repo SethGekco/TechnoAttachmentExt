@@ -113,6 +113,10 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 	// anything without a timer rule.
 	TAExt_RunInstantSpawns(pThis, TAExtSpawn_Timer, -1);
 
+	// I-b: convert or revert this host to match its current cargo. No-op unless
+	// the base type declares GunnerProfile rules.
+	TechnoExt::UpdateGunnerProfile(pThis);
+
 	return 0;
 }
 
@@ -143,6 +147,10 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 	// H1a: the timer trigger. Frame-derived inside, so this is a cheap no-op for
 	// anything without a timer rule.
 	TAExt_RunInstantSpawns(pThis, TAExtSpawn_Timer, -1);
+
+	// I-b: convert or revert this host to match its current cargo. No-op unless
+	// the base type declares GunnerProfile rules.
+	TechnoExt::UpdateGunnerProfile(pThis);
 
 	return 0;
 }

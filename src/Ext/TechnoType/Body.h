@@ -6,6 +6,7 @@
 #include <TechnoTypeClass.h>
 
 #include <New/Type/AttachmentTypeClass.h>
+#include <New/Type/GunnerProfileRule.h>
 #include <Ext/Rules/Body.h>
 
 class Matrix3D;
@@ -78,6 +79,9 @@ public:
 		Nullable<int> Spawns_Base;
 		// H1a instant spawn rules on a plain TechnoType (see InstantSpawnRule.h).
 		std::vector<InstantSpawnRule> InstantSpawnRules;
+
+		// I-b: host profiles driven by cargo. On the HOST's TechnoType.
+		std::vector<GunnerProfileRule> GunnerProfiles;
 
 		Valueable<int> Spawns_PerAmmo;
 		Valueable<bool> Spawns_Cull;
@@ -219,6 +223,7 @@ public:
 			, PoweredBy_Range { 0 }
 			, Spawns_Base { }
 			, InstantSpawnRules { }
+			, GunnerProfiles { }
 			, Spawns_PerAmmo { 0 }
 			, Spawns_Cull { true }
 			, PoweredBy_House { TAExtHouse_Owner }

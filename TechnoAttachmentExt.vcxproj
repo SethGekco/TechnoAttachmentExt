@@ -54,6 +54,7 @@
     <ClCompile Include="src\Hooks.InstantSpawn.cpp" />
     <ClCompile Include="src\Ext\Techno\Body.TypeConversion.cpp" />
     <ClCompile Include="src\New\Type\InstantSpawnRule.cpp" />
+    <ClCompile Include="src\New\Type\GunnerProfileRule.cpp" />
     <ClCompile Include="src\Hooks.FreezeWatchdog.cpp" />
     <ClCompile Include="src\Hooks.RecursionProbe.cpp" />
   </ItemGroup>

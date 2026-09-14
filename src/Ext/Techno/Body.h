@@ -105,6 +105,13 @@ public:
 		// freed. Without that override these would be dangling pointers, and an
 		// IsAlive check would not save us -- reading that flag off freed memory is
 		// already undefined.
+		// I-b: what this host was before any gunner profile converted it, and the
+		// frame it last changed. Both serialized -- without the base type a loaded
+		// game can never revert, and without the frame the MinDwell brake resets to
+		// "may change immediately" on load.
+		TechnoTypeClass* GunnerBaseType;
+		int GunnerLastChange;
+
 		std::vector<TechnoClass*> InstantSpawnLive;
 		std::vector<int> InstantSpawnLiveRule;
 
@@ -123,6 +130,8 @@ public:
 			, NetworkPowered { false }
 			, InstantSpawnLastFired { }
 			, InstantSpawnCyclePos { }
+			, GunnerBaseType { nullptr }
+			, GunnerLastChange { -1 }
 			, InstantSpawnLive { }
 			, InstantSpawnLiveRule { }
 			, AttachmentMoveOffset { }
@@ -216,6 +225,10 @@ public:
 	// is not legal (wrong abstract type, building, null).
 	static bool UpdateType(TechnoClass* pThis, TechnoTypeClass* pToType,
 		bool keepHealth = true, bool keepVeterancy = true);
+
+	// I-b: evaluate this host's GunnerProfile rules against its current cargo and
+	// convert or revert. Called once per synced tick; no-op without rules.
+	static void UpdateGunnerProfile(TechnoClass* pThis);
 	static void HandleAttachmentDeployTransfer(TechnoClass* pFrom, TechnoClass* pTo);
 
 	static bool IsAttached(TechnoClass* pThis);
