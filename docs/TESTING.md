@@ -592,5 +592,12 @@ and points straight at INI parsing.
       conversions (owner deregister/re-register).
 - [ ] Ammo is clamped when converting to a lower-capacity type.
 - [ ] Save/load while converted: reloads converted, and can still revert.
-- [ ] A building with GunnerProfile is rejected, not crashed.
+- [ ] A building with GunnerProfile is rejected at LOAD with a log line, not
+      crashed and not silently inert.
+- [ ] A profile with fewer `Passengers=` than the host is rejected at load.
+- [ ] A profile that is itself a GunnerProfile host is rejected (cycle).
+- [ ] A profile naming the host itself is rejected.
+- [ ] `GunnerProfile validation: N accepted, M rejected` appears in the log
+      whenever any profile is configured (this is also the proof the
+      after-typedata hook is live).
 - [ ] Online: two clients, a transport loading/unloading — no desync.

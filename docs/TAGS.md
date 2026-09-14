@@ -842,7 +842,19 @@ reach that by accident. Lower it only deliberately.
 > computed at placement, so swapping a live building's type is a different and
 > much larger problem. Garrison "gunners" are a separate mechanic.
 
-> **Not yet validated at load:** that the profile type has at least as much
-> `Passengers=` capacity as the host. Converting a full transport into a
-> smaller-capacity type leaves it overfull. Keep capacities equal for now; the
-> parse-time check is I-c.
+#### Validated at load
+
+A profile that would misbehave silently is **rejected at load with a named
+reason in the log**, and the rule is removed so it cannot fire:
+
+| Rejected | Why |
+| --- | --- |
+| profile is the host itself | could never change anything |
+| different kind of type | a vehicle cannot become infantry |
+| fewer `Passengers=` than the host | the engine evicts nobody on a swap, so a full transport would end up overfull |
+| smaller `SizeLimit=` than the host | a passenger legal before the swap becomes illegal after it |
+| profile is itself a `GunnerProfile` host | would chain conversions |
+| host is a building | unsupported; the whole rule list is dropped with one message |
+
+The log ends with `GunnerProfile validation: N accepted, M rejected` whenever any
+profile is configured — if you do not see that line, the rules were not read.
