@@ -3,7 +3,8 @@
 Granting the **host** different stats (`Strength=`, `Speed=`, armor, `Primary=`)
 depending on who is riding in it. The gunner mechanic, beyond what shipped.
 
-Status: **design for review**. Nothing here is built.
+Status: **I-a is BUILT** (`src/Ext/Techno/Body.TypeConversion.cpp`,
+`TechnoExt::UpdateType`). I-b onward is still design.
 
 **Already shipped and NOT part of this** — cargo-identity gating
 (`RequiresPassenger.Type=` / `.Index=`), which lets a passenger switch an
@@ -153,9 +154,11 @@ principle as `On.Reason` naming its unimplemented values.
 
 ## 7. Build order
 
-1. **I-a — the conversion primitive.** `TechnoExt::UpdateType` equivalent, with
-   the §2 checklist including our attachment and rule-vector obligations.
-   Testable on its own via a debug trigger, with no cargo involved.
+1. ~~**I-a — the conversion primitive.**~~ **DONE.** `TechnoExt::UpdateType` in
+   `src/Ext/Techno/Body.TypeConversion.cpp`, following the §2 checklist plus our
+   attachment and rule-vector obligations, and keeping the attachment locomotor
+   on a converted child so it is not cut loose from its parent. No trigger is
+   wired to it yet, so it is currently unreachable from INI by design.
 2. **I-b — the cargo trigger.** `GunnerProfile.Passenger`/`.Index`, revert on
    departure, `MinDwell`, oscillation guard.
 3. **I-c — parse-time validation** (§6).
