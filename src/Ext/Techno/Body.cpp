@@ -45,8 +45,20 @@ void TechnoExt::ExtData::InvalidatePointer(void* ptr, bool bRemoved)
 template <typename T>
 void TechnoExt::ExtData::Serialize(T& Stm)
 {
-	// NOTE: matching the upstream PR, only AltOccupation is stream-serialized;
-	// the live attachment vectors are not persisted across save/load yet.
+	// ⚠ ChildAttachments / DormantAttachments are deliberately NOT here, and this
+	// is not a TODO that was skipped -- wiring them as currently written would be
+	// actively harmful.
+	//
+	// AttachmentClass::Serialize (which exists, and is never called) does
+	// `.Process(this->Data)`. `Data` is an AttachmentDataEntry* pointing INTO the
+	// TYPE's AttachmentData vector. That is not a game object, so the swizzler
+	// cannot repair it, and the vector is rebuilt from INI on load -- the restored
+	// pointer would dangle into freed storage and be dereferenced on the very next
+	// AI tick.
+	//
+	// The fix is to serialize the slot INDEX and re-derive Data from the rebuilt
+	// type vector after load, not to add ChildAttachments to this chain. See
+	// docs/ROADMAP.md "attachment save/load".
 	Stm
 		.Process(this->AltOccupation)
 		.Process(this->DeactivationReasons)

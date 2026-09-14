@@ -534,3 +534,44 @@ are different primitives; the XP/open-topped bits are where they meet.
 9. Earlier backlog: SortY render-sort; walk-anim toggle; hold-fire-while-moving.
 
 Every item above must satisfy the online/multiplayer constraint at the top.
+
+---
+
+## Attachment save/load — known gap, found during I-d
+
+**Attachments do not currently survive a save/load.** `ChildAttachments` and
+`DormantAttachments` are not in `TechnoExt::ExtData::Serialize`, matching the
+upstream PR.
+
+`AttachmentClass::Save`/`Load`/`Serialize` all exist but are **never called**, and
+the reason they were left unwired is specific rather than incidental:
+`Serialize` does `.Process(this->Data)`, and `Data` is an `AttachmentDataEntry*`
+pointing into the **type's** `AttachmentData` vector. That is not a game object,
+so the swizzler cannot repair it, and the vector is rebuilt from INI on load. A
+restored `Data` would dangle into freed storage and be dereferenced on the next
+AI tick. **Adding `ChildAttachments` to the serialize chain as the code stands
+would be worse than the current gap, not better.**
+
+### The fix shape
+
+1. Serialize the slot **index** rather than the `Data` pointer, and re-derive
+   `Data` from the rebuilt type vector after load.
+2. Serialize `Child` (a real game object, so the swizzler handles it) and
+   `RespawnTimer`.
+3. Restore each child's `ParentAttachment` back-link.
+4. Settle the ordering question: `TechnoClass::Init` (`0x6F42F7`) drives
+   `InitializeAttachments`, and its hook already carries a "critical sanity check
+   during save/load" guard — so Init is reached during load. Whether slots are
+   therefore rebuilt from the type BEFORE the stream is read decides whether the
+   restore path must create slots or only re-link them. **This needs an in-game
+   answer, not a reading of the source.**
+
+### What to look for in game
+
+Save with a unit that has attachments, reload, and check whether the children are
+duplicated (old saved technos plus freshly created ones), orphaned (present but
+no longer following the host), or simply absent. Each outcome points at a
+different answer to (4).
+
+This is a prerequisite for the save/load half of every feature built on
+attachments, including gunner profiles.

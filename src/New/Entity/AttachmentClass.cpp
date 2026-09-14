@@ -1442,6 +1442,15 @@ void AttachmentClass::InvalidatePointer(void* ptr)
 
 #pragma region Save/Load
 
+// ⚠ UNUSED, and must not be wired up as written. `Data` points INTO the TYPE's
+// AttachmentData vector: it is not a game object, so the swizzler cannot repair
+// it, and that vector is rebuilt from INI on load. A restored Data pointer
+// dangles into freed storage and is dereferenced on the next AI tick.
+//
+// To make this usable, replace Data with the slot INDEX and re-derive the
+// pointer from the rebuilt type vector after load. Nothing calls Save/Load today
+// (TechnoExt::ExtData::Serialize deliberately omits the attachment vectors), so
+// this is a trap for whoever wires it, not a live bug.
 template <typename T>
 bool AttachmentClass::Serialize(T& stm)
 {
