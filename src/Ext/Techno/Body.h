@@ -207,6 +207,15 @@ public:
 	static void LimboAttachments(TechnoClass* pThis);
 	static void TransferAttachments(TechnoClass* pThis, TechnoClass* pThat);
 	static void HandleAttachmentConversion(TechnoClass* pThis, TechnoTypeClass* pOldType, TechnoTypeClass* pNewType);
+
+	// I-a: swap a LIVE techno's TechnoType in place, so every stat follows at
+	// once. Infantry/Unit/Aircraft only -- buildings are out of scope (see
+	// Body.TypeConversion.cpp). Repairs the derived state the swap invalidates:
+	// owner registration, health as a ratio, ammo, turn rates, locomotor, our
+	// attachment slots and our per-rule vectors. Returns false if the conversion
+	// is not legal (wrong abstract type, building, null).
+	static bool UpdateType(TechnoClass* pThis, TechnoTypeClass* pToType,
+		bool keepHealth = true, bool keepVeterancy = true);
 	static void HandleAttachmentDeployTransfer(TechnoClass* pFrom, TechnoClass* pTo);
 
 	static bool IsAttached(TechnoClass* pThis);
