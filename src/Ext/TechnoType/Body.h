@@ -163,6 +163,11 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Nullable<bool> Spins_Orbit_Reverse;
+			Nullable<int> Spins_Orbit_XScale;
+			Nullable<int> Spins_Orbit_YScale;
+			Nullable<int> Spins_Orbit_Wobble;
+			Nullable<int> Spins_Orbit_Wobble_Period;
 			Nullable<int> Spawns_Parent;
 			Nullable<int> Facing_Mode;
 			Nullable<int> Prerequisite_LostAction;

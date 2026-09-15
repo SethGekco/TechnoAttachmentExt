@@ -216,7 +216,14 @@ CoordStruct AttachmentClass::GetLocalOffsetAt(unsigned int frame)
 
 	if (this->ResolveSpins() && this->ResolveSpinsOrbit())
 	{
-		int const index = this->GetSpinRawAt(frame) >> 8;
+		int raw = this->GetSpinRawAt(frame);
+
+		// Reverse the ORBIT alone. A negative Spins.Period flips the orbit and the
+		// spin together; this separates them.
+		if (this->ResolveSpinsOrbitReverse())
+			raw = -raw;
+
+		int const index = raw >> 8;
 		int const cos = TAExt_Cos1024(index);
 		int const sin = TAExt_Sin1024(index);
 
@@ -224,6 +231,27 @@ CoordStruct AttachmentClass::GetLocalOffsetAt(unsigned int frame)
 		int const y = flh.Y;
 		flh.X = (x * cos - y * sin) / 1024;
 		flh.Y = (x * sin + y * cos) / 1024;
+
+		// Ellipse: unequal axis scales turn the circle into an oval -- the
+		// "imperfect circle". Applied AFTER the rotation so the oval stays fixed
+		// relative to the host rather than tumbling with the orbit.
+		int const xs = this->ResolveSpinsOrbitXScale();
+		int const ys = this->ResolveSpinsOrbitYScale();
+		if (xs != 100) flh.X = (flh.X * xs) / 100;
+		if (ys != 100) flh.Y = (flh.Y * ys) / 100;
+
+		// Wobble: the radius breathes. Percent amplitude over its own period, so
+		// it beats against the orbit instead of staying in lockstep with it.
+		int const wobble = this->ResolveSpinsOrbitWobble();
+		int const wobblePeriod = this->ResolveSpinsOrbitWobblePeriod();
+		if (wobble != 0 && wobblePeriod > 0)
+		{
+			int const phase = static_cast<int>(frame % static_cast<unsigned int>(wobblePeriod));
+			int const wIndex = (phase * 256) / wobblePeriod;
+			int const scale = 100 + (wobble * TAExt_Sin1024(wIndex)) / 1024;
+			flh.X = (flh.X * scale) / 100;
+			flh.Y = (flh.Y * scale) / 100;
+		}
 	}
 
 	if (int const slide = this->GetSlideOffsetAt(frame))
@@ -267,7 +295,10 @@ int AttachmentClass::GetFacingModeRaw()
 
 	case 2: // spin -- turn at the Spins rate. The one mode the geometric options
 		    // cannot express: with Spins.Orbit=no there is no path and no radius.
-		return this->GetSpinRaw();
+		//
+		// NEGATED for the same mirror reason as `travel` below: the sprite must
+		// turn the way the orbit visibly goes, and the two disagreed before.
+		return -this->GetSpinRaw();
 
 	case 3: // travel -- heading along the path actually being walked
 	{
@@ -286,7 +317,14 @@ int AttachmentClass::GetFacingModeRaw()
 		if (dx == 0 && dy == 0)
 			return 0;
 
-		return TAExt_Atan2Raw(dy, dx);
+		// ⚠ THE Y IS NEGATED ON PURPOSE. GetFLHAbsoluteCoords finishes with
+		//     location = renderCoords + { result.X, -result.Y, result.Z }
+		// so local +Y becomes world -Y. That mirror flips handedness: a heading
+		// computed in the local frame and applied as a world facing points the
+		// sprite at the mirror image of its actual path, which on a circular orbit
+		// reads as "it faces the wrong way round". Negating dy converts the local
+		// heading into the world one.
+		return TAExt_Atan2Raw(-dy, dx);
 	}
 
 	default: // outward (4) / inward (5) -- along the parent-to-child line
@@ -295,7 +333,7 @@ int AttachmentClass::GetFacingModeRaw()
 		if (here.X == 0 && here.Y == 0)
 			return 0;
 
-		int raw = TAExt_Atan2Raw(here.Y, here.X);
+		int raw = TAExt_Atan2Raw(-here.Y, here.X); // mirrored, as for `travel` above
 		if (mode == 5)
 			raw += 32768; // inward: face back toward the parent
 		return raw;
@@ -886,6 +924,36 @@ int AttachmentClass::ResolveRequiresPassengerIndex()
 		: this->GetType()->RequiresPassenger_Index;
 }
 
+bool AttachmentClass::ResolveSpinsOrbitReverse()
+{
+	return (this->Data && this->Data->Spins_Orbit_Reverse.isset())
+		? this->Data->Spins_Orbit_Reverse.Get() : this->GetType()->Spins_Orbit_Reverse;
+}
+
+int AttachmentClass::ResolveSpinsOrbitXScale()
+{
+	return (this->Data && this->Data->Spins_Orbit_XScale.isset())
+		? this->Data->Spins_Orbit_XScale.Get() : this->GetType()->Spins_Orbit_XScale;
+}
+
+int AttachmentClass::ResolveSpinsOrbitYScale()
+{
+	return (this->Data && this->Data->Spins_Orbit_YScale.isset())
+		? this->Data->Spins_Orbit_YScale.Get() : this->GetType()->Spins_Orbit_YScale;
+}
+
+int AttachmentClass::ResolveSpinsOrbitWobble()
+{
+	return (this->Data && this->Data->Spins_Orbit_Wobble.isset())
+		? this->Data->Spins_Orbit_Wobble.Get() : this->GetType()->Spins_Orbit_Wobble;
+}
+
+int AttachmentClass::ResolveSpinsOrbitWobblePeriod()
+{
+	return (this->Data && this->Data->Spins_Orbit_Wobble_Period.isset())
+		? this->Data->Spins_Orbit_Wobble_Period.Get() : this->GetType()->Spins_Orbit_Wobble_Period;
+}
+
 int AttachmentClass::ResolveSpawnsParent()
 {
 	return (this->Data && this->Data->Spawns_Parent.isset())
@@ -1166,6 +1234,27 @@ void AttachmentClass::AI()
 		// which in game just looks like it blinked out of existence. LostAction lets
 		// the modder pick a reaction with some weight to it instead.
 		bool const prereqLost = this->PrerequisiteDynamic() && !this->PrerequisitesMet();
+
+		// Diagnostic: announce each dynamic-prerequisite transition once. Reading
+		// the code did not reveal why a Prerequisite.Dynamic gate would misbehave
+		// -- the parse keys and the CountOwnedAndPresent test both check out -- so
+		// rather than guess, this reports what the gate actually decided.
+		//
+		// A line here naming the attachment means the gate IS being evaluated and
+		// tells you which way it went. NO line at all means the rule never reached
+		// this point, which points at creation/limbo instead of the test.
+		if (this->PrerequisiteDynamic())
+		{
+			if (this->LastPrereqLost != (prereqLost ? 1 : 0))
+			{
+				this->LastPrereqLost = prereqLost ? 1 : 0;
+				Debug::Log("[TAExt] prereq %s: %s (host %s)\n",
+					this->GetType()->ID,
+					prereqLost ? "UNMET -> hiding" : "met -> showing",
+					(this->Parent && this->Parent->GetTechnoType())
+						? this->Parent->GetTechnoType()->ID : "<null>");
+			}
+		}
 		int const lostAction = prereqLost ? this->ResolvePrerequisiteLostAction() : 0;
 
 		// kill / vanish / detach are one-shot: they consume the child, so the branch

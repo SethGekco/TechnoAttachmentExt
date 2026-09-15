@@ -244,6 +244,18 @@ public:
 	Valueable<bool> Spins;
 	Valueable<int> Spins_Period;
 	Valueable<bool> Spins_Orbit;
+	// Orbit shaping. All frame-derived, so no saved state and no drift.
+	//   Spins.Orbit.Reverse=no   -> orbit the other way WITHOUT flipping the spin
+	//                               rate sign (a negative Spins.Period flips both)
+	//   Spins.Orbit.XScale=100   -> percentages. Unequal values make an ELLIPSE,
+	//   Spins.Orbit.YScale=100      i.e. the "imperfect circle"
+	//   Spins.Orbit.Wobble=0     -> percent the radius breathes in and out by
+	//   Spins.Orbit.Wobble.Period=0 -> frames per breath (0 = no wobble)
+	Valueable<bool> Spins_Orbit_Reverse;
+	Valueable<int> Spins_Orbit_XScale;
+	Valueable<int> Spins_Orbit_YScale;
+	Valueable<int> Spins_Orbit_Wobble;
+	Valueable<int> Spins_Orbit_Wobble_Period;
 	//   Slides=yes         -> the child slides back and forth along one axis
 	//   Slides.Axis=x      -> x | y | z. The axis is HOST-RELATIVE, because the FLH
 	//                         offset is already resolved through the host's

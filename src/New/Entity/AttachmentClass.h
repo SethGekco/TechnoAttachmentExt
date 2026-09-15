@@ -19,6 +19,11 @@ public:
 	TechnoClass* Child;
 	CDTimerClass RespawnTimer;
 
+	// Diagnostic only: last reported dynamic-prerequisite state (-1 unknown,
+	// 0 met, 1 unmet), so the log reports transitions rather than every frame.
+	// Not serialized -- it is a logging edge-detector, not game state.
+	int LastPrereqLost = -1;
+
 
 	AttachmentClass(TechnoTypeExt::ExtData::AttachmentDataEntry* data,
 		TechnoClass* pParent, TechnoClass* pChild = nullptr) :
@@ -95,6 +100,11 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	bool ResolveSpinsOrbitReverse();
+	int  ResolveSpinsOrbitXScale();
+	int  ResolveSpinsOrbitYScale();
+	int  ResolveSpinsOrbitWobble();
+	int  ResolveSpinsOrbitWobblePeriod();
 	int  ResolveSpawnsParent();
 	int  ResolveFacingMode();
 	int  ResolvePrerequisiteLostAction();

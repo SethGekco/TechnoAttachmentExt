@@ -308,6 +308,26 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<bool> slotOrbitReverse;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit.Reverse", static_cast<int>(i));
+		slotOrbitReverse.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotOrbitXScale;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit.XScale", static_cast<int>(i));
+		slotOrbitXScale.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotOrbitYScale;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit.YScale", static_cast<int>(i));
+		slotOrbitYScale.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotOrbitWobble;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit.Wobble", static_cast<int>(i));
+		slotOrbitWobble.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotOrbitWobblePeriod;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit.Wobble.Period", static_cast<int>(i));
+		slotOrbitWobblePeriod.Read(exINI, pSection, tempBuffer);
+
 		Nullable<int> slotSpawnsParent;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spawns.Parent", static_cast<int>(i));
 		slotSpawnsParent.Read(exINI, pSection, tempBuffer);
@@ -522,6 +542,11 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.Spins_Orbit_Reverse           = slotOrbitReverse,
+			.Spins_Orbit_XScale            = slotOrbitXScale,
+			.Spins_Orbit_YScale            = slotOrbitYScale,
+			.Spins_Orbit_Wobble            = slotOrbitWobble,
+			.Spins_Orbit_Wobble_Period     = slotOrbitWobblePeriod,
 			.Spawns_Parent               = slotSpawnsParent,
 			.Facing_Mode                   = slotFacingMode,
 			.Prerequisite_LostAction       = slotPrereqLostAction,
@@ -684,6 +709,11 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Spins_Orbit_Reverse)
+		.Process(this->Spins_Orbit_XScale)
+		.Process(this->Spins_Orbit_YScale)
+		.Process(this->Spins_Orbit_Wobble)
+		.Process(this->Spins_Orbit_Wobble_Period)
 		.Process(this->Spawns_Parent)
 		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)

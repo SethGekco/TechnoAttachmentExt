@@ -173,6 +173,11 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Spins.Read(exINI, section, "Spins");
 	this->Spins_Period.Read(exINI, section, "Spins.Period");
 	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	this->Spins_Orbit_Reverse.Read(exINI, section, "Spins.Orbit.Reverse");
+	this->Spins_Orbit_XScale.Read(exINI, section, "Spins.Orbit.XScale");
+	this->Spins_Orbit_YScale.Read(exINI, section, "Spins.Orbit.YScale");
+	this->Spins_Orbit_Wobble.Read(exINI, section, "Spins.Orbit.Wobble");
+	this->Spins_Orbit_Wobble_Period.Read(exINI, section, "Spins.Orbit.Wobble.Period");
 	{
 		char actionBuffer[16];
 		if (pINI->ReadString(section, "Prerequisite.LostAction", "", actionBuffer, sizeof(actionBuffer)) > 0)
@@ -336,6 +341,11 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Spins_Orbit_Reverse)
+		.Process(this->Spins_Orbit_XScale)
+		.Process(this->Spins_Orbit_YScale)
+		.Process(this->Spins_Orbit_Wobble)
+		.Process(this->Spins_Orbit_Wobble_Period)
 		.Process(this->Spawns_Parent)
 		.Process(this->Facing_Mode)
 		.Process(this->Prerequisite_LostAction)
