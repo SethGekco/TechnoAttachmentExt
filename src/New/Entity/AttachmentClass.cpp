@@ -1249,7 +1249,7 @@ void AttachmentClass::AI()
 			{
 				this->LastPrereqLost = prereqLost ? 1 : 0;
 				Debug::Log("[TAExt] prereq %s: %s (host %s)\n",
-					this->GetType()->ID,
+					this->GetType()->Name,
 					prereqLost ? "UNMET -> hiding" : "met -> showing",
 					(this->Parent && this->Parent->GetTechnoType())
 						? this->Parent->GetTechnoType()->ID : "<null>");
