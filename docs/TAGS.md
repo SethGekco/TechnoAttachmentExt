@@ -329,6 +329,29 @@ Bobs.Phase=0         ; 0-255; shifts the cycle so sibling attachments bob out of
 ```
 All per-slot too (`AttachmentN.Spins=` etc).
 
+Orbit direction and shape:
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `Spins.Orbit.Reverse` | `no` | orbit the other way **without** flipping the spin rate (a negative `Spins.Period` flips both together) |
+| `Spins.Orbit.XScale` | `100` | percent. Unequal X/Y make an **ellipse** — an imperfect circle |
+| `Spins.Orbit.YScale` | `100` | " |
+| `Spins.Orbit.Wobble` | `0` | percent the radius breathes in and out by |
+| `Spins.Orbit.Wobble.Period` | `0` | frames per breath; `0` = no wobble |
+
+```ini
+Spins.Orbit=yes
+Spins.Orbit.Reverse=yes      ; orbit clockwise, spin unchanged
+Spins.Orbit.XScale=130       ; stretched oval
+Spins.Orbit.YScale=80
+Spins.Orbit.Wobble=15        ; ...that also breathes
+Spins.Orbit.Wobble.Period=200
+```
+
+The wobble runs on its **own** period, so it beats against the orbit rather than
+staying in lockstep — which is what stops it looking mechanical. All of these are
+frame-derived, so they need no saved state and cannot drift.
+
 To control which way the sprite *points* while spinning or orbiting, see
 [`Facing.Mode`](#facingmode). It is deliberately not a `Spins.*` tag: it also
 applies with no spin at all, to `Slides` or to a static FLH.
