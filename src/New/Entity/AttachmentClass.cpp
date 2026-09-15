@@ -1249,7 +1249,12 @@ void AttachmentClass::AI()
 			{
 				this->LastPrereqLost = prereqLost ? 1 : 0;
 				Debug::Log("[TAExt] prereq %s: %s (host %s)\n",
-					this->GetType()->Name,
+					// static_cast, NOT the implicit conversion: Name is a
+					// PhobosFixedString<32>, a CLASS with an operator const char*.
+					// Implicit conversions do not apply to varargs, so passing it
+					// bare pushes all 32 bytes and %s reads the first four as a
+					// pointer -- a guaranteed crash on the type's own name.
+					static_cast<const char*>(this->GetType()->Name),
 					prereqLost ? "UNMET -> hiding" : "met -> showing",
 					(this->Parent && this->Parent->GetTechnoType())
 						? this->Parent->GetTechnoType()->ID : "<null>");
