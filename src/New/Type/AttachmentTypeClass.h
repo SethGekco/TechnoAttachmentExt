@@ -426,6 +426,11 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Spins_Orbit_Reverse { false }
+		, Spins_Orbit_XScale { 100 }
+		, Spins_Orbit_YScale { 100 }
+		, Spins_Orbit_Wobble { 0 }
+		, Spins_Orbit_Wobble_Period { 0 }
 		, Spawns_Parent { 0 }
 		, Facing_Mode { 0 }
 		, Prerequisite_LostAction { 0 }

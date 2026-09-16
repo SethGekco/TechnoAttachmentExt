@@ -22,6 +22,7 @@ jobs:
           python3 tools/check_hook_overlap.py hooks.csv src
           python3 tools/check_hook_bounds.py --registry hooks.csv src
           python3 tools/check_log_varargs.py src
+          python3 tools/check_member_init.py src
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
