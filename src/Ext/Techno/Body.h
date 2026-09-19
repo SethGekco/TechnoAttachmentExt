@@ -109,6 +109,19 @@ public:
 		// frame it last changed. Both serialized -- without the base type a loaded
 		// game can never revert, and without the frame the MinDwell brake resets to
 		// "may change immediately" on load.
+		// ---- attachment save/load ----
+		// The AttachmentClass objects themselves are NOT streamed: AttachmentClass
+		// holds a Data pointer INTO the type's AttachmentData vector, which is not a
+		// game object (the swizzler cannot repair it) and is rebuilt from INI on
+		// load. So instead we save what is actually restorable -- which CHILD sits
+		// in which slot, by index -- and re-link after the world exists.
+		//
+		// Child pointers are real game objects, so the generic stream handler
+		// swizzles them. The slot index is implicit in the vector position.
+		std::vector<TechnoClass*> SavedChildren;
+		std::vector<int> SavedRespawn;   // remaining respawn frames per slot
+		bool AttachmentsPendingRestore;  // set on load, cleared once re-linked
+
 		TechnoTypeClass* GunnerBaseType;
 		int GunnerLastChange;
 
@@ -130,6 +143,9 @@ public:
 			, NetworkPowered { false }
 			, InstantSpawnLastFired { }
 			, InstantSpawnCyclePos { }
+			, SavedChildren { }
+			, SavedRespawn { }
+			, AttachmentsPendingRestore { false }
 			, GunnerBaseType { nullptr }
 			, GunnerLastChange { -1 }
 			, InstantSpawnLive { }
@@ -229,6 +245,12 @@ public:
 	// I-b: evaluate this host's GunnerProfile rules against its current cargo and
 	// convert or revert. Called once per synced tick; no-op without rules.
 	static void UpdateGunnerProfile(TechnoClass* pThis);
+
+	// Attachment save/load. Capture runs just before the stream is written;
+	// Restore runs lazily on the first synced tick after a load, which is what
+	// makes it independent of whether TechnoClass::Init rebuilt the slots first.
+	static void CaptureAttachmentsForSave(TechnoClass* pThis);
+	static void RestoreAttachmentsAfterLoad(TechnoClass* pThis);
 	static void HandleAttachmentDeployTransfer(TechnoClass* pFrom, TechnoClass* pTo);
 
 	static bool IsAttached(TechnoClass* pThis);

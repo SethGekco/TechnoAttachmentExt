@@ -443,6 +443,123 @@ void TechnoExt::UpdateSpawnCap(TechnoClass* pHost)
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Attachment save/load.
+//
+// The AttachmentClass objects cannot be streamed as they stand: each holds a
+// Data pointer INTO the type's AttachmentData vector, which is not a game object
+// (so the swizzler cannot repair it) and is rebuilt from INI on load. What IS
+// restorable is the association -- which child occupies which slot -- because
+// the slots themselves are rebuilt deterministically from the type.
+// ---------------------------------------------------------------------------
+
+void TechnoExt::CaptureAttachmentsForSave(TechnoClass* pThis)
+{
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
+
+	pExt->SavedChildren.clear();
+	pExt->SavedRespawn.clear();
+
+	for (auto const& pSlot : pExt->ChildAttachments)
+	{
+		pExt->SavedChildren.push_back(pSlot ? pSlot->Child : nullptr);
+		pExt->SavedRespawn.push_back(
+			(pSlot && pSlot->RespawnTimer.HasStarted()) ? pSlot->RespawnTimer.GetTimeLeft() : -1);
+	}
+}
+
+// Runs on the first synced tick after a load.
+//
+// DELIBERATELY ORDERING-INDEPENDENT. Whether TechnoClass::Init re-ran and
+// rebuilt the slots (possibly creating fresh children) before the stream was
+// read, or did not run at all, could not be settled by reading the engine -- the
+// Init epilogue hook at 0x6F42F7 carries a "sanity check during save/load" guard
+// that suggests it is reached, but that may be scenario load rather than
+// savegame load.
+//
+// Rather than guess, this reconciles against whatever it finds, so BOTH
+// outcomes land in the same correct place:
+//   * slot empty, save has a child  -> link the saved child   (the "absent" case)
+//   * slot has the saved child      -> nothing to do
+//   * slot has a DIFFERENT child    -> that one was created fresh this session
+//                                      and is a duplicate; destroy it, then link
+//                                      the saved one            (the "duplicate" case)
+void TechnoExt::RestoreAttachmentsAfterLoad(TechnoClass* pThis)
+{
+	auto pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt || !pExt->AttachmentsPendingRestore)
+		return;
+
+	// Clear the flag FIRST. Destroying a duplicate below runs destruction logic
+	// that can re-enter this techno's tick; without this the restore could recurse.
+	pExt->AttachmentsPendingRestore = false;
+
+	// The slots come from the type. If Init did not run, build them now.
+	if (pExt->ChildAttachments.empty())
+		TechnoExt::InitializeAttachments(pThis);
+
+	// Re-acquire: InitializeAttachments may have created children, which runs
+	// through paths that can invalidate the ext pointer.
+	pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
+
+	size_t const slots = pExt->ChildAttachments.size();
+	size_t const saved = pExt->SavedChildren.size();
+
+	if (slots != saved)
+	{
+		// The type's slot list changed between saving and loading -- a rules edit
+		// between sessions. Restore what lines up and say so; silently mismatching
+		// slots would put children in the wrong positions.
+		Debug::Log("[TAExt] attachment restore: %s has %d slot(s) but the save has "
+			"%d; restoring the overlap only.\n",
+			pThis->GetTechnoType() ? pThis->GetTechnoType()->ID : "<null>",
+			static_cast<int>(slots), static_cast<int>(saved));
+	}
+
+	for (size_t i = 0; i < slots && i < saved; ++i)
+	{
+		auto const pSlot = pExt->ChildAttachments[i].get();
+		if (!pSlot)
+			continue;
+
+		auto const pSavedChild = pExt->SavedChildren[i];
+
+		if (pSlot->Child != pSavedChild)
+		{
+			// A child created fresh this session occupying a slot the save says
+			// belongs to something else: it is a duplicate of the saved one.
+			if (pSlot->Child)
+				pSlot->Destroy(nullptr);
+
+			// Re-validate: Destroy ran destruction logic.
+			if (i >= pExt->ChildAttachments.size())
+				break;
+
+			if (pSavedChild && pSavedChild->IsAlive)
+			{
+				// Link only -- no placement and no locomotor swap. The child's own
+				// position was restored by the engine, and AI() repositions it on
+				// this same tick.
+				pSlot->AttachChildCore(pSavedChild);
+			}
+		}
+
+		if (i < pExt->SavedRespawn.size())
+		{
+			int const left = pExt->SavedRespawn[i];
+			if (left >= 0)
+				pSlot->RespawnTimer.Start(left);
+		}
+	}
+
+	pExt->SavedChildren.clear();
+	pExt->SavedRespawn.clear();
+}
+
 bool TechnoExt::IsIntangibleAsChild(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);

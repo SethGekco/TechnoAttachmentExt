@@ -93,6 +93,10 @@ DEFINE_HOOK(0x4DA8A0, FootClass_Update_TickAttachments, 0x6)
 		}
 	}
 
+	// Re-link saved attachments before the first tick touches them. No-op unless
+	// this techno came from a savegame.
+	TechnoExt::RestoreAttachmentsAfterLoad(pThis);
+
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
 
@@ -128,6 +132,10 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
 	if (!pExt)
 		return 0;
+	// Re-link saved attachments before the first tick touches them. No-op unless
+	// this techno came from a savegame.
+	TechnoExt::RestoreAttachmentsAfterLoad(pThis);
+
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->AI();
 

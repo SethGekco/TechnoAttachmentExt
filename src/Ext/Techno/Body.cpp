@@ -45,9 +45,11 @@ void TechnoExt::ExtData::InvalidatePointer(void* ptr, bool bRemoved)
 template <typename T>
 void TechnoExt::ExtData::Serialize(T& Stm)
 {
-	// ⚠ ChildAttachments / DormantAttachments are deliberately NOT here, and this
-	// is not a TODO that was skipped -- wiring them as currently written would be
-	// actively harmful.
+	// ChildAttachments / DormantAttachments are still NOT streamed directly --
+	// AttachmentClass::Serialize processes its Data pointer, which points into the
+	// TYPE's AttachmentData vector and cannot be swizzled or rebuilt by the stream.
+	// Instead SavedChildren/SavedRespawn below carry the restorable part (which
+	// child is in which slot) and the slots themselves are rebuilt from the type.
 	//
 	// AttachmentClass::Serialize (which exists, and is never called) does
 	// `.Process(this->Data)`. `Data` is an AttachmentDataEntry* pointing INTO the
@@ -64,6 +66,9 @@ void TechnoExt::ExtData::Serialize(T& Stm)
 		.Process(this->DeactivationReasons)
 		.Process(this->InstantSpawnLastFired)
 		.Process(this->InstantSpawnCyclePos)
+		.Process(this->SavedChildren)
+		.Process(this->SavedRespawn)
+		.Process(this->AttachmentsPendingRestore)
 		.Process(this->GunnerBaseType)
 		.Process(this->GunnerLastChange)
 		.Process(this->InstantSpawnLive)
@@ -78,10 +83,17 @@ void TechnoExt::ExtData::LoadFromStream(PhobosStreamReader& Stm)
 {
 	Extension<TechnoClass>::LoadFromStream(Stm);
 	this->Serialize(Stm);
+
+	// Do not re-link here: the children read above are still being swizzled, and
+	// the slot list may or may not exist yet. Defer to the first synced tick,
+	// where everything is known to be present.
+	this->AttachmentsPendingRestore = !this->SavedChildren.empty();
 }
 
 void TechnoExt::ExtData::SaveToStream(PhobosStreamWriter& Stm)
 {
+	TechnoExt::CaptureAttachmentsForSave(this->OwnerObject());
+
 	Extension<TechnoClass>::SaveToStream(Stm);
 	this->Serialize(Stm);
 }
