@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <Dir.h>
+#include <InfantryClass.h>
 #include <BulletClass.h>
 #include <BulletTypeClass.h>
 #include <WarheadTypeClass.h>
@@ -924,6 +925,18 @@ int AttachmentClass::ResolveRequiresPassengerIndex()
 		: this->GetType()->RequiresPassenger_Index;
 }
 
+int AttachmentClass::ResolveSequenceForce()
+{
+	return (this->Data && this->Data->Sequence_Force.isset())
+		? this->Data->Sequence_Force.Get() : this->GetType()->Sequence_Force;
+}
+
+bool AttachmentClass::ResolveHoldFireWhileMoving()
+{
+	return (this->Data && this->Data->HoldFire_WhileMoving.isset())
+		? this->Data->HoldFire_WhileMoving.Get() : this->GetType()->HoldFire_WhileMoving;
+}
+
 bool AttachmentClass::ResolveSpinsOrbitReverse()
 {
 	return (this->Data && this->Data->Spins_Orbit_Reverse.isset())
@@ -1332,6 +1345,45 @@ void AttachmentClass::AI()
 		childDir.Raw += static_cast<unsigned short>(this->GetFacingModeRaw());
 
 		this->Child->PrimaryFacing.SetCurrent(childDir);
+
+		// Sequence.Force -- hold an infantry child in a chosen pose.
+		//
+		// An attached infantry rides the PROXY locomotor, which reports the
+		// PARENT's movement, so the engine plays Walk while the child is bolted on
+		// and never actually steps. Forcing the sequence each tick fixes that.
+		//
+		// NEVER override a death sequence. Die1-Die5 (11-15) and WetDie1/2 (20/21)
+		// are how a dying infantryman finishes; stamping Ready over them would
+		// leave a corpse standing to attention, and on a unit that is already
+		// mid-removal. The health test catches the deaths that play no animation.
+		if (int const forced = this->ResolveSequenceForce(); forced >= 0)
+		{
+			if (auto const pInf = abstract_cast<InfantryClass*>(this->Child))
+			{
+				int const seq = static_cast<int>(pInf->SequenceAnim);
+				bool const dying = pInf->Health <= 0
+					|| (seq >= 11 && seq <= 15) || seq == 20 || seq == 21;
+
+				if (!dying && seq != forced)
+					pInf->PlayAnim(static_cast<Sequence>(forced), true, false);
+			}
+		}
+
+		// HoldFire.WhileMoving -- keep the weapon un-ready while the host moves.
+		//
+		// Done by holding the rearm timer rather than by hooking a fire path:
+		// it works for every child class at once, needs no contested seat, and
+		// "the weapon is not ready" is exactly the intended meaning. The two-frame
+		// reload means firing resumes almost immediately once the host stops,
+		// rather than after a full ROF.
+		if (this->ResolveHoldFireWhileMoving())
+		{
+			if (auto const pParentFoot = abstract_cast<FootClass*>(this->Parent))
+			{
+				if (pParentFoot->Locomotor && pParentFoot->Locomotor->Is_Moving_Now())
+					this->Child->RearmTimer.Start(2);
+			}
+		}
 		// TODO handle secondary facing in case the turret is idle
 
 		FootClass* pParentAsFoot = abstract_cast<FootClass*>(this->Parent);

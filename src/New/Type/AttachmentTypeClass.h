@@ -251,6 +251,18 @@ public:
 	//   Spins.Orbit.YScale=100      i.e. the "imperfect circle"
 	//   Spins.Orbit.Wobble=0     -> percent the radius breathes in and out by
 	//   Spins.Orbit.Wobble.Period=0 -> frames per breath (0 = no wobble)
+	// Force an infantry child's animation sequence every tick. The original ask
+	// was "stop the walk animation": an attached infantry rides a PROXY locomotor
+	// that reports the PARENT's movement, so the engine plays Walk while the child
+	// is in fact bolted on and never taking a step.
+	//   Sequence.Force=Ready     (also Guard, Prone, Deployed, Cheer, ... or 0-N)
+	// Unset = leave the engine alone.
+	Valueable<int> Sequence_Force;
+
+	// Do not fire while the HOST is moving -- the shoot-only-when-stopped
+	// artillery feel, for a child bolted to a moving vehicle.
+	Valueable<bool> HoldFire_WhileMoving;
+
 	Valueable<bool> Spins_Orbit_Reverse;
 	Valueable<int> Spins_Orbit_XScale;
 	Valueable<int> Spins_Orbit_YScale;
@@ -426,6 +438,8 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Sequence_Force { -1 }
+		, HoldFire_WhileMoving { false }
 		, Spins_Orbit_Reverse { false }
 		, Spins_Orbit_XScale { 100 }
 		, Spins_Orbit_YScale { 100 }

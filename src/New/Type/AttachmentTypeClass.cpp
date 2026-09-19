@@ -1,5 +1,7 @@
 #include "AttachmentTypeClass.h"
 
+#include <algorithm>
+
 #include <BuildingTypeClass.h>
 #include <HouseTypeClass.h>
 
@@ -173,6 +175,45 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Spins.Read(exINI, section, "Spins");
 	this->Spins_Period.Read(exINI, section, "Spins.Period");
 	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	this->HoldFire_WhileMoving.Read(exINI, section, "HoldFire.WhileMoving");
+
+	// Sequence.Force accepts the engine's own sequence names or a raw index, so a
+	// modder does not have to look the numbers up.
+	{
+		static const char* const seqNames[] = {
+			"Ready","Guard","Prone","Walk","FireUp","Down","Crawl","Up","FireProne",
+			"Idle1","Idle2","Die1","Die2","Die3","Die4","Die5","Tread","Swim",
+			"WetIdle1","WetIdle2","WetDie1","WetDie2","WetAttack","Hover","Fly",
+			"Tumble","FireFly","Deploy","Deployed","DeployedFire","DeployedIdle",
+			"Undeploy","Cheer" };
+
+		char buf[32];
+		if (pINI->ReadString(section, "Sequence.Force", "", buf, sizeof(buf)) > 0)
+		{
+			bool matched = false;
+			for (int i = 0; i < static_cast<int>(std::size(seqNames)); ++i)
+			{
+				if (_strcmpi(buf, seqNames[i]) == 0)
+				{
+					this->Sequence_Force = i;
+					matched = true;
+					break;
+				}
+			}
+
+			if (!matched)
+			{
+				char* end = nullptr;
+				long const raw = strtol(buf, &end, 10);
+				if (end && end != buf && raw >= 0 && raw <= 40)
+					this->Sequence_Force = static_cast<int>(raw);
+				else
+					Debug::INIParseFailed(section, "Sequence.Force", buf,
+						"Expected a sequence name (Ready, Guard, Deployed, ...) or 0-40");
+			}
+		}
+	}
+
 	this->Spins_Orbit_Reverse.Read(exINI, section, "Spins.Orbit.Reverse");
 	this->Spins_Orbit_XScale.Read(exINI, section, "Spins.Orbit.XScale");
 	this->Spins_Orbit_YScale.Read(exINI, section, "Spins.Orbit.YScale");
@@ -341,6 +382,8 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Sequence_Force)
+		.Process(this->HoldFire_WhileMoving)
 		.Process(this->Spins_Orbit_Reverse)
 		.Process(this->Spins_Orbit_XScale)
 		.Process(this->Spins_Orbit_YScale)
