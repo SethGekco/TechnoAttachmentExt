@@ -270,8 +270,17 @@ bool TechnoExt::HasAttachmentLoco(FootClass* pThis)
 bool TechnoExt::DoesntOccupyCellAsChild(TechnoClass* pThis)
 {
 	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
-	return pExt && pExt->ParentAttachment
-		&& !pExt->ParentAttachment->ResolveOccupiesCell();
+	if (!pExt || !pExt->ParentAttachment)
+		return false;
+
+	// Same reasoning as IsIntangibleAsChild: a LEASHED child paths for itself, and
+	// a pathfinding unit that occupies no cell walks through walls and units. So
+	// OccupiesCell=no is refused under Motion=leashed rather than honoured into a
+	// broken state.
+	if (pExt->ParentAttachment->ResolveMotionLeashed())
+		return false;
+
+	return !pExt->ParentAttachment->ResolveOccupiesCell();
 }
 
 // Defined further down; declared here so the ammo helper can use it.
@@ -563,8 +572,17 @@ void TechnoExt::RestoreAttachmentsAfterLoad(TechnoClass* pThis)
 bool TechnoExt::IsIntangibleAsChild(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return pExt && pExt->ParentAttachment
-		&& pExt->ParentAttachment->ResolveIntangible();
+	if (!pExt || !pExt->ParentAttachment)
+		return false;
+
+	// A LEASHED child is a real pathfinding unit. Keeping it out of the cell
+	// content list would let it walk through everything and be walked through --
+	// the roadmap flagged this interaction specifically. Intangibility is a
+	// rigid-mode idea and is refused here rather than silently honoured.
+	if (pExt->ParentAttachment->ResolveMotionLeashed())
+		return false;
+
+	return pExt->ParentAttachment->ResolveIntangible();
 }
 
 bool TechnoExt::IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep)

@@ -163,6 +163,8 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Nullable<bool> Motion_Leashed;
+			Nullable<int> Leash_Range;
 			Nullable<int> YSortAdjust;
 			Nullable<int> Sequence_Force;
 			Nullable<bool> HoldFire_WhileMoving;

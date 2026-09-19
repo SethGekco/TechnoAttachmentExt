@@ -308,6 +308,23 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<bool> slotMotionLeashed;
+		{
+			char motionBuf[32];
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Motion", static_cast<int>(i));
+			if (pINI->ReadString(pSection, tempBuffer, "", motionBuf, sizeof(motionBuf)) > 0)
+			{
+				if (_strcmpi(motionBuf, "rigid") == 0)        slotMotionLeashed = false;
+				else if (_strcmpi(motionBuf, "leashed") == 0) slotMotionLeashed = true;
+				else Debug::INIParseFailed(pSection, tempBuffer, motionBuf,
+					"Expected rigid or leashed");
+			}
+		}
+
+		Nullable<int> slotLeashRange;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Leash.Range", static_cast<int>(i));
+		slotLeashRange.Read(exINI, pSection, tempBuffer);
+
 		Nullable<int> slotYSortAdjust;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.YSortAdjust", static_cast<int>(i));
 		slotYSortAdjust.Read(exINI, pSection, tempBuffer);
@@ -554,6 +571,8 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.Motion_Leashed                = slotMotionLeashed,
+			.Leash_Range                   = slotLeashRange,
 			.YSortAdjust                   = slotYSortAdjust,
 			.Sequence_Force                = slotSeqForce,
 			.HoldFire_WhileMoving          = slotHoldFireMoving,
@@ -724,6 +743,8 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Motion_Leashed)
+		.Process(this->Leash_Range)
 		.Process(this->YSortAdjust)
 		.Process(this->Sequence_Force)
 		.Process(this->HoldFire_WhileMoving)

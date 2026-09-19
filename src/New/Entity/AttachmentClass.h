@@ -100,6 +100,8 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	bool ResolveMotionLeashed();
+	int  ResolveLeashRange();
 	int  ResolveSequenceForce();
 	bool ResolveHoldFireWhileMoving();
 	bool ResolveSpinsOrbitReverse();

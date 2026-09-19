@@ -264,6 +264,22 @@ public:
 	// Same applicability caveat as YSortPosition itself: only the Ground layer is
 	// ever sorted by the engine, so an attachment sitting in Air or Top is drawn in
 	// submit order and NO sort bias of any kind reaches it.
+	// Motion MODE, not a motion option -- it changes what an attachment IS.
+	//
+	//   rigid   (default) the child rides a PROXY locomotor and we write its
+	//           position every frame. Exact FLH, Spins/Slides/Bobs/Move.* all
+	//           apply, no pathfinding, no cell occupation.
+	//   leashed the child keeps its OWN locomotor and the engine owns its
+	//           position. We only tell it where to go when it strays past
+	//           Leash.Range. Pathing, acceleration, turning and hover wobble come
+	//           free -- at the cost of it becoming a real pathfinding unit again.
+	//
+	// Under `leashed`, FLH is an ANCHOR rather than a position, and the rigid-mode
+	// motion tags (Spins/Slides/Bobs/Move.*/Facing.Mode) stop applying because the
+	// engine, not us, decides where the child is and which way it points.
+	Valueable<bool> Motion_Leashed;
+	Valueable<int> Leash_Range; // leptons from the anchor before it is recalled
+
 	Valueable<int> YSortAdjust;
 
 	Valueable<int> Sequence_Force;
@@ -447,6 +463,8 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Motion_Leashed { false }
+		, Leash_Range { 512 }
 		, YSortAdjust { 0 }
 		, Sequence_Force { -1 }
 		, HoldFire_WhileMoving { false }

@@ -3,6 +3,8 @@
 #include <algorithm>
 
 #include <Dir.h>
+#include <MapClass.h>
+#include <CellClass.h>
 #include <InfantryClass.h>
 #include <BulletClass.h>
 #include <BulletTypeClass.h>
@@ -925,6 +927,18 @@ int AttachmentClass::ResolveRequiresPassengerIndex()
 		: this->GetType()->RequiresPassenger_Index;
 }
 
+bool AttachmentClass::ResolveMotionLeashed()
+{
+	return (this->Data && this->Data->Motion_Leashed.isset())
+		? this->Data->Motion_Leashed.Get() : this->GetType()->Motion_Leashed;
+}
+
+int AttachmentClass::ResolveLeashRange()
+{
+	return (this->Data && this->Data->Leash_Range.isset())
+		? this->Data->Leash_Range.Get() : this->GetType()->Leash_Range;
+}
+
 int AttachmentClass::ResolveSequenceForce()
 {
 	return (this->Data && this->Data->Sequence_Force.isset())
@@ -1331,6 +1345,46 @@ void AttachmentClass::AI()
 		if (this->Child->InLimbo)
 			return;
 
+		// ---- LEASHED: the engine owns the position; we only recall it ----
+		//
+		// Everything below this branch -- SetLocation, Spins/Slides/Bobs, Move.*,
+		// Facing.Mode -- assumes WE decide where the child is and which way it
+		// points. Under `leashed` the engine decides both, so applying any of it
+		// would fight the locomotor for the same frame. That is why this is a mode
+		// rather than another motion option.
+		if (this->ResolveMotionLeashed())
+		{
+			auto const pChildFoot = abstract_cast<FootClass*>(this->Child);
+			if (pChildFoot)
+			{
+				auto const anchor = this->GetChildAnchor();
+				int const range = this->ResolveLeashRange();
+
+				// Recall only when it has actually strayed. Issuing a destination
+				// every frame would re-path continuously and stop it ever doing
+				// anything else -- including attacking, which is the point of
+				// letting it move at all.
+				if (range > 0)
+				{
+					auto const here = this->Child->GetCoords();
+					long long const dx = here.X - anchor.X;
+					long long const dy = here.Y - anchor.Y;
+
+					if (dx * dx + dy * dy > static_cast<long long>(range) * range)
+					{
+						if (auto const pCell = MapClass::Instance.TryGetCellAt(
+							CellClass::Coord2Cell(anchor)))
+						{
+							pChildFoot->SetDestination(pCell, true);
+							pChildFoot->QueueMission(Mission::Move, false);
+						}
+					}
+				}
+			}
+
+			return;
+		}
+
 		// Reactive stray first, so this tick's SetLocation already reflects it.
 		this->UpdateMoveOffset();
 
@@ -1510,16 +1564,22 @@ bool AttachmentClass::AttachChild(TechnoClass* pChild)
 		return false;
 	}
 
-	if (auto const pChildAsFoot = abstract_cast<FootClass*>(pChild))
+	// A LEASHED child keeps its own locomotor -- that is the whole point of the
+	// mode. Installing the proxy would delegate movement back to the parent and
+	// there would be nothing left to leash.
+	if (!this->ResolveMotionLeashed())
 	{
-		if (IPersistPtr pLocoPersist = pChildAsFoot->Locomotor)
+		if (auto const pChildAsFoot = abstract_cast<FootClass*>(pChild))
 		{
-			CLSID locoCLSID { };
-			if (SUCCEEDED(pLocoPersist->GetClassID(&locoCLSID))
-				&& locoCLSID != __uuidof(AttachmentLocomotionClass))
+			if (IPersistPtr pLocoPersist = pChildAsFoot->Locomotor)
 			{
-				LocomotionClass::ChangeLocomotorTo(pChildAsFoot,
-					__uuidof(AttachmentLocomotionClass));
+				CLSID locoCLSID { };
+				if (SUCCEEDED(pLocoPersist->GetClassID(&locoCLSID))
+					&& locoCLSID != __uuidof(AttachmentLocomotionClass))
+				{
+					LocomotionClass::ChangeLocomotorTo(pChildAsFoot,
+						__uuidof(AttachmentLocomotionClass));
+				}
 			}
 		}
 	}

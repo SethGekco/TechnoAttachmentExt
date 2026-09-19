@@ -175,6 +175,17 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Spins.Read(exINI, section, "Spins");
 	this->Spins_Period.Read(exINI, section, "Spins.Period");
 	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	{
+		char motion[32];
+		if (pINI->ReadString(section, "Motion", "", motion, sizeof(motion)) > 0)
+		{
+			if (_strcmpi(motion, "rigid") == 0)        this->Motion_Leashed = false;
+			else if (_strcmpi(motion, "leashed") == 0) this->Motion_Leashed = true;
+			else Debug::INIParseFailed(section, "Motion", motion, "Expected rigid or leashed");
+		}
+	}
+	this->Leash_Range.Read(exINI, section, "Leash.Range");
+
 	this->YSortAdjust.Read(exINI, section, "YSortAdjust");
 	this->HoldFire_WhileMoving.Read(exINI, section, "HoldFire.WhileMoving");
 
@@ -383,6 +394,8 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Motion_Leashed)
+		.Process(this->Leash_Range)
 		.Process(this->YSortAdjust)
 		.Process(this->Sequence_Force)
 		.Process(this->HoldFire_WhileMoving)
