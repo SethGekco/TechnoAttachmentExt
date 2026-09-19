@@ -308,6 +308,10 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<int> slotYSortAdjust;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.YSortAdjust", static_cast<int>(i));
+		slotYSortAdjust.Read(exINI, pSection, tempBuffer);
+
 		Nullable<int> slotSeqForce;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Sequence.Force", static_cast<int>(i));
 		slotSeqForce.Read(exINI, pSection, tempBuffer);
@@ -550,6 +554,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.YSortAdjust                   = slotYSortAdjust,
 			.Sequence_Force                = slotSeqForce,
 			.HoldFire_WhileMoving          = slotHoldFireMoving,
 			.Spins_Orbit_Reverse           = slotOrbitReverse,
@@ -719,6 +724,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->YSortAdjust)
 		.Process(this->Sequence_Force)
 		.Process(this->HoldFire_WhileMoving)
 		.Process(this->Spins_Orbit_Reverse)

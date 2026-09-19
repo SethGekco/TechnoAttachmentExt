@@ -39,12 +39,22 @@ int __fastcall TechnoClass_SortY_Wrapper_TAExt(ObjectClass* pThis)
 				: pAtt->GetType()->YSortPosition.Get();
 			auto const pParent = pAtt->Parent;
 
+			auto const adjust = (pAtt->Data && pAtt->Data->YSortAdjust.isset())
+				? pAtt->Data->YSortAdjust.Get()
+				: pAtt->GetType()->YSortAdjust.Get();
+
 			if (ySort != AttachmentYSortPosition::Default && pParent)
 			{
 				int const parentYSort = pParent->GetYSort();
 				return parentYSort
-					+ (ySort == AttachmentYSortPosition::OverParent ? 1 : -1);
+					+ (ySort == AttachmentYSortPosition::OverParent ? 1 : -1)
+					+ adjust;
 			}
+
+			// YSortAdjust is also useful on its own: bias the child's OWN sort
+			// without tying it to the host's.
+			if (adjust)
+				return pThis->ObjectClass::GetYSort() + adjust;
 		}
 	}
 

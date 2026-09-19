@@ -531,7 +531,14 @@ are different primitives; the XP/open-topped bits are where they meet.
 7. **B1 / A2 / I (gunner)** — the cargo cluster; build the shared cargo/gunner
    primitive here per the convergence plan. B1 and I3 are likely one mechanic.
 8. **D1** targeting — PARKED, last, pending Rex's design.
-9. Earlier backlog: SortY render-sort; walk-anim toggle; hold-fire-while-moving.
+9. ~~Earlier backlog: SortY render-sort; walk-anim toggle; hold-fire-while-moving.~~
+   **DONE** — `YSortAdjust`, `Sequence.Force`, `HoldFire.WhileMoving`, all per slot.
+   Note on the SortY half: `YSortPosition` already handled ordering *relative to
+   the host*; what was missing was ordering sibling attachments against EACH
+   OTHER, since OverParent/UnderParent are only host +/-1. `YSortAdjust` covers
+   that. A richer sort scheme is not worth building: only the Ground layer is ever
+   sorted (`LayerClass::Sort` has one caller, hardcoded to Ground), so any bias on
+   an Air/Top attachment is dead code in the engine itself.
 
 Every item above must satisfy the online/multiplayer constraint at the top.
 

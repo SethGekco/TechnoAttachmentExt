@@ -257,6 +257,15 @@ public:
 	// is in fact bolted on and never taking a step.
 	//   Sequence.Force=Ready     (also Guard, Prone, Deployed, Cheer, ... or 0-N)
 	// Unset = leave the engine alone.
+	// Fine draw-order control on top of YSortPosition. OverParent/UnderParent are
+	// only host +1 / -1, so two OverParent attachments on the same host cannot be
+	// ordered against each other. YSortAdjust is added to the result, so they can.
+	//
+	// Same applicability caveat as YSortPosition itself: only the Ground layer is
+	// ever sorted by the engine, so an attachment sitting in Air or Top is drawn in
+	// submit order and NO sort bias of any kind reaches it.
+	Valueable<int> YSortAdjust;
+
 	Valueable<int> Sequence_Force;
 
 	// Do not fire while the HOST is moving -- the shoot-only-when-stopped
@@ -438,6 +447,7 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, YSortAdjust { 0 }
 		, Sequence_Force { -1 }
 		, HoldFire_WhileMoving { false }
 		, Spins_Orbit_Reverse { false }

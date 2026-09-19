@@ -601,3 +601,22 @@ and points straight at INI parsing.
       whenever any profile is configured (this is also the proof the
       after-typedata hook is live).
 - [ ] Online: two clients, a transport loading/unloading — no desync.
+
+## Item 9 backlog
+
+- [ ] `Sequence.Force=Ready` on an infantry child — it stops playing Walk while
+      the host drives around.
+- [ ] Named values (Guard, Deployed, Cheer) and a raw index both parse; a bad
+      value logs and is ignored.
+- [ ] **Kill a forced-sequence child — it must play its death animation**, not
+      freeze in the forced pose.
+- [ ] `Sequence.Force` on a non-infantry child is harmlessly ignored.
+- [ ] `HoldFire.WhileMoving=yes` — the child fires when the host is stopped and
+      not while it drives.
+- [ ] ...and resumes promptly on stopping (about two frames, not a full ROF).
+- [ ] `HoldFire.WhileMoving` works for a vehicle, infantry and aircraft child.
+- [ ] `YSortAdjust=2` with two `overparent` attachments — they now order against
+      each other instead of both sitting at host+1.
+- [ ] `YSortAdjust` alone (no `YSortPosition`) biases the child's own sort.
+- [ ] An attachment in the Air/Top layer ignores all of it, as documented.
+- [ ] Online: none of the three introduce a desync (all read synced state).

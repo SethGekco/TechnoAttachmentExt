@@ -881,3 +881,42 @@ reason in the log**, and the rule is removed so it cannot fire:
 
 The log ends with `GunnerProfile validation: N accepted, M rejected` whenever any
 profile is configured — if you do not see that line, the rules were not read.
+
+### Item 9 backlog tags
+
+| Tag | Where | Default | Meaning |
+| --- | --- | --- | --- |
+| `Sequence.Force` | AttachmentType, `AttachmentN.*` | unset | hold an **infantry** child in a named pose |
+| `HoldFire.WhileMoving` | " | `no` | the child cannot fire while the host is moving |
+| `YSortAdjust` | " | `0` | fine draw-order offset, on top of `YSortPosition` |
+
+```ini
+Sequence.Force=Ready          ; or Guard, Prone, Deployed, Cheer, ... or a raw 0-40
+HoldFire.WhileMoving=yes
+YSortPosition=overparent
+YSortAdjust=2                 ; ...and two steps further over
+```
+
+**`Sequence.Force`** exists because an attached infantry rides the *proxy*
+locomotor, which reports the **parent's** movement — so the engine plays `Walk`
+while the child is bolted on and never takes a step. Forcing the sequence each
+tick fixes that. It **never overrides a death sequence** (`Die1`–`Die5`,
+`WetDie1/2`, or any death that plays no animation), so a dying child still dies
+properly instead of snapping to attention.
+
+**`HoldFire.WhileMoving`** holds the child's rearm timer while the host is
+moving, rather than hooking a fire path. That covers every child class at once,
+and firing resumes within about two frames of the host stopping rather than after
+a full ROF.
+
+**`YSortAdjust`** closes a real gap: `OverParent`/`UnderParent` are only host ±1,
+so two `OverParent` attachments on one host could not be ordered against each
+other. It also works alone, biasing the child's own sort without tying it to the
+host's.
+
+> **Applicability caveat, and it is the engine's, not ours:** only the **Ground**
+> layer is ever sorted. `LayerClass::Sort` has exactly one caller and it hardcodes
+> Ground; objects in `Air` or `Top` are appended in submit order and their
+> `GetYSort` is never called. So no sort bias of any kind — ours or vanilla's —
+> reaches an attachment sitting in those layers. This applies equally to
+> `YSortPosition`, which has always had it.

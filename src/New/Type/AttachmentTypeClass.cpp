@@ -175,6 +175,7 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->Spins.Read(exINI, section, "Spins");
 	this->Spins_Period.Read(exINI, section, "Spins.Period");
 	this->Spins_Orbit.Read(exINI, section, "Spins.Orbit");
+	this->YSortAdjust.Read(exINI, section, "YSortAdjust");
 	this->HoldFire_WhileMoving.Read(exINI, section, "HoldFire.WhileMoving");
 
 	// Sequence.Force accepts the engine's own sequence names or a raw index, so a
@@ -382,6 +383,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->YSortAdjust)
 		.Process(this->Sequence_Force)
 		.Process(this->HoldFire_WhileMoving)
 		.Process(this->Spins_Orbit_Reverse)
