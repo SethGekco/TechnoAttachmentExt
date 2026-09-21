@@ -184,6 +184,17 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 			else Debug::INIParseFailed(section, "Motion", motion, "Expected rigid or leashed");
 		}
 	}
+	{
+		char soldBuf[16];
+		if (pINI->ReadString(section, "SoldAction", "", soldBuf, sizeof(soldBuf)) > 0)
+		{
+			if (_strcmpi(soldBuf, "vanish") == 0)      this->SoldAction = 0;
+			else if (_strcmpi(soldBuf, "kill") == 0)   this->SoldAction = 1;
+			else if (_strcmpi(soldBuf, "detach") == 0) this->SoldAction = 2;
+			else Debug::INIParseFailed(section, "SoldAction", soldBuf,
+				"Expected vanish, kill or detach");
+		}
+	}
 	this->Leash_Range.Read(exINI, section, "Leash.Range");
 
 	this->YSortAdjust.Read(exINI, section, "YSortAdjust");
@@ -394,6 +405,7 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->SoldAction)
 		.Process(this->Motion_Leashed)
 		.Process(this->Leash_Range)
 		.Process(this->YSortAdjust)

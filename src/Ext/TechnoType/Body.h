@@ -163,6 +163,7 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Nullable<int> SoldAction;
 			Nullable<bool> Motion_Leashed;
 			Nullable<int> Leash_Range;
 			Nullable<int> YSortAdjust;

@@ -277,6 +277,20 @@ public:
 	// Under `leashed`, FLH is an ANCHOR rather than a position, and the rigid-mode
 	// motion tags (Spins/Slides/Bobs/Move.*/Facing.Mode) stop applying because the
 	// engine, not us, decides where the child is and which way it points.
+	// What happens to the child when the HOST IS SOLD, as distinct from destroyed.
+	//
+	// Until now a sale ran the ordinary destruction path, so InheritDestruction
+	// killed the child WITH DEATH EFFECTS -- selling a building made its
+	// attachments explode, which reads as a bug rather than a refund.
+	//
+	//   vanish (default) removed silently, no death effects
+	//   kill             dies properly, anim/debris/DestructionWeapon (the old
+	//                    behaviour, now opt-in)
+	//   detach           survives as a free-standing unit -- the crew walks away
+	//
+	// Same vocabulary as Prerequisite.LostAction, deliberately.
+	Valueable<int> SoldAction;
+
 	Valueable<bool> Motion_Leashed;
 	Valueable<int> Leash_Range; // leptons from the anchor before it is recalled
 
@@ -463,6 +477,7 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, SoldAction { 0 }
 		, Motion_Leashed { false }
 		, Leash_Range { 512 }
 		, YSortAdjust { 0 }

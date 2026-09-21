@@ -67,8 +67,55 @@ void TechnoExt::DestroyAttachments(TechnoClass* pThis, TechnoClass* pSource)
 
 	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
 
+	// Is the host being SOLD rather than destroyed?
+	//
+	// Mission::Selling is the deconstruction state a building enters when the
+	// player sells it (and a unit entering a service depot). Reading it here means
+	// no new hook: the mission is already set by the time KillCargo runs, and it is
+	// synced state, so every peer classifies the removal identically.
+	//
+	// This is the `sold` discriminator from the removal taxonomy in
+	// docs/DESIGN-H1-InstantSpawn.md 3.2 -- the first one after `combat` to get a
+	// real implementation, because a sale is the case where the default was
+	// actively wrong.
+	bool const sold = pThis->CurrentMission == Mission::Selling;
+
 	for (auto const& pAttachment : pExt->ChildAttachments)
+	{
+		if (!pAttachment)
+			continue;
+
+		if (sold)
+		{
+			switch (pAttachment->ResolveSoldAction())
+			{
+			case 1: // kill -- the old behaviour, now opt-in
+				pAttachment->Destroy(pSource);
+				continue;
+
+			case 2: // detach -- the child walks away as its own unit
+				pAttachment->DetachChild();
+				continue;
+
+			default: // vanish -- silent removal, no death effects
+			{
+				auto const pChild = pAttachment->Child;
+				if (pChild)
+				{
+					if (auto const pChildExt = TechnoExt::ExtMap.Find(pChild))
+						pChildExt->ParentAttachment = nullptr;
+
+					pAttachment->Child = nullptr;
+					pChild->Limbo();
+					pChild->UnInit();
+				}
+				continue;
+			}
+			}
+		}
+
 		pAttachment->Destroy(pSource);
+	}
 
 	pExt->ChildAttachments.clear();
 }

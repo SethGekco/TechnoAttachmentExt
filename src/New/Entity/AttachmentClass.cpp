@@ -927,6 +927,12 @@ int AttachmentClass::ResolveRequiresPassengerIndex()
 		: this->GetType()->RequiresPassenger_Index;
 }
 
+int AttachmentClass::ResolveSoldAction()
+{
+	return (this->Data && this->Data->SoldAction.isset())
+		? this->Data->SoldAction.Get() : this->GetType()->SoldAction;
+}
+
 bool AttachmentClass::ResolveMotionLeashed()
 {
 	return (this->Data && this->Data->Motion_Leashed.isset())

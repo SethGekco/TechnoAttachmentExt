@@ -308,6 +308,20 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<int> slotSoldAction;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.SoldAction", static_cast<int>(i));
+	{
+			char soldBuf[16];
+			if (pINI->ReadString(pSection, tempBuffer, "", soldBuf, sizeof(soldBuf)) > 0)
+			{
+				if (_strcmpi(soldBuf, "vanish") == 0)      slotSoldAction = 0;
+				else if (_strcmpi(soldBuf, "kill") == 0)   slotSoldAction = 1;
+				else if (_strcmpi(soldBuf, "detach") == 0) slotSoldAction = 2;
+				else Debug::INIParseFailed(pSection, tempBuffer, soldBuf,
+					"Expected vanish, kill or detach");
+			}
+		}
+
 		Nullable<bool> slotMotionLeashed;
 		{
 			char motionBuf[32];
@@ -571,6 +585,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.SoldAction                    = slotSoldAction,
 			.Motion_Leashed                = slotMotionLeashed,
 			.Leash_Range                   = slotLeashRange,
 			.YSortAdjust                   = slotYSortAdjust,
@@ -743,6 +758,7 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->SoldAction)
 		.Process(this->Motion_Leashed)
 		.Process(this->Leash_Range)
 		.Process(this->YSortAdjust)
