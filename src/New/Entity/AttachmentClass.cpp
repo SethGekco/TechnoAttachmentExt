@@ -933,6 +933,18 @@ int AttachmentClass::ResolveSoldAction()
 		? this->Data->SoldAction.Get() : this->GetType()->SoldAction;
 }
 
+int AttachmentClass::ResolveDeployedAction()
+{
+	return (this->Data && this->Data->DeployedAction.isset())
+		? this->Data->DeployedAction.Get() : this->GetType()->DeployedAction;
+}
+
+int AttachmentClass::ResolveAbsorbedAction()
+{
+	return (this->Data && this->Data->AbsorbedAction.isset())
+		? this->Data->AbsorbedAction.Get() : this->GetType()->AbsorbedAction;
+}
+
 bool AttachmentClass::ResolveMotionLeashed()
 {
 	return (this->Data && this->Data->Motion_Leashed.isset())

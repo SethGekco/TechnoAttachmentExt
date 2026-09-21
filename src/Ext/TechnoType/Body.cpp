@@ -322,6 +322,35 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			}
 		}
 
+		Nullable<int> slotDeployedAction;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.DeployedAction", static_cast<int>(i));
+	{
+			char depBuf[16];
+			if (pINI->ReadString(pSection, tempBuffer, "", depBuf, sizeof(depBuf)) > 0)
+			{
+				if (_strcmpi(depBuf, "transfer") == 0)   slotDeployedAction = 0;
+				else if (_strcmpi(depBuf, "vanish") == 0) slotDeployedAction = 1;
+				else if (_strcmpi(depBuf, "kill") == 0)   slotDeployedAction = 2;
+				else if (_strcmpi(depBuf, "detach") == 0) slotDeployedAction = 3;
+				else Debug::INIParseFailed(pSection, tempBuffer, depBuf,
+					"Expected transfer, vanish, kill or detach");
+			}
+		}
+
+		Nullable<int> slotAbsorbedAction;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.AbsorbedAction", static_cast<int>(i));
+	{
+			char absBuf[16];
+			if (pINI->ReadString(pSection, tempBuffer, "", absBuf, sizeof(absBuf)) > 0)
+			{
+				if (_strcmpi(absBuf, "vanish") == 0)      slotAbsorbedAction = 0;
+				else if (_strcmpi(absBuf, "kill") == 0)   slotAbsorbedAction = 1;
+				else if (_strcmpi(absBuf, "detach") == 0) slotAbsorbedAction = 2;
+				else Debug::INIParseFailed(pSection, tempBuffer, absBuf,
+					"Expected vanish, kill or detach");
+			}
+		}
+
 		Nullable<bool> slotMotionLeashed;
 		{
 			char motionBuf[32];
@@ -586,6 +615,8 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
 			.SoldAction                    = slotSoldAction,
+			.DeployedAction                = slotDeployedAction,
+			.AbsorbedAction                = slotAbsorbedAction,
 			.Motion_Leashed                = slotMotionLeashed,
 			.Leash_Range                   = slotLeashRange,
 			.YSortAdjust                   = slotYSortAdjust,
@@ -759,6 +790,8 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
 		.Process(this->SoldAction)
+		.Process(this->DeployedAction)
+		.Process(this->AbsorbedAction)
 		.Process(this->Motion_Leashed)
 		.Process(this->Leash_Range)
 		.Process(this->YSortAdjust)

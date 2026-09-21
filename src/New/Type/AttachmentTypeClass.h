@@ -291,6 +291,26 @@ public:
 	// Same vocabulary as Prerequisite.LostAction, deliberately.
 	Valueable<int> SoldAction;
 
+	// What happens to the child when the host DEPLOYS into something else
+	// (MCV -> ConYard, or any deploy that replaces the object).
+	//
+	//   transfer (default) the child moves to the new object and carries on --
+	//            the existing behaviour, and usually right for armour or turrets
+	//   vanish   removed silently
+	//   kill     dies properly, anim/debris/DestructionWeapon
+	//   detach   survives as a free-standing unit
+	//
+	// `transfer` has no equivalent in SoldAction because there is nothing to
+	// transfer TO when a host is sold; it only exists here.
+	Valueable<int> DeployedAction;
+
+	// What happens to the child when the host is ABSORBED -- fed to a Grinder,
+	// a Bio Reactor, or any UnitAbsorb/InfantryAbsorb building.
+	//
+	// Same values and default as SoldAction: consuming a unit for cash should not
+	// detonate whatever was bolted to it.
+	Valueable<int> AbsorbedAction;
+
 	Valueable<bool> Motion_Leashed;
 	Valueable<int> Leash_Range; // leptons from the anchor before it is recalled
 
@@ -478,6 +498,8 @@ public:
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
 		, SoldAction { 0 }
+		, DeployedAction { 0 }
+		, AbsorbedAction { 0 }
 		, Motion_Leashed { false }
 		, Leash_Range { 512 }
 		, YSortAdjust { 0 }

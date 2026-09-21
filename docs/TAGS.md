@@ -920,3 +920,40 @@ host's.
 > `GetYSort` is never called. So no sort bias of any kind — ours or vanilla's —
 > reaches an attachment sitting in those layers. This applies equally to
 > `YSortPosition`, which has always had it.
+
+### Removal actions — what happens to a child when the host goes away
+
+The host leaving the field is not one event. Combat death, a sale, a deploy and
+being fed to a Grinder are different things, and until now they all ran the same
+destruction path — so selling a building made its attachments explode.
+
+Each has its own tag, all on AttachmentType and per slot:
+
+| Tag | Fires when | Default |
+| --- | --- | --- |
+| `SoldAction` | the host is **sold** (building sale, service depot) | `vanish` |
+| `AbsorbedAction` | the host is **absorbed** (Grinder, Bio Reactor, `UnitAbsorb`/`InfantryAbsorb`) | `vanish` |
+| `DeployedAction` | the host **deploys** into another object (MCV → ConYard) | `transfer` |
+
+Values: `vanish` (silent removal) · `kill` (death anim, debris,
+`DestructionWeapon.Child`) · `detach` (survives as a free-standing unit).
+`DeployedAction` adds `transfer` — the child moves to the new object and carries
+on — which is its default and has no equivalent elsewhere, because there is
+nothing to transfer *to* when a host is sold or eaten.
+
+```ini
+SoldAction=vanish        ; a refund should not detonate the turret
+AbsorbedAction=detach    ; ...but the crew bails out of the grinder
+DeployedAction=transfer  ; the ConYard keeps the MCV's armour plating
+```
+
+Combat death is unchanged and still governed by `InheritDestruction` +
+`DestructionWeapon.*`.
+
+**Why these three and not the other fifteen** removal reasons in
+`docs/DESIGN-H1-InstantSpawn.md` §3.2: the engine does not record *why* an object
+is going away, so each reason needs its own **positive** discriminator before it
+can ship. These three have one — `Mission::Selling`, `Mission::Eaten`, and our own
+deploy-transfer marker. Inferring a reason from circumstance (say, "it died near a
+Grinder") would misclassify, and a rule that fires on the wrong event is worse
+than one that is absent.

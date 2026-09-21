@@ -195,6 +195,29 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 				"Expected vanish, kill or detach");
 		}
 	}
+	{
+		char depBuf[16];
+		if (pINI->ReadString(section, "DeployedAction", "", depBuf, sizeof(depBuf)) > 0)
+		{
+			if (_strcmpi(depBuf, "transfer") == 0)   this->DeployedAction = 0;
+			else if (_strcmpi(depBuf, "vanish") == 0) this->DeployedAction = 1;
+			else if (_strcmpi(depBuf, "kill") == 0)   this->DeployedAction = 2;
+			else if (_strcmpi(depBuf, "detach") == 0) this->DeployedAction = 3;
+			else Debug::INIParseFailed(section, "DeployedAction", depBuf,
+				"Expected transfer, vanish, kill or detach");
+		}
+	}
+	{
+		char absBuf[16];
+		if (pINI->ReadString(section, "AbsorbedAction", "", absBuf, sizeof(absBuf)) > 0)
+		{
+			if (_strcmpi(absBuf, "vanish") == 0)      this->AbsorbedAction = 0;
+			else if (_strcmpi(absBuf, "kill") == 0)   this->AbsorbedAction = 1;
+			else if (_strcmpi(absBuf, "detach") == 0) this->AbsorbedAction = 2;
+			else Debug::INIParseFailed(section, "AbsorbedAction", absBuf,
+				"Expected vanish, kill or detach");
+		}
+	}
 	this->Leash_Range.Read(exINI, section, "Leash.Range");
 
 	this->YSortAdjust.Read(exINI, section, "YSortAdjust");
@@ -406,6 +429,8 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
 		.Process(this->SoldAction)
+		.Process(this->DeployedAction)
+		.Process(this->AbsorbedAction)
 		.Process(this->Motion_Leashed)
 		.Process(this->Leash_Range)
 		.Process(this->YSortAdjust)

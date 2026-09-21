@@ -78,16 +78,22 @@ void TechnoExt::DestroyAttachments(TechnoClass* pThis, TechnoClass* pSource)
 	// docs/DESIGN-H1-InstantSpawn.md 3.2 -- the first one after `combat` to get a
 	// real implementation, because a sale is the case where the default was
 	// actively wrong.
+	// Mission::Eaten is the state a unit is put into while a Grinder, Bio Reactor
+	// or other UnitAbsorb/InfantryAbsorb building consumes it -- the same kind of
+	// positive discriminator as Selling, found via Phobos'
+	// FootClass_Mission_Eaten_Grinding seat rather than inferred from proximity.
 	bool const sold = pThis->CurrentMission == Mission::Selling;
+	bool const absorbed = pThis->CurrentMission == Mission::Eaten;
 
 	for (auto const& pAttachment : pExt->ChildAttachments)
 	{
 		if (!pAttachment)
 			continue;
 
-		if (sold)
+		if (sold || absorbed)
 		{
-			switch (pAttachment->ResolveSoldAction())
+			switch (sold ? pAttachment->ResolveSoldAction()
+						 : pAttachment->ResolveAbsorbedAction())
 			{
 			case 1: // kill -- the old behaviour, now opt-in
 				pAttachment->Destroy(pSource);
@@ -280,6 +286,55 @@ void TechnoExt::HandleAttachmentDeployTransfer(TechnoClass* pFrom, TechnoClass* 
 	// The flag is consumed here - clear it now that the transfer is happening.
 	TechnoExt::DeployTransferSource = nullptr;
 	assert(pToExt->ChildAttachments.empty() && "pTo should have no mounts before deploy transfer");
+
+	// DeployedAction: a slot may decline to come along. Resolved BEFORE the move,
+	// because the resolvers read per-slot data that belongs to the OLD host's slot
+	// list -- after the move those indices mean something else.
+	//
+	// Walked back-to-front so erasing does not shift the elements still to be
+	// examined.
+	for (size_t i = pFromExt->ChildAttachments.size(); i-- > 0; )
+	{
+		auto const pSlot = pFromExt->ChildAttachments[i].get();
+		if (!pSlot)
+			continue;
+
+		int const action = pSlot->ResolveDeployedAction();
+		if (action == 0)
+			continue; // transfer -- the default, carry on to the move below
+
+		switch (action)
+		{
+		case 2: // kill
+			pSlot->Destroy(nullptr);
+			break;
+
+		case 3: // detach -- becomes a free-standing unit
+			pSlot->DetachChild();
+			break;
+
+		default: // vanish
+		{
+			auto const pChild = pSlot->Child;
+			if (pChild)
+			{
+				if (auto const pChildExt = TechnoExt::ExtMap.Find(pChild))
+					pChildExt->ParentAttachment = nullptr;
+
+				pSlot->Child = nullptr;
+				pChild->Limbo();
+				pChild->UnInit();
+			}
+			break;
+		}
+		}
+
+		// The slot itself must not travel either: the new host rebuilds its own
+		// slot list from its type, and a leftover here would be a stale entry
+		// pointing at the old type's AttachmentData.
+		if (i < pFromExt->ChildAttachments.size())
+			pFromExt->ChildAttachments.erase(pFromExt->ChildAttachments.begin() + i);
+	}
 
 	// Move pFrom's active and dormant attachments into pTo so they live on the surviving object.
 	pToExt->ChildAttachments = std::move(pFromExt->ChildAttachments);

@@ -620,3 +620,21 @@ and points straight at INI parsing.
 - [ ] `YSortAdjust` alone (no `YSortPosition`) biases the child's own sort.
 - [ ] An attachment in the Air/Top layer ignores all of it, as documented.
 - [ ] Online: none of the three introduce a desync (all read synced state).
+
+## Removal actions (sold / absorbed / deployed)
+
+- [ ] **Sell a building with attachments — they no longer explode** (this was the
+      reported bug); they vanish silently.
+- [ ] `SoldAction=kill` restores the old behaviour explicitly.
+- [ ] `SoldAction=detach` — the child survives the sale as a free unit.
+- [ ] Feed an attached unit to a Grinder — `AbsorbedAction` governs it, and the
+      default no longer detonates the attachment.
+- [ ] `AbsorbedAction=detach` — the child pops out instead of being consumed.
+- [ ] Deploy an MCV with attachments — they transfer to the ConYard (default).
+- [ ] `DeployedAction=vanish`/`kill`/`detach` — they do NOT transfer, and the
+      ConYard ends up with a clean slot list (no stale slots from the MCV's type).
+- [ ] Mixed slots: one `transfer`, one `vanish` on the same host — each behaves
+      independently and the survivor still works after the deploy.
+- [ ] Combat death still uses `InheritDestruction` and is unaffected by all three.
+- [ ] Online: sell/grind/deploy with attachments — no desync (all three read
+      synced mission state).
