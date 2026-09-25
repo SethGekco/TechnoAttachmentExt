@@ -29,6 +29,8 @@
 
 #include <Utilities/Macro.h>
 
+#include <AttachmentParsers.h>
+
 #include <Ext/Techno/Body.h>
 #include <Ext/TechnoType/Body.h>
 
