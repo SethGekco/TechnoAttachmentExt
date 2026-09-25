@@ -656,3 +656,23 @@ and points straight at INI parsing.
 - [ ] **Online, the important one:** two clients with opposite views of the same
       attachment must stay in sync. A desync here means something synced is
       reading the per-viewer answer.
+
+## Fixed-relative targeting (D1a)
+
+- [ ] `Weapon.TargetsRelative=parent` with a healing weapon — the child heals its
+      host rather than shooting enemies.
+- [ ] **If it never fires at all, suspect `CanFire`** judging the original target
+      (see the note in TAGS.md) — report that rather than assuming the tag is
+      inert.
+- [ ] `=self` — the child damages/heals itself.
+- [ ] `=sibling` with `.Slot=1` targets that specific sibling; `.ID=` addresses
+      the same slot by name.
+- [ ] `.Index=1` — only the secondary weapon is redirected; the primary still
+      targets normally.
+- [ ] `OnMissing=hold` with the relative absent — the child does NOT fire at a
+      passing enemy.
+- [ ] `OnMissing=normal` with the relative absent — it targets normally.
+- [ ] A non-attachment unit with the tag on its TechnoType is unaffected (this is
+      an AttachmentType feature).
+- [ ] Online: two clients, a relative-targeting attachment firing — no desync
+      (the resolver reads only synced attachment-graph state).

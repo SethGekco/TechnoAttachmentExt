@@ -163,6 +163,11 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Valueable<int> Weapon_TargetsRelative; // -1 = unset
+			Nullable<int> Weapon_TargetsRelative_Slot;
+			PhobosFixedString<32> Weapon_TargetsRelative_ID;
+			Nullable<int> Weapon_TargetsRelative_Index;
+			Nullable<bool> Weapon_TargetsRelative_Hold;
 			Valueable<int> HiddenFrom; // -1 = unset (inherit the AttachmentType)
 			Valueable<int> VisibleTo;
 			Nullable<int> SoldAction;

@@ -675,6 +675,45 @@ DEFINE_HOOK(0x6FDD77, TechnoClass_Fire_InstantSpawn_TAExt, 0x6)
 
 	TAExt_RunInstantSpawns(pThis, TAExtSpawn_Fire, weaponIndex);
 
+	// ---- D1a: fixed-relative targeting ----
+	//
+	// Substituting the target HERE works because the function reads it one
+	// instruction after we return: `mov edi,[ebp+0x8]` at 0x6FDD7D. Writing the
+	// stack slot means the engine builds the projectile against the substituted
+	// target, so range, armour and warhead handling all behave normally -- no
+	// second mechanism to keep in step.
+	if (auto const pExt = TechnoExt::ExtMap.Find(pThis))
+	{
+		if (auto const pSlot = pExt->ParentAttachment)
+		{
+			int const rel = pSlot->ResolveTargetsRelative();
+			int const only = pSlot->ResolveTargetsRelativeIndex();
+
+			if (rel >= 0 && (only < 0 || only == weaponIndex))
+			{
+				auto const id = pSlot->ResolveTargetsRelativeID();
+				int const slotIdx = (id && *id) ? -1 : pSlot->ResolveTargetsRelativeSlot();
+
+				auto const pWanted = TechnoExt::ResolveRelative(pThis,
+					static_cast<AttachmentRelation>(rel), slotIdx, id);
+
+				if (pWanted)
+				{
+					*reinterpret_cast<AbstractClass**>(ebp + 0x8) = pWanted;
+				}
+				else if (pSlot->ResolveTargetsRelativeHold())
+				{
+					// OnMissing=hold. Reusing the engine's own "no weapon" exit
+					// rather than inventing an abort: it is the path the function
+					// already takes when it cannot fire, so everything downstream
+					// (rearm, animation, audio) is left exactly as the engine
+					// intends for a shot that did not happen.
+					return NoWeapon;
+				}
+			}
+		}
+	}
+
 	return Continue;
 }
 

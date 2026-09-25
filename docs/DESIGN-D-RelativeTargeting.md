@@ -10,7 +10,8 @@ because both involve "the thing hit is not the thing aimed at":
 * **D1b — impact redirect.** You target the parent, but the damage lands on its
   children instead. Armour plating that eats hits meant for the hull.
 
-Status: **design for review.** Nothing built.
+Status: **D1a is BUILT** (`Weapon.TargetsRelative*`, substituting at the
+`0x6FDD77` fire seat). D1b and the WeaponExt handoff are still design.
 
 ---
 
@@ -129,8 +130,8 @@ children is a *different* effect and belongs to the warhead.
 
 ## 5. Build order
 
-1. **D1a** with `OnMissing=hold`. Self-contained, one seat we already own, and
-   immediately useful (repair drones, self-buff attachments).
+1. ~~**D1a** with `OnMissing=hold`.~~ **DONE.** Substitutes the target at the
+   `0x6FDD77` seat, one instruction before the function reads it into EDI.
 2. **Test the `CanFire` interaction** (§2) and the legality question (§4) before
    writing D1b — both features depend on the same answers, and guessing would
    mean building D1b twice.

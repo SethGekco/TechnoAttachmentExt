@@ -299,6 +299,27 @@ public:
 	// synced state -- the object is still there, it simply is not drawn for you.
 	// Making it affect gameplay would be a desync, because the answer depends on
 	// WHO IS WATCHING and that differs per client by design.
+	// D1a -- fixed-relative targeting. This attachment's weapon always fires at a
+	// relative of itself, whatever the player clicked: the repair drone that heals
+	// its own host, the overcharge that damages what it is bolted to.
+	//
+	//   Weapon.TargetsRelative=parent    self|parent|root|child|sibling
+	//   Weapon.TargetsRelative.Slot=0    which child/sibling, 0-based
+	//   Weapon.TargetsRelative.ID=       ...or address that slot by its ID
+	//   Weapon.TargetsRelative.Index=-1  only this weapon index; -1 = every weapon
+	//   Weapon.TargetsRelative.OnMissing=hold   hold | normal
+	//
+	// OnMissing=hold (default) means "do not fire at all" when the relative is
+	// absent -- a repair drone with nothing to repair should sit idle rather than
+	// shoot whatever is nearby. `normal` falls through to ordinary targeting.
+	//
+	// Relations reuse the F0b resolver, same vocabulary as ExperienceTo.
+	Valueable<int> Weapon_TargetsRelative;   // -1 = off, else AttachmentRelation
+	Valueable<int> Weapon_TargetsRelative_Slot;
+	PhobosFixedString<32> Weapon_TargetsRelative_ID;
+	Valueable<int> Weapon_TargetsRelative_Index;
+	Valueable<bool> Weapon_TargetsRelative_Hold;
+
 	Valueable<int> HiddenFrom;
 	Valueable<int> VisibleTo;
 
@@ -510,6 +531,11 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Weapon_TargetsRelative { -1 }
+		, Weapon_TargetsRelative_Slot { 0 }
+		, Weapon_TargetsRelative_ID { }
+		, Weapon_TargetsRelative_Index { -1 }
+		, Weapon_TargetsRelative_Hold { true }
 		, HiddenFrom { TAExtHouse_None }
 		, VisibleTo { TAExtHouse_None }
 		, SoldAction { 0 }

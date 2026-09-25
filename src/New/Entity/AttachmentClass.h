@@ -100,6 +100,11 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	int  ResolveTargetsRelative();
+	int  ResolveTargetsRelativeSlot();
+	const char* ResolveTargetsRelativeID();
+	int  ResolveTargetsRelativeIndex();
+	bool ResolveTargetsRelativeHold();
 	int  ResolveHiddenFrom();
 	int  ResolveVisibleTo();
 	int  ResolveSoldAction();

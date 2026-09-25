@@ -308,6 +308,45 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Valueable<int> slotTargetsRel { -1 };
+		{
+			char relBuf[32];
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Weapon.TargetsRelative", static_cast<int>(i));
+			if (pINI->ReadString(pSection, tempBuffer, "", relBuf, sizeof(relBuf)) > 0)
+			{
+				AttachmentRelation rel;
+				if (TAExt_ParseRelation(relBuf, rel))
+					slotTargetsRel = static_cast<int>(rel);
+				else
+					Debug::INIParseFailed(pSection, tempBuffer, relBuf,
+						"Expected self, parent, root, child or sibling");
+			}
+		}
+
+		Nullable<int> slotTargetsRelSlot;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Weapon.TargetsRelative.Slot", static_cast<int>(i));
+		slotTargetsRelSlot.Read(exINI, pSection, tempBuffer);
+
+		PhobosFixedString<32> slotTargetsRelID;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Weapon.TargetsRelative.ID", static_cast<int>(i));
+		slotTargetsRelID.Read(pINI, pSection, tempBuffer);
+
+		Nullable<int> slotTargetsRelIndex;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Weapon.TargetsRelative.Index", static_cast<int>(i));
+		slotTargetsRelIndex.Read(exINI, pSection, tempBuffer);
+
+		Nullable<bool> slotTargetsRelHold;
+		{
+			char missBuf[16];
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Weapon.TargetsRelative.OnMissing", static_cast<int>(i));
+			if (pINI->ReadString(pSection, tempBuffer, "", missBuf, sizeof(missBuf)) > 0)
+			{
+				if (_strcmpi(missBuf, "hold") == 0)        slotTargetsRelHold = true;
+				else if (_strcmpi(missBuf, "normal") == 0) slotTargetsRelHold = false;
+				else Debug::INIParseFailed(pSection, tempBuffer, missBuf, "Expected hold or normal");
+			}
+		}
+
 		Valueable<int> slotHiddenFrom { -1 };
 		Valueable<int> slotVisibleTo { -1 };
 		{
@@ -627,6 +666,11 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.Weapon_TargetsRelative        = slotTargetsRel,
+			.Weapon_TargetsRelative_Slot   = slotTargetsRelSlot,
+			.Weapon_TargetsRelative_ID     = slotTargetsRelID,
+			.Weapon_TargetsRelative_Index  = slotTargetsRelIndex,
+			.Weapon_TargetsRelative_Hold   = slotTargetsRelHold,
 			.HiddenFrom                    = slotHiddenFrom,
 			.VisibleTo                     = slotVisibleTo,
 			.SoldAction                    = slotSoldAction,
@@ -804,6 +848,11 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Weapon_TargetsRelative)
+		.Process(this->Weapon_TargetsRelative_Slot)
+		.Process(this->Weapon_TargetsRelative_ID)
+		.Process(this->Weapon_TargetsRelative_Index)
+		.Process(this->Weapon_TargetsRelative_Hold)
 		.Process(this->HiddenFrom)
 		.Process(this->VisibleTo)
 		.Process(this->SoldAction)

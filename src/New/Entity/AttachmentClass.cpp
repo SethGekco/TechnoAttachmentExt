@@ -927,6 +927,42 @@ int AttachmentClass::ResolveRequiresPassengerIndex()
 		: this->GetType()->RequiresPassenger_Index;
 }
 
+int AttachmentClass::ResolveTargetsRelative()
+{
+	return (this->Data && this->Data->Weapon_TargetsRelative >= 0)
+		? this->Data->Weapon_TargetsRelative.Get()
+		: this->GetType()->Weapon_TargetsRelative;
+}
+
+int AttachmentClass::ResolveTargetsRelativeSlot()
+{
+	return (this->Data && this->Data->Weapon_TargetsRelative_Slot.isset())
+		? this->Data->Weapon_TargetsRelative_Slot.Get()
+		: this->GetType()->Weapon_TargetsRelative_Slot;
+}
+
+const char* AttachmentClass::ResolveTargetsRelativeID()
+{
+	if (this->Data && *static_cast<const char*>(this->Data->Weapon_TargetsRelative_ID))
+		return static_cast<const char*>(this->Data->Weapon_TargetsRelative_ID);
+
+	return static_cast<const char*>(this->GetType()->Weapon_TargetsRelative_ID);
+}
+
+int AttachmentClass::ResolveTargetsRelativeIndex()
+{
+	return (this->Data && this->Data->Weapon_TargetsRelative_Index.isset())
+		? this->Data->Weapon_TargetsRelative_Index.Get()
+		: this->GetType()->Weapon_TargetsRelative_Index;
+}
+
+bool AttachmentClass::ResolveTargetsRelativeHold()
+{
+	return (this->Data && this->Data->Weapon_TargetsRelative_Hold.isset())
+		? this->Data->Weapon_TargetsRelative_Hold.Get()
+		: this->GetType()->Weapon_TargetsRelative_Hold;
+}
+
 int AttachmentClass::ResolveHiddenFrom()
 {
 	return (this->Data && this->Data->HiddenFrom >= 0)

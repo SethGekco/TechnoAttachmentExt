@@ -226,6 +226,32 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 			this->VisibleTo = mask;
 	}
 
+	{
+		char relBuf[32];
+		if (pINI->ReadString(section, "Weapon.TargetsRelative", "", relBuf, sizeof(relBuf)) > 0)
+		{
+			AttachmentRelation rel;
+			if (TAExt_ParseRelation(relBuf, rel))
+				this->Weapon_TargetsRelative = static_cast<int>(rel);
+			else
+				Debug::INIParseFailed(section, "Weapon.TargetsRelative", relBuf,
+					"Expected self, parent, root, child or sibling");
+		}
+
+		this->Weapon_TargetsRelative_Slot.Read(exINI, section, "Weapon.TargetsRelative.Slot");
+		this->Weapon_TargetsRelative_ID.Read(pINI, section, "Weapon.TargetsRelative.ID");
+		this->Weapon_TargetsRelative_Index.Read(exINI, section, "Weapon.TargetsRelative.Index");
+
+		char missBuf[16];
+		if (pINI->ReadString(section, "Weapon.TargetsRelative.OnMissing", "", missBuf, sizeof(missBuf)) > 0)
+		{
+			if (_strcmpi(missBuf, "hold") == 0)        this->Weapon_TargetsRelative_Hold = true;
+			else if (_strcmpi(missBuf, "normal") == 0) this->Weapon_TargetsRelative_Hold = false;
+			else Debug::INIParseFailed(section, "Weapon.TargetsRelative.OnMissing", missBuf,
+				"Expected hold or normal");
+		}
+	}
+
 	this->Leash_Range.Read(exINI, section, "Leash.Range");
 
 	this->YSortAdjust.Read(exINI, section, "YSortAdjust");
@@ -436,6 +462,11 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Weapon_TargetsRelative)
+		.Process(this->Weapon_TargetsRelative_Slot)
+		.Process(this->Weapon_TargetsRelative_ID)
+		.Process(this->Weapon_TargetsRelative_Index)
+		.Process(this->Weapon_TargetsRelative_Hold)
 		.Process(this->HiddenFrom)
 		.Process(this->VisibleTo)
 		.Process(this->SoldAction)

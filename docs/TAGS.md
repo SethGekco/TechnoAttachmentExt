@@ -994,3 +994,41 @@ exception out of a broad allow.
 > building-specific draw code — and shipping an unverified vtable replacement is
 > how this project earned a `C0000005` once already. Building children stay
 > visible to everyone.
+
+### Fixed-relative targeting (`Weapon.TargetsRelative`)
+
+An attachment's weapon always fires at a **relative of itself**, whatever the
+player clicked — the repair drone that heals its own host, the overcharge that
+damages what it is bolted to.
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `Weapon.TargetsRelative` | off | `self` \| `parent` \| `root` \| `child` \| `sibling` |
+| `Weapon.TargetsRelative.Slot` | `0` | which child/sibling, 0-based |
+| `Weapon.TargetsRelative.ID` | none | ...or address that slot by its ID |
+| `Weapon.TargetsRelative.Index` | `-1` | only this weapon index; `-1` = every weapon |
+| `Weapon.TargetsRelative.OnMissing` | `hold` | `hold` \| `normal` |
+
+```ini
+[RepairPod]
+Weapon.TargetsRelative=parent          ; always heal the host
+Weapon.TargetsRelative.OnMissing=hold  ; idle when there is nothing to heal
+```
+
+Relations reuse the F0b resolver — the same vocabulary as `ExperienceTo`, with
+the same slot/ID addressing. Per slot as `AttachmentN.Weapon.TargetsRelative*`.
+
+`OnMissing=hold` (default) means **do not fire at all** when the relative is
+absent: a repair drone with nothing to repair should sit idle rather than shoot
+whatever is nearby. `normal` falls through to ordinary targeting.
+
+The substitution happens at fire time, so the engine builds the projectile
+against the substituted target and range, armour and warhead handling all behave
+normally — there is no parallel damage path to keep in step.
+
+> **Known interaction to watch.** `CanFire`/`GetFireError` run *before* the
+> substitution and judge the ORIGINAL target. A weapon that always hits its own
+> parent at point-blank range may be refused for being too close, or for
+> targeting a friendly. If a relative-targeting weapon never fires, that is the
+> first thing to suspect — it needs a second seat, and the design deliberately
+> waits for a real case rather than pre-emptively hooking one.
