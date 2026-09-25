@@ -373,8 +373,31 @@ visible to opponents must stay deterministic/synced (translucency is render-only
   NOT source drawable objects from cell contents, so `Intangible` is purely a
   "blocks nothing" tag — safe on attachments that should remain visible. Rex also
   confirmed units can be auto-targeted through an attachment again.
-  ⇒ **Invisibility is therefore still unbuilt** and needs a genuine render-side
-  approach (same blocked area as J2 translucency).
+  ⇒ **Invisibility is therefore still unbuilt.**
+
+  ⚠ **Status corrected (2026-09-21): this is NOT blocked, and filing it with J2
+  was wrong.** They are different problems:
+
+  * **J2 translucency** needs to change the BLITTER FLAGS mid-draw. Those are
+    only assembled at the instant Phobos overwrites, and its tint seats are
+    full-region replacements jumping 200-350 bytes. Genuinely blocked; the
+    analysis above stands.
+  * **Per-player invisibility** does not need to change how the object draws --
+    it needs to NOT DRAW IT AT ALL for some viewers. That is the DrawIt entry,
+    and `ObjectClass::DrawIt` is **virtual** (`YRpp/ObjectClass.h:140`), so it can
+    be wrapped at the vtable slot. That is the same pattern
+    `Hooks.AttachedRender.cpp` already uses for `GetYSort` across four slots,
+    verified collision-free.
+
+  Sketch: wrap the four `DrawIt` vtable slots; if the child is hidden from the
+  observing house, return without calling the original. Render-only, so it must
+  never be read by synced logic -- the visibility test may consult
+  `HouseClass::CurrentPlayer`, which differs per client BY DESIGN, and that is
+  exactly why nothing synced may depend on it.
+
+  Tag shape would mirror the existing relation vocabulary:
+  `HiddenFrom=enemy,neutral` / `VisibleTo=owner,ally`, reusing
+  `TAExtHouseRelation` as `PoweredBy.House` does.
 - ✅ **Cursor pass-through (2026-09-01, commit 1fb3290).** Rex reported the cursor
   still would not interact with what sat beneath an attachment. Cause: our
   TransparentToMouse only hooked TacticalClass::SelectAt (click-to-select); the
@@ -397,7 +420,8 @@ visible to opponents must stay deterministic/synced (translucency is render-only
 - 💡 **Requested: invisibility tag** — hide an attachment from view, not block the
   cursor (`TransparentToMouse` already does the cursor half), choose WHICH players
   see it, and guarantee no cell blocking. The see-it-per-player part is render-side
-  and shares the blocked J2 translucency problem; the cursor and occupation halves
+  and was filed with the blocked J2 translucency problem (see the status
+  correction above -- the invisibility half is buildable); the cursor and occupation halves
   are tractable now.
 
 - ✅ **G1 ammo capacity (2026-09-02, commit 90e7875).** `Ammo.Parent=N` on
