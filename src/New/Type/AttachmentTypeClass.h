@@ -314,6 +314,22 @@ public:
 	// shoot whatever is nearby. `normal` falls through to ordinary targeting.
 	//
 	// Relations reuse the F0b resolver, same vocabulary as ExperienceTo.
+	// D1b -- this child INTERCEPTS shots aimed at its parent. Armour plating that
+	// eats hits meant for the hull.
+	//
+	//   Intercepts.Parent=yes
+	//   Intercepts.Chance=100     percent, synced RNG
+	//   Intercepts.Priority=0     higher wins; ties break by slot order
+	//
+	// HARD CONSTRAINT: only a child whose TechnoType is LegalTarget=yes can
+	// intercept. Handing the engine an illegal target would make the shot be
+	// refused outright -- the parent takes nothing AND the child takes nothing,
+	// which is accidental invulnerability, strictly worse than no feature. Gating
+	// on legality means we never hand it one, so the question never arises.
+	Valueable<bool> Intercepts_Parent;
+	Valueable<int> Intercepts_Chance;
+	Valueable<int> Intercepts_Priority;
+
 	Valueable<int> Weapon_TargetsRelative;   // -1 = off, else AttachmentRelation
 	Valueable<int> Weapon_TargetsRelative_Slot;
 	PhobosFixedString<32> Weapon_TargetsRelative_ID;
@@ -531,6 +547,9 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, Intercepts_Parent { false }
+		, Intercepts_Chance { 100 }
+		, Intercepts_Priority { 0 }
 		, Weapon_TargetsRelative { -1 }
 		, Weapon_TargetsRelative_Slot { 0 }
 		, Weapon_TargetsRelative_ID { }

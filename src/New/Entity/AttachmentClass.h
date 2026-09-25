@@ -100,6 +100,9 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	bool ResolveInterceptsParent();
+	int  ResolveInterceptsChance();
+	int  ResolveInterceptsPriority();
 	int  ResolveTargetsRelative();
 	int  ResolveTargetsRelativeSlot();
 	const char* ResolveTargetsRelativeID();

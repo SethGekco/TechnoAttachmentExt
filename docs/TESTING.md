@@ -676,3 +676,18 @@ and points straight at INI parsing.
       an AttachmentType feature).
 - [ ] Online: two clients, a relative-targeting attachment firing — no desync
       (the resolver reads only synced attachment-graph state).
+
+## Shot interception (D1b)
+
+- [ ] `Intercepts.Parent=yes` on a `LegalTarget=yes` child — shots aimed at the
+      host damage the plate instead.
+- [ ] The same child with `LegalTarget=no` — interception is SKIPPED and the host
+      takes the damage normally. **The host must not become invulnerable**; if it
+      does, the legality gate has failed.
+- [ ] `Intercepts.Chance=50` — roughly half the shots are absorbed.
+- [ ] Two intercepting plates with different `Priority` — the higher wins
+      consistently; equal priorities pick the lower slot every time.
+- [ ] Destroy the plate — shots go back to hitting the host.
+- [ ] Combined with `Weapon.TargetsRelative=parent` on another attachment: the
+      shooter's own shot is NOT intercepted by itself.
+- [ ] Online: `Intercepts.Chance` in play on two clients — no desync.

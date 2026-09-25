@@ -308,6 +308,18 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Nullable<bool> slotIntercepts;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Intercepts.Parent", static_cast<int>(i));
+		slotIntercepts.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotInterceptChance;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Intercepts.Chance", static_cast<int>(i));
+		slotInterceptChance.Read(exINI, pSection, tempBuffer);
+
+		Nullable<int> slotInterceptPriority;
+		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Intercepts.Priority", static_cast<int>(i));
+		slotInterceptPriority.Read(exINI, pSection, tempBuffer);
+
 		Valueable<int> slotTargetsRel { -1 };
 		{
 			char relBuf[32];
@@ -666,6 +678,9 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.Intercepts_Parent             = slotIntercepts,
+			.Intercepts_Chance             = slotInterceptChance,
+			.Intercepts_Priority           = slotInterceptPriority,
 			.Weapon_TargetsRelative        = slotTargetsRel,
 			.Weapon_TargetsRelative_Slot   = slotTargetsRelSlot,
 			.Weapon_TargetsRelative_ID     = slotTargetsRelID,
@@ -848,6 +863,9 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Intercepts_Parent)
+		.Process(this->Intercepts_Chance)
+		.Process(this->Intercepts_Priority)
 		.Process(this->Weapon_TargetsRelative)
 		.Process(this->Weapon_TargetsRelative_Slot)
 		.Process(this->Weapon_TargetsRelative_ID)

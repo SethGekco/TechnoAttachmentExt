@@ -927,6 +927,24 @@ int AttachmentClass::ResolveRequiresPassengerIndex()
 		: this->GetType()->RequiresPassenger_Index;
 }
 
+bool AttachmentClass::ResolveInterceptsParent()
+{
+	return (this->Data && this->Data->Intercepts_Parent.isset())
+		? this->Data->Intercepts_Parent.Get() : this->GetType()->Intercepts_Parent;
+}
+
+int AttachmentClass::ResolveInterceptsChance()
+{
+	return (this->Data && this->Data->Intercepts_Chance.isset())
+		? this->Data->Intercepts_Chance.Get() : this->GetType()->Intercepts_Chance;
+}
+
+int AttachmentClass::ResolveInterceptsPriority()
+{
+	return (this->Data && this->Data->Intercepts_Priority.isset())
+		? this->Data->Intercepts_Priority.Get() : this->GetType()->Intercepts_Priority;
+}
+
 int AttachmentClass::ResolveTargetsRelative()
 {
 	return (this->Data && this->Data->Weapon_TargetsRelative >= 0)

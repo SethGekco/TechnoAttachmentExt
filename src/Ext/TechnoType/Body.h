@@ -163,6 +163,9 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Nullable<bool> Intercepts_Parent;
+			Nullable<int> Intercepts_Chance;
+			Nullable<int> Intercepts_Priority;
 			Valueable<int> Weapon_TargetsRelative; // -1 = unset
 			Nullable<int> Weapon_TargetsRelative_Slot;
 			PhobosFixedString<32> Weapon_TargetsRelative_ID;

@@ -1032,3 +1032,39 @@ normally — there is no parallel damage path to keep in step.
 > targeting a friendly. If a relative-targeting weapon never fires, that is the
 > first thing to suspect — it needs a second seat, and the design deliberately
 > waits for a real case rather than pre-emptively hooking one.
+
+### Shot interception (`Intercepts.Parent`)
+
+A child takes hits aimed at its parent — armour plating that eats shots meant for
+the hull.
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `Intercepts.Parent` | `no` | this child intercepts shots aimed at its host |
+| `Intercepts.Chance` | `100` | percent, synced RNG |
+| `Intercepts.Priority` | `0` | higher wins; ties break by slot order |
+
+```ini
+[ArmourPlate]
+Intercepts.Parent=yes
+Intercepts.Chance=75      ; three shots in four hit the plating
+Intercepts.Priority=10    ; ...before any lower-priority plate
+```
+
+Per slot as `AttachmentN.Intercepts.*`. Composes with `Weapon.TargetsRelative`:
+that decides *what* is being shot at, then this asks whether it has plating
+willing to take it.
+
+> **The child must be `LegalTarget=yes`, and this is enforced.** An intercepting
+> child that is not a legal target is skipped entirely. The reason matters: if the
+> engine were handed an illegal target it would refuse the shot outright — the
+> parent takes nothing *and* the child takes nothing, which is accidental
+> invulnerability and strictly worse than not having the feature. So a plate you
+> want to absorb hits must be targetable.
+>
+> Note this pulls against the usual attachment defaults, where children are
+> commonly `LegalTarget=no` to keep them from soaking auto-fire. An intercepting
+> plate is the deliberate exception.
+
+Redirection never targets the firer itself, so an attachment shooting its own
+parent cannot then intercept its own shot.

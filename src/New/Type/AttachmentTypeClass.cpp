@@ -252,6 +252,10 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 		}
 	}
 
+	this->Intercepts_Parent.Read(exINI, section, "Intercepts.Parent");
+	this->Intercepts_Chance.Read(exINI, section, "Intercepts.Chance");
+	this->Intercepts_Priority.Read(exINI, section, "Intercepts.Priority");
+
 	this->Leash_Range.Read(exINI, section, "Leash.Range");
 
 	this->YSortAdjust.Read(exINI, section, "YSortAdjust");
@@ -462,6 +466,9 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->Intercepts_Parent)
+		.Process(this->Intercepts_Chance)
+		.Process(this->Intercepts_Priority)
 		.Process(this->Weapon_TargetsRelative)
 		.Process(this->Weapon_TargetsRelative_Slot)
 		.Process(this->Weapon_TargetsRelative_ID)

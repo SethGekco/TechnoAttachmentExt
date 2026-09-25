@@ -714,6 +714,61 @@ DEFINE_HOOK(0x6FDD77, TechnoClass_Fire_InstantSpawn_TAExt, 0x6)
 		}
 	}
 
+	// ---- D1b: the target's children may intercept the shot ----
+	//
+	// Runs AFTER D1a so the two compose: D1a decides WHAT is being shot at, then
+	// this asks whether that thing has plating willing to take it.
+	//
+	// Only LegalTarget children are eligible. Handing the engine an illegal target
+	// would get the shot refused outright -- parent unhurt AND child unhurt, i.e.
+	// accidental invulnerability, strictly worse than not having the feature. By
+	// never offering one, the question of how the engine reacts never arises.
+	{
+		auto const pTarget = *reinterpret_cast<AbstractClass**>(ebp + 0x8);
+		if (auto const pVictim = abstract_cast<TechnoClass*>(pTarget))
+		{
+			if (auto const pVictimExt = TechnoExt::ExtMap.Find(pVictim))
+			{
+				AttachmentClass* pBest = nullptr;
+				int bestPriority = 0;
+
+				for (auto const& pSlot : pVictimExt->ChildAttachments)
+				{
+					if (!pSlot || !pSlot->Child || !pSlot->ResolveInterceptsParent())
+						continue;
+
+					auto const pChild = pSlot->Child;
+
+					// Never redirect onto the firer itself -- an attachment shooting
+					// its own parent (D1a) must not then intercept its own shot.
+					if (pChild == pThis || !pChild->IsAlive || pChild->InLimbo)
+						continue;
+
+					auto const pChildType = pChild->GetTechnoType();
+					if (!pChildType || !pChildType->LegalTarget)
+						continue; // see above: never offer an illegal target
+
+					int const priority = pSlot->ResolveInterceptsPriority();
+					if (pBest && priority <= bestPriority)
+						continue; // ties keep the earlier slot, so order is stable
+
+					pBest = pSlot.get();
+					bestPriority = priority;
+				}
+
+				if (pBest)
+				{
+					int const chance = pBest->ResolveInterceptsChance();
+					if (chance >= 100
+						|| ScenarioClass::Instance->Random.RandomRanged(1, 100) <= chance)
+					{
+						*reinterpret_cast<AbstractClass**>(ebp + 0x8) = pBest->Child;
+					}
+				}
+			}
+		}
+	}
+
 	return Continue;
 }
 

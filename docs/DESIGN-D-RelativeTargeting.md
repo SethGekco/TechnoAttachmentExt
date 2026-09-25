@@ -10,8 +10,14 @@ because both involve "the thing hit is not the thing aimed at":
 * **D1b — impact redirect.** You target the parent, but the damage lands on its
   children instead. Armour plating that eats hits meant for the hull.
 
-Status: **D1a is BUILT** (`Weapon.TargetsRelative*`, substituting at the
-`0x6FDD77` fire seat). D1b and the WeaponExt handoff are still design.
+Status: **D1a and D1b are BUILT.** The WeaponExt handoff (splash-onto-relatives)
+is still design.
+
+D1b shipped WITHOUT first answering the legality question below, because the
+design changed to make that question moot: only `LegalTarget=yes` children may
+intercept, so the engine is never handed an illegal target and how it would react
+stops mattering. Same move as the ordering-independent save/load restore --
+when a blocking unknown can be designed around, that beats waiting on it.
 
 ---
 
@@ -135,7 +141,8 @@ children is a *different* effect and belongs to the warhead.
 2. **Test the `CanFire` interaction** (§2) and the legality question (§4) before
    writing D1b — both features depend on the same answers, and guessing would
    mean building D1b twice.
-3. **D1b** fire-time redirect.
+3. ~~**D1b** fire-time redirect.~~ **DONE** as `Intercepts.Parent`, gated on
+   `LegalTarget` so the §4 unknown never arises.
 4. Hand **splash-onto-relatives** to WeaponExt as a warhead tag.
 
 D1a is small. D1b is small *if* the legality question resolves kindly, and may be
