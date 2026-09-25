@@ -95,9 +95,9 @@ void TAExt_ReadSplashRules()
 
 	int configured = 0;
 
-	for (int i = 0; i < WarheadTypeClass::Array->Count; ++i)
+	for (int i = 0; i < WarheadTypeClass::Array.Count; ++i)
 	{
-		auto const pWH = WarheadTypeClass::Array->GetItem(i);
+		auto const pWH = WarheadTypeClass::Array.GetItem(i);
 		if (!pWH)
 			continue;
 
