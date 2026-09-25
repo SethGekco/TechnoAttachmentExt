@@ -218,6 +218,14 @@ void AttachmentTypeClass::LoadFromINI(CCINIClass* pINI)
 				"Expected vanish, kill or detach");
 		}
 	}
+	{
+		int mask = TAExtHouse_None;
+		if (TAExt_ReadHouseRelationList(pINI, section, "HiddenFrom", mask))
+			this->HiddenFrom = mask;
+		if (TAExt_ReadHouseRelationList(pINI, section, "VisibleTo", mask))
+			this->VisibleTo = mask;
+	}
+
 	this->Leash_Range.Read(exINI, section, "Leash.Range");
 
 	this->YSortAdjust.Read(exINI, section, "YSortAdjust");
@@ -428,6 +436,8 @@ void AttachmentTypeClass::Serialize(T& Stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->HiddenFrom)
+		.Process(this->VisibleTo)
 		.Process(this->SoldAction)
 		.Process(this->DeployedAction)
 		.Process(this->AbsorbedAction)

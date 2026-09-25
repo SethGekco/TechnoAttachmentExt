@@ -163,6 +163,8 @@ public:
 			Nullable<bool> Spins;
 			Nullable<int> Spins_Period;
 			Nullable<bool> Spins_Orbit;
+			Valueable<int> HiddenFrom; // -1 = unset (inherit the AttachmentType)
+			Valueable<int> VisibleTo;
 			Nullable<int> SoldAction;
 			Nullable<int> DeployedAction;
 			Nullable<int> AbsorbedAction;

@@ -289,6 +289,19 @@ public:
 	//   detach           survives as a free-standing unit -- the crew walks away
 	//
 	// Same vocabulary as Prerequisite.LostAction, deliberately.
+	// PER-VIEWER VISIBILITY. Which houses' players can SEE this child, as a
+	// TAExtHouseRelation mask evaluated against the local player.
+	//
+	//   HiddenFrom=enemy,neutral   hide it from those viewers
+	//   VisibleTo=owner,ally       ...or state it the other way round
+	//
+	// RENDER-ONLY. This changes nothing about targeting, collision, damage or any
+	// synced state -- the object is still there, it simply is not drawn for you.
+	// Making it affect gameplay would be a desync, because the answer depends on
+	// WHO IS WATCHING and that differs per client by design.
+	Valueable<int> HiddenFrom;
+	Valueable<int> VisibleTo;
+
 	Valueable<int> SoldAction;
 
 	// What happens to the child when the host DEPLOYS into something else
@@ -497,6 +510,8 @@ public:
 		, Spins { false }
 		, Spins_Period { 32 }
 		, Spins_Orbit { false }
+		, HiddenFrom { TAExtHouse_None }
+		, VisibleTo { TAExtHouse_None }
 		, SoldAction { 0 }
 		, DeployedAction { 0 }
 		, AbsorbedAction { 0 }

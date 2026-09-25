@@ -638,3 +638,21 @@ and points straight at INI parsing.
 - [ ] Combat death still uses `InheritDestruction` and is unaffected by all three.
 - [ ] Online: sell/grind/deploy with attachments — no desync (all three read
       synced mission state).
+
+## Per-viewer visibility
+
+- [ ] `HiddenFrom=enemy` — you see the attachment, an enemy player does not.
+- [ ] `VisibleTo=owner` — only the owner sees it; allies do not.
+- [ ] Both set — `HiddenFrom` wins where they overlap.
+- [ ] Neither set (every existing attachment) — visibly unchanged.
+- [ ] **A hidden child can still be shot, collided with and killed** by the player
+      who cannot see it. If it becomes invulnerable or untargetable, the
+      render-only rule has been broken somewhere.
+- [ ] An ally's hidden attachment behaves the same as an enemy's per the mask.
+- [ ] Infantry, vehicle and aircraft children all hide. A BUILDING child does not
+      (documented limitation, not a bug).
+- [ ] Mind-controlled host — visibility follows the HOST's current owner.
+- [ ] Observer/replay: nothing disappears (no viewer = show everything).
+- [ ] **Online, the important one:** two clients with opposite views of the same
+      attachment must stay in sync. A desync here means something synced is
+      reading the per-viewer answer.

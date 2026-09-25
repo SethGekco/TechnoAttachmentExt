@@ -957,3 +957,40 @@ can ship. These three have one — `Mission::Selling`, `Mission::Eaten`, and our
 deploy-transfer marker. Inferring a reason from circumstance (say, "it died near a
 Grinder") would misclassify, and a rule that fires on the wrong event is worse
 than one that is absent.
+
+### Per-viewer visibility (`HiddenFrom` / `VisibleTo`)
+
+Hide an attachment child from some players but not others.
+
+| Tag | Default | Meaning |
+| --- | --- | --- |
+| `HiddenFrom` | none | house relations that must **not** see it |
+| `VisibleTo` | none | house relations that **may** see it; anyone else is denied |
+
+Both take the `TAExtHouseRelation` list used by `PoweredBy.House` etc:
+`owner`, `ally`, `team`, `enemy`, `neutral`, `civilian`, `special`, `any`.
+Per slot as `AttachmentN.HiddenFrom` / `.VisibleTo`.
+
+```ini
+HiddenFrom=enemy,neutral   ; your side sees the pod, the enemy does not
+VisibleTo=owner            ; ...or say it the other way round
+```
+
+Relations are judged against the **host's** owner, so a mind-controlled or
+owner-inherited child still hides from the enemy of whoever fields the parent.
+`HiddenFrom` wins over `VisibleTo`, so the two can be combined to carve an
+exception out of a broad allow.
+
+> **RENDER-ONLY, and this is a hard rule, not a caveat.** The object is still
+> fully present: it can be targeted, shot, collided with and killed exactly as
+> before — it simply is not *drawn* for that viewer. Visibility depends on who is
+> watching, which differs per client by design, so nothing in the simulation may
+> ever consult it. If you want a child that cannot be interacted with, that is
+> `Intangible` / `OccupiesCell`, which are synced and do the opposite job.
+
+> **Buildings as children are not covered.** The three verified `DrawIt` vtable
+> slots are Unit, Infantry and Aircraft. The Building slot could not be confirmed
+> — the derived address points at a shared implementation rather than
+> building-specific draw code — and shipping an unverified vtable replacement is
+> how this project earned a `C0000005` once already. Building children stay
+> visible to everyone.

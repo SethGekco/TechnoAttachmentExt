@@ -100,6 +100,8 @@ public:
 	bool ResolveSpins();
 	int  ResolveSpinsPeriod();
 	bool ResolveSpinsOrbit();
+	int  ResolveHiddenFrom();
+	int  ResolveVisibleTo();
 	int  ResolveSoldAction();
 	int  ResolveDeployedAction();
 	int  ResolveAbsorbedAction();

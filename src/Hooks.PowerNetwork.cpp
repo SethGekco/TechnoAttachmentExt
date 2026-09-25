@@ -58,52 +58,11 @@ namespace TAExtPowerNetwork
 	};
 	static std::vector<BuildingRecord> buildings;
 
-	// Is pOther's relationship to pSelf one the modder asked for? See
-	// TAExtHouseRelation. Passive (MultiplayPassive) countries are excluded from
-	// "enemy" so neutrals/civilians never read as hostile -- ask for them by name.
+	// Moved to AttachmentParsers.h so the render-side visibility check can share
+	// it instead of keeping a second copy that could drift.
 	static bool HouseRelationMatches(HouseClass* pSelf, HouseClass* pOther, int mask)
 	{
-		if (!pSelf || !pOther)
-			return false;
-
-		if (mask & TAExtHouse_Any)
-			return true;
-
-		bool const isSelf = (pSelf == pOther);
-
-		if ((mask & TAExtHouse_Owner) && isSelf)
-			return true;
-
-		if ((mask & TAExtHouse_Ally) && !isSelf && pSelf->IsAlliedWith(pOther))
-			return true;
-
-		if ((mask & TAExtHouse_Team) && !isSelf)
-		{
-			// Only meaningful in team/tournament games; 0 means "no team", so two
-			// teamless houses must NOT read as team-mates.
-			int const team = pSelf->TournamentTeamID;
-			if (team != 0 && pOther->TournamentTeamID == team)
-				return true;
-		}
-
-		auto const pOtherType = pOther->Type;
-		bool const passive = pOtherType && pOtherType->MultiplayPassive;
-
-		if ((mask & TAExtHouse_Neutral) && pOtherType
-			&& _strcmpi(pOtherType->ID, "Neutral") == 0)
-			return true;
-
-		if ((mask & TAExtHouse_Special) && pOtherType
-			&& _strcmpi(pOtherType->ID, "Special") == 0)
-			return true;
-
-		if ((mask & TAExtHouse_Civilian) && passive)
-			return true;
-
-		if ((mask & TAExtHouse_Enemy) && !isSelf && !passive && !pSelf->IsAlliedWith(pOther))
-			return true;
-
-		return false;
+		return TAExt_HouseRelationMatches(pSelf, pOther, mask);
 	}
 
 	// Does a qualifying building of pType exist for pOwner? houseMask decides whose

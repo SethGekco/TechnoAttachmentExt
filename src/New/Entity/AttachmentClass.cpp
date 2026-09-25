@@ -927,6 +927,18 @@ int AttachmentClass::ResolveRequiresPassengerIndex()
 		: this->GetType()->RequiresPassenger_Index;
 }
 
+int AttachmentClass::ResolveHiddenFrom()
+{
+	return (this->Data && this->Data->HiddenFrom >= 0)
+		? this->Data->HiddenFrom.Get() : this->GetType()->HiddenFrom;
+}
+
+int AttachmentClass::ResolveVisibleTo()
+{
+	return (this->Data && this->Data->VisibleTo >= 0)
+		? this->Data->VisibleTo.Get() : this->GetType()->VisibleTo;
+}
+
 int AttachmentClass::ResolveSoldAction()
 {
 	return (this->Data && this->Data->SoldAction.isset())

@@ -308,6 +308,19 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.Spins.Orbit", static_cast<int>(i));
 		slotSpinsOrbit.Read(exINI, pSection, tempBuffer);
 
+		Valueable<int> slotHiddenFrom { -1 };
+		Valueable<int> slotVisibleTo { -1 };
+		{
+			int mask = TAExtHouse_None;
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.HiddenFrom", static_cast<int>(i));
+			if (TAExt_ReadHouseRelationList(pINI, pSection, tempBuffer, mask))
+				slotHiddenFrom = mask;
+
+			_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.VisibleTo", static_cast<int>(i));
+			if (TAExt_ReadHouseRelationList(pINI, pSection, tempBuffer, mask))
+				slotVisibleTo = mask;
+		}
+
 		Nullable<int> slotSoldAction;
 		_snprintf_s(tempBuffer, sizeof(tempBuffer), "Attachment%d.SoldAction", static_cast<int>(i));
 	{
@@ -614,6 +627,8 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 			.Spins                         = slotSpins,
 			.Spins_Period                  = slotSpinsPeriod,
 			.Spins_Orbit                   = slotSpinsOrbit,
+			.HiddenFrom                    = slotHiddenFrom,
+			.VisibleTo                     = slotVisibleTo,
 			.SoldAction                    = slotSoldAction,
 			.DeployedAction                = slotDeployedAction,
 			.AbsorbedAction                = slotAbsorbedAction,
@@ -789,6 +804,8 @@ bool TechnoTypeExt::ExtData::AttachmentDataEntry::Serialize(T& stm)
 		.Process(this->Spins)
 		.Process(this->Spins_Period)
 		.Process(this->Spins_Orbit)
+		.Process(this->HiddenFrom)
+		.Process(this->VisibleTo)
 		.Process(this->SoldAction)
 		.Process(this->DeployedAction)
 		.Process(this->AbsorbedAction)
