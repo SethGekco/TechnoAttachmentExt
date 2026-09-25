@@ -50,6 +50,15 @@ tag, not a firer tag.
 **Recommendation: build fire-time redirect here; hand splash-onto-relatives to
 WeaponExt** alongside `SpawnOnDetonate`. Two tags, two homes, no overlap.
 
+> ⚠ **The second half of that was wrong — corrected 2026-09-25.** WeaponExt has
+> `BulletType`/`TechnoType`/`WeaponType` containers and no attachment awareness
+> whatsoever, so it has no way to reach the graph the feature needs. The tag's
+> natural INI home (a warhead) and the feature's natural CODE home are different
+> questions, and conflating them produced the wrong call.
+>
+> See `DESIGN-SplashOntoRelatives.md`. `SpawnOnDetonate` is unaffected and still
+> belongs to WeaponExt — it needs only the impact point and the invoking house.
+
 ---
 
 ## 2. D1a — fixed-relative targeting
@@ -143,7 +152,10 @@ children is a *different* effect and belongs to the warhead.
    mean building D1b twice.
 3. ~~**D1b** fire-time redirect.~~ **DONE** as `Intercepts.Parent`, gated on
    `LegalTarget` so the §4 unknown never arises.
-4. Hand **splash-onto-relatives** to WeaponExt as a warhead tag.
+4. ~~Hand **splash-onto-relatives** to WeaponExt as a warhead tag.~~ Corrected:
+   WeaponExt cannot see the attachment graph. See `DESIGN-SplashOntoRelatives.md`
+   -- recommended home is HERE, reading a warhead tag. Whether to build it at all
+   is an open question for Rex.
 
 D1a is small. D1b is small *if* the legality question resolves kindly, and may be
 considerably larger if it does not — which is exactly why step 2 exists rather
