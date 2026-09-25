@@ -1068,3 +1068,40 @@ willing to take it.
 
 Redirection never targets the firer itself, so an attachment shooting its own
 parent cannot then intercept its own shot.
+
+### Splash onto relatives (`SplashToRelatives`) — a **warhead** tag
+
+When this warhead damages something, its attachment relatives take a share too.
+A hull hit that also rattles every plate bolted to it.
+
+```ini
+[SomeWarhead]
+SplashToRelatives=children     ; children | siblings | parent | root
+SplashToRelatives.Percent=50   ; share of the damage ACTUALLY dealt
+SplashToRelatives.Max=0        ; 0 = every match; else cap the count
+SplashToRelatives.MinDamage=1  ; floor, so a big hull's plates still feel it
+SplashToRelatives.Warhead=     ; optional different warhead for the splash
+```
+
+`Percent` is of the damage the victim actually took **after its own armour**, not
+the raw incoming value — so a shot that barely scratched the hull barely
+scratches the plating.
+
+`.Warhead` matters more than it looks: plates and hulls usually want different
+armour interactions, and without it you must pick one armour type for both roles.
+
+**Compare with `Intercepts.Parent`** — these are complements, not variants:
+
+| | `Intercepts.Parent` | `SplashToRelatives` |
+| --- | --- | --- |
+| When | fire time — the shot is **redirected** | detonation — damage **also** spreads |
+| Hull takes damage? | no | yes |
+| Needs `LegalTarget`? | **yes** — it becomes the target | **no** — nothing is aimed at it |
+
+That last row is why this exists: splash reaches the `Intangible`,
+non-targetable children that are the normal case for attachments, which
+interception structurally cannot.
+
+> Chains are bounded at depth 3 — splashing applies damage, which can splash
+> again. A mod can build a cycle, and without the bound it would recurse until
+> the stack gave out rather than producing anything diagnosable.

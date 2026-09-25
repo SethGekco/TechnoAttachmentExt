@@ -3,8 +3,9 @@
 A warhead that, on detonation, spreads damage from the victim onto its
 attachment relatives: a hull hit that also rattles every plate bolted to it.
 
-Status: **design only.** Not built, and the recommendation below differs from the
-one in `DESIGN-D-RelativeTargeting.md` §1.
+Status: **BUILT** (`src/Hooks.SplashRelatives.cpp`), via option **B** below.
+The recommendation here differs from `DESIGN-D-RelativeTargeting.md` §1, which
+was wrong; §1 explains why.
 
 ---
 
@@ -85,7 +86,8 @@ both roles.
 
 ## 4. Should it be built at all?
 
-Honest answer: **unclear, and worth deciding before coding.**
+Answered: **yes, built** — Rex confirmed. The deciding argument turned out to be
+the `LegalTarget` asymmetry in §2: splash reaches children interception cannot.
 
 `Intercepts.Parent` already covers the common want ("my plating soaks hits").
 Splash adds the case where damage should reach *both*, and the case of reaching

@@ -691,3 +691,20 @@ and points straight at INI parsing.
 - [ ] Combined with `Weapon.TargetsRelative=parent` on another attachment: the
       shooter's own shot is NOT intercepted by itself.
 - [ ] Online: `Intercepts.Chance` in play on two clients — no desync.
+
+## Splash onto relatives
+
+- [ ] `SplashToRelatives=children`, `.Percent=50` — shooting the host also damages
+      its attachments for about half.
+- [ ] **It works on an `Intangible` / `LegalTarget=no` child** — this is the whole
+      point; if it does not, splash has gained interception's limitation.
+- [ ] `.Percent` scales off damage ACTUALLY dealt: a weak shot on a heavily
+      armoured hull splashes little.
+- [ ] `.MinDamage` floors it so plates on a tough hull still take something.
+- [ ] `.Max=1` limits how many relatives are hit.
+- [ ] `.Warhead=` — the splash uses the different warhead's verses.
+- [ ] Killing a child mid-splash does not crash (snapshot + re-validation).
+- [ ] A warhead with no `SplashToRelatives` behaves exactly as before.
+- [ ] **Cycle safety:** two attachments whose warheads splash onto each other stop
+      at depth 3 rather than hanging the game.
+- [ ] Online: splash in play on two clients — no desync (no RNG involved at all).
