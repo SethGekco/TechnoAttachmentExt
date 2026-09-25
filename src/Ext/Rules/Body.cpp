@@ -2,6 +2,9 @@
 
 #include <New/Type/GunnerProfileRule.h>
 
+// Hooks.SplashRelatives.cpp -- warhead config, parsed once every type exists.
+void TAExt_ReadSplashRules();
+
 #include <Utilities/Macro.h>
 
 #include <AttachmentParsers.h>
@@ -55,5 +58,6 @@ DEFINE_HOOK(0x679A15, RulesData_LoadBeforeTypeData_TAExt, 0x6)
 DEFINE_HOOK(0x679CAF, RulesData_LoadAfterTypeData_TAExt, 0x5)
 {
 	TAExt_ValidateGunnerProfiles();
+	TAExt_ReadSplashRules();
 	return 0;
 }

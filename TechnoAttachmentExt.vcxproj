@@ -45,6 +45,7 @@
     <ClCompile Include="src\Hooks.AttachedLayer.cpp" />
     <ClCompile Include="src\Hooks.AttachedRender.cpp" />
     <ClCompile Include="src\Hooks.AttachedVisibility.cpp" />
+    <ClCompile Include="src\Hooks.SplashRelatives.cpp" />
     <ClCompile Include="src\Hooks.AttachedSelection.cpp" />
     <ClCompile Include="src\Hooks.AttachedInherit.cpp" />
     <ClCompile Include="src\Hooks.AttachedMovement.cpp" />
