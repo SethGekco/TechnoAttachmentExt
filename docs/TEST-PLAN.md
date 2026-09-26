@@ -1,5 +1,10 @@
 # Test plan — prioritised
 
+> Ready-to-paste INI for all of this is in **`TEST-RULES.ini`**, grounded in the
+> actual rulesmd (ALTNK / DRONEDUMMY2 / GAROBO) rather than invented types.
+> Note it records a live finding: every `Attachment0.Type=` in that rulesmd is
+> currently commented out, so no host has any attachment at all right now.
+
 `TESTING.md` is the exhaustive per-feature checklist and has grown to several
 hundred items across many sessions. This is the ordered version: what to run
 first, and why that order.
