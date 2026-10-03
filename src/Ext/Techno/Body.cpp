@@ -20,6 +20,14 @@ TechnoClass* TechnoExt::DeployTransferSource = nullptr;
 
 TechnoExt::ExtData::~ExtData() = default;
 
+AttachmentClass* TechnoExt::ExtData::GetLiveParentAttachment()
+{
+	if (this->ParentAttachment && !AttachmentClass::IsLive(this->ParentAttachment))
+		this->ParentAttachment = nullptr; // the slot is gone; stop pointing at it
+
+	return this->ParentAttachment;
+}
+
 void TechnoExt::ExtData::InvalidatePointer(void* ptr, bool bRemoved)
 {
 	// H1e: drop any live-spawn record for the object going away, BEFORE it is

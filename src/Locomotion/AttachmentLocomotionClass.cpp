@@ -28,7 +28,13 @@ bool AttachmentLocomotionClass::Is_Moving()
 
 Matrix3D AttachmentLocomotionClass::Draw_Matrix(VoxelIndexKey* key)
 {
-	if (auto const pParentFoot = abstract_cast<FootClass*>(this->GetAttachmentParent()))
+	auto const pParentFoot = abstract_cast<FootClass*>(this->GetAttachmentParent());
+
+	// Locomotor was dereferenced unconditionally here. Every sibling override
+	// checks it, and HANDOFF-crash-20260930 faulted on the one other site that
+	// did not -- this was strictly more exposed than the site that crashed,
+	// because it had no null test at all.
+	if (pParentFoot && pParentFoot->Locomotor)
 	{
 		Matrix3D mtx = pParentFoot->Locomotor->Draw_Matrix(key);
 
@@ -175,6 +181,20 @@ Layer AttachmentLocomotionClass::In_Which_Layer()
 	if (!pAttachment || !pAttachment->ResolveInheritHeightStatus())
 		return this->CalculateLayer();
 
+	// ⚠ DELIBERATELY the raw pointer, not GetAttachmentParentLoco().
+	//
+	// HANDOFF-crash-20260930 recommended switching this to the helper, on the
+	// grounds that ILocomotionPtr is ref-counted and would keep the object alive.
+	// It is ref-counted -- YRpp/Interfaces.h:317 _COM_SMARTPTR_TYPEDEF -- and that
+	// is exactly why the swap does not fix this crash: assigning into an
+	// ILocomotionPtr calls AddRef(), which is itself a virtual call through the
+	// same vtable pointer that was poisoned. The fault would move from slot 0x74
+	// to slot 0x04 and look like a different bug.
+	//
+	// What actually protects this path is GetAttachment() above now returning null
+	// for a destroyed slot (AttachmentClass::LiveSet), plus InvalidatePointer
+	// scrubbing Parent when the host dies. The smart pointer only guards against a
+	// release DURING the delegated call, which was never the reported failure.
 	auto const pParentAsFoot = abstract_cast<FootClass*>(pAttachment->Parent);
 	return pParentAsFoot && pParentAsFoot->Locomotor
 		? pParentAsFoot->Locomotor->In_Which_Layer()
@@ -325,7 +345,7 @@ AttachmentClass* AttachmentLocomotionClass::GetAttachment()
 	if (this->LinkedTo)
 	{
 		if (auto const pExt = TechnoExt::ExtMap.Find(this->LinkedTo))
-			result = pExt->ParentAttachment;
+			result = pExt->GetLiveParentAttachment();
 	}
 
 	return result;

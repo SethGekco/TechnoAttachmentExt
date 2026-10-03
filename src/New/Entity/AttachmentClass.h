@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <unordered_set>
 
 #include <GeneralStructures.h>
 
@@ -13,6 +14,34 @@ class AttachmentClass
 {
 public:
 	static std::vector<AttachmentClass*> Array;
+
+	// Liveness registry.
+	//
+	// A raw AttachmentClass* can outlive its object. The objects are owned by the
+	// PARENT's ChildAttachments vector (unique_ptr), while the CHILD holds a bare
+	// back-pointer to one of them in TechnoExt::ExtData::ParentAttachment.
+	// ~AttachmentClass scrubs that back-pointer only `if (this->Child)`, so any
+	// teardown that clears Child first -- InvalidatePointer does exactly that --
+	// destroys the slot and leaves the back-pointer dangling.
+	//
+	// Freed heap is not null, so every `if (pExt->ParentAttachment)` guard in the
+	// codebase passes. That is the whole failure: liveness cannot be tested by
+	// dereferencing, and there are 45 read sites relying on a test that cannot
+	// work.
+	//
+	// Both reported crashes are this one pointer:
+	//   HANDOFF-crash-20260929  ParentAttachment held the ASCII bytes "date";
+	//                           the block had been recycled into string storage.
+	//   HANDOFF-crash-20260930  GetAttachment() returned a freed slot, whose
+	//                           garbage Parent produced a vtable call into
+	//                           recycled unordered_map bucket storage.
+	// Membership here is the test those guards cannot perform.
+	static std::unordered_set<const AttachmentClass*> LiveSet;
+
+	static bool IsLive(const AttachmentClass* pAttachment)
+	{
+		return pAttachment && LiveSet.find(pAttachment) != LiveSet.cend();
+	}
 
 	TechnoTypeExt::ExtData::AttachmentDataEntry* Data;
 	TechnoClass* Parent;
@@ -33,6 +62,7 @@ public:
 		RespawnTimer { }
 	{
 		Array.push_back(this);
+		LiveSet.insert(this);
 	}
 
 	AttachmentClass() :
@@ -42,6 +72,7 @@ public:
 		RespawnTimer { }
 	{
 		Array.push_back(this);
+		LiveSet.insert(this);
 	}
 
 	~AttachmentClass();

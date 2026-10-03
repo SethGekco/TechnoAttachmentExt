@@ -30,7 +30,7 @@ DEFINE_HOOK(0x6F3283, TechnoClass_CanScatter_CheckIfAttached_TAExt, 0x8)
 	GET(TechnoClass*, pThis, ECX);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return (pExt && pExt->ParentAttachment) ? ReturnFalse : ContinueCheck;
+	return (pExt && pExt->GetLiveParentAttachment()) ? ReturnFalse : ContinueCheck;
 }
 
 // CellClass::Incoming — a cell-occupying attached child (OccupiesCell=true)
@@ -42,7 +42,7 @@ DEFINE_HOOK(0x4817A8, CellClass_Incoming_CheckIfTechnoOccupies_TAExt, 0x6)
 	GET(TechnoClass*, pTechno, ESI);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pTechno);
-	return (pExt && pExt->ParentAttachment && pExt->ParentAttachment->ResolveOccupiesCell())
+	return (pExt && pExt->GetLiveParentAttachment() && pExt->GetLiveParentAttachment()->ResolveOccupiesCell())
 		? ConditionIsTrue
 		: ContinueCheck;
 }

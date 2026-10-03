@@ -96,7 +96,7 @@ namespace
 bool __fastcall TechnoClass_Select_Wrapper_TAExt(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	auto const pAtt = pExt ? pExt->ParentAttachment : nullptr;
+	auto const pAtt = pExt ? pExt->GetLiveParentAttachment() : nullptr;
 
 	// PassSelection: select the host instead. Virtual call re-enters this wrapper
 	// for the parent and cascades up; the base case (non-attached ancestor) lands
@@ -150,7 +150,7 @@ DEFINE_HOOK(0x6DA3FF, TacticalClass_SelectAt_TransparentToMouse_TAExt, 0x6)
 	GET(TechnoClass*, pTechno, EAX);
 
 	auto const pExt = TechnoExt::ExtMap.Find(pTechno);
-	return (pExt && pExt->ParentAttachment && pExt->ParentAttachment->ResolveTransparentToMouse())
+	return (pExt && pExt->GetLiveParentAttachment() && pExt->GetLiveParentAttachment()->ResolveTransparentToMouse())
 		? SkipTechno
 		: ContinueCheck;
 }
@@ -165,8 +165,8 @@ DEFINE_HOOK(0x6DA4FB, TacticalClass_SelectAt_TransparentToMouse_Occupier_TAExt, 
 		if (auto const pT = abstract_cast<TechnoClass*>(pOcc))
 		{
 			auto const pExt = TechnoExt::ExtMap.Find(pT);
-			if (pExt && pExt->ParentAttachment
-				&& pExt->ParentAttachment->ResolveTransparentToMouse())
+			if (pExt && pExt->GetLiveParentAttachment()
+				&& pExt->GetLiveParentAttachment()->ResolveTransparentToMouse())
 				continue; // skip transparent children, keep looking
 		}
 
@@ -207,7 +207,7 @@ static bool TAExt_HiddenFromCursor(ObjectClass* pObject)
 		return false;
 
 	auto const pExt = TechnoExt::ExtMap.Find(pTechno);
-	auto const pAtt = pExt ? pExt->ParentAttachment : nullptr;
+	auto const pAtt = pExt ? pExt->GetLiveParentAttachment() : nullptr;
 	if (!pAtt)
 		return false;
 

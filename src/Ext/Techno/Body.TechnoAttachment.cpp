@@ -39,7 +39,7 @@ bool TechnoExt::AttachTo(TechnoClass* pThis, TechnoClass* pParent)
 bool TechnoExt::DetachFromParent(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return pExt->ParentAttachment->DetachChild();
+	return pExt->GetLiveParentAttachment()->DetachChild();
 }
 
 void TechnoExt::InitializeAttachments(TechnoClass* pThis)
@@ -135,8 +135,8 @@ void TechnoExt::HandleDestructionAsChild(TechnoClass* pThis)
 
 	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
 
-	if (pExt->ParentAttachment)
-		pExt->ParentAttachment->ChildDestroyed();
+	if (pExt->GetLiveParentAttachment())
+		pExt->GetLiveParentAttachment()->ChildDestroyed();
 }
 
 void TechnoExt::UnlimboAttachments(TechnoClass* pThis)
@@ -358,7 +358,7 @@ void TechnoExt::HandleAttachmentDeployTransfer(TechnoClass* pFrom, TechnoClass* 
 bool TechnoExt::IsAttached(TechnoClass* pThis)
 {
 	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
-	return pExt && pExt->ParentAttachment;
+	return pExt && pExt->GetLiveParentAttachment();
 }
 
 bool TechnoExt::HasAttachmentLoco(FootClass* pThis)
@@ -372,17 +372,17 @@ bool TechnoExt::HasAttachmentLoco(FootClass* pThis)
 bool TechnoExt::DoesntOccupyCellAsChild(TechnoClass* pThis)
 {
 	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
-	if (!pExt || !pExt->ParentAttachment)
+	if (!pExt || !pExt->GetLiveParentAttachment())
 		return false;
 
 	// Same reasoning as IsIntangibleAsChild: a LEASHED child paths for itself, and
 	// a pathfinding unit that occupies no cell walks through walls and units. So
 	// OccupiesCell=no is refused under Motion=leashed rather than honoured into a
 	// broken state.
-	if (pExt->ParentAttachment->ResolveMotionLeashed())
+	if (pExt->GetLiveParentAttachment()->ResolveMotionLeashed())
 		return false;
 
-	return !pExt->ParentAttachment->ResolveOccupiesCell();
+	return !pExt->GetLiveParentAttachment()->ResolveOccupiesCell();
 }
 
 // Defined further down; declared here so the ammo helper can use it.
@@ -425,7 +425,7 @@ bool TechnoExt::HasMoveLeash(TechnoClass* pThis)
 		return false;
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	auto const pSlot = pExt ? pExt->ParentAttachment : nullptr;
+	auto const pSlot = pExt ? pExt->GetLiveParentAttachment() : nullptr;
 
 	// hold (2) never chases, so it buys no reach.
 	return pSlot && pSlot->ResolveMoveRadius() > 0 && pSlot->ResolveMoveMode() != 2;
@@ -437,7 +437,7 @@ bool TechnoExt::CanReachViaLeash(TechnoClass* pThis, AbstractClass* pTarget, int
 		return false;
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	auto const pSlot = pExt ? pExt->ParentAttachment : nullptr;
+	auto const pSlot = pExt ? pExt->GetLiveParentAttachment() : nullptr;
 	if (!pSlot)
 		return false;
 
@@ -674,17 +674,17 @@ void TechnoExt::RestoreAttachmentsAfterLoad(TechnoClass* pThis)
 bool TechnoExt::IsIntangibleAsChild(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	if (!pExt || !pExt->ParentAttachment)
+	if (!pExt || !pExt->GetLiveParentAttachment())
 		return false;
 
 	// A LEASHED child is a real pathfinding unit. Keeping it out of the cell
 	// content list would let it walk through everything and be walked through --
 	// the roadmap flagged this interaction specifically. Intangibility is a
 	// rigid-mode idea and is refused here rather than silently honoured.
-	if (pExt->ParentAttachment->ResolveMotionLeashed())
+	if (pExt->GetLiveParentAttachment()->ResolveMotionLeashed())
 		return false;
 
-	return pExt->ParentAttachment->ResolveIntangible();
+	return pExt->GetLiveParentAttachment()->ResolveIntangible();
 }
 
 bool TechnoExt::IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep)
@@ -704,10 +704,10 @@ bool TechnoExt::IsChildOf(TechnoClass* pThis, TechnoClass* pParent, bool deep)
 	for (int depth = 0; depth < MaxDepth; ++depth)
 	{
 		auto const pCurExt = TechnoExt::ExtMap.Find(pCurrent);
-		if (!pCurExt || !pCurExt->ParentAttachment)
+		if (!pCurExt || !pCurExt->GetLiveParentAttachment())
 			return false;
 
-		TechnoClass* pNextParent = pCurExt->ParentAttachment->Parent;
+		TechnoClass* pNextParent = pCurExt->GetLiveParentAttachment()->Parent;
 		if (pNextParent == pParent)
 			return true;
 
@@ -732,8 +732,8 @@ TechnoClass* TechnoExt::GetTopLevelParent(TechnoClass* pThis)
 	auto const pThisExt = TechnoExt::ExtMap.Find(pThis);
 
 	return pThis && pThisExt  // sanity check, sometimes crashes because ext is null - Kerbiter
-		&& pThisExt->ParentAttachment
-		? TechnoExt::GetTopLevelParent(pThisExt->ParentAttachment->Parent)
+		&& pThisExt->GetLiveParentAttachment()
+		? TechnoExt::GetTopLevelParent(pThisExt->GetLiveParentAttachment()->Parent)
 		: pThis;
 }
 
@@ -881,7 +881,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 	}
 
 	// --- Sibling role: pThis is a Powered child -> needs an eligible sibling source. ---
-	if (auto const pSelfSlot = pExt->ParentAttachment)
+	if (auto const pSelfSlot = pExt->GetLiveParentAttachment())
 	{
 		auto const pSelfType = pSelfSlot->GetType();
 		if (pSelfType && pSelfSlot->ResolvePowered())
@@ -914,7 +914,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 	}
 
 	// --- Reverse power + requirement gates (child-side, need a parent). ---
-	if (auto const pSelfSlot = pExt->ParentAttachment)
+	if (auto const pSelfSlot = pExt->GetLiveParentAttachment())
 	{
 		auto const pSelfType = pSelfSlot->GetType();
 		auto const pParent = pSelfSlot->Parent;
@@ -1033,7 +1033,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 	// The child stays on the field but dark while its dynamic prerequisite is
 	// unmet. Routed through the arbiter rather than poked directly so it composes
 	// with the power gates instead of fighting them over the Deactivated flag.
-	if (auto const pSelfSlot = pExt->ParentAttachment)
+	if (auto const pSelfSlot = pExt->GetLiveParentAttachment())
 	{
 		if (pSelfSlot->ResolvePrerequisiteLostAction() == 4
 			&& pSelfSlot->PrerequisiteDynamic()
@@ -1059,7 +1059,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 		int range = 0;
 		int houseMask = TAExtHouse_Owner;
 
-		if (auto const pSlot = pExt->ParentAttachment)
+		if (auto const pSlot = pExt->GetLiveParentAttachment())
 		{
 			// Slot resolvers already fall back to the AttachmentType.
 			auto const& attList = pSlot->ResolvePoweredBy();
@@ -1093,7 +1093,7 @@ void TechnoExt::UpdateAttachmentGates(TechnoClass* pThis)
 		{
 			// For an attached child the HOST's owner is what counts (the child may be
 			// mind-controlled or owner-inherited); otherwise our own.
-			auto const pAtt = pExt->ParentAttachment;
+			auto const pAtt = pExt->GetLiveParentAttachment();
 			auto const pOwnerTechno = (pAtt && pAtt->Parent) ? pAtt->Parent : pThis;
 			auto const pOwner = pOwnerTechno->Owner;
 			auto const coords = pThis->GetMapCoords();
@@ -1233,7 +1233,7 @@ void TechnoExt::UpdateExperienceSharing(TechnoClass* pThis)
 		return;
 
 	// --- 2. distribute, per rule group ---
-	auto const pAtt = pExt->ParentAttachment;
+	auto const pAtt = pExt->GetLiveParentAttachment();
 	auto const pType = pAtt ? pAtt->GetType() : nullptr;
 	if (!pType || pType->ExperienceRules.empty())
 		return;
@@ -1333,7 +1333,7 @@ size_t TechnoExt::CountActiveSlots(TechnoClass* pParent)
 static TechnoClass* TAExt_ParentOf(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return (pExt && pExt->ParentAttachment) ? pExt->ParentAttachment->Parent : nullptr;
+	return (pExt && pExt->GetLiveParentAttachment()) ? pExt->GetLiveParentAttachment()->Parent : nullptr;
 }
 
 TechnoClass* TechnoExt::ResolveRelative(TechnoClass* pThis, AttachmentRelation rel,

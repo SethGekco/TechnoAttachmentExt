@@ -21,6 +21,7 @@
 #include <TAExtDiag.h>
 
 std::vector<AttachmentClass*> AttachmentClass::Array;
+std::unordered_set<const AttachmentClass*> AttachmentClass::LiveSet;
 
 AttachmentTypeClass* AttachmentClass::GetType()
 {
@@ -494,6 +495,11 @@ void AttachmentClass::UpdateMoveOffset()
 
 AttachmentClass::~AttachmentClass()
 {
+	// Deregister FIRST and unconditionally. The scrub below is best-effort -- it
+	// only reaches the back-pointer while Child is still set -- so the liveness
+	// registry, not the scrub, is what makes a stale ParentAttachment detectable.
+	LiveSet.erase(this);
+
 	// clean up non-owning references
 	if (this->Child)
 	{

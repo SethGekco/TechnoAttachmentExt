@@ -69,7 +69,7 @@ namespace
 			return false;
 
 		auto const pExt = TechnoExt::ExtMap.Find(pTechno);
-		auto const pSlot = pExt ? pExt->ParentAttachment : nullptr;
+		auto const pSlot = pExt ? pExt->GetLiveParentAttachment() : nullptr;
 		if (!pSlot)
 			return false; // not an attachment child
 

@@ -55,7 +55,15 @@ public:
 	class ExtData final : public Extension<TechnoClass>
 	{
 	public:
+		// ⚠ Do NOT read this field directly -- use GetLiveParentAttachment().
+		// It is a bare back-pointer into the PARENT's ChildAttachments vector and
+		// can outlive the slot it names; a plain `if (ParentAttachment)` test cannot
+		// detect that, because freed heap is not null. See AttachmentClass::LiveSet.
 		AttachmentClass* ParentAttachment;
+
+		// ParentAttachment, or null if the slot it names has been destroyed. Also
+		// scrubs the stale field, so the cost is paid once per dangling pointer.
+		AttachmentClass* GetLiveParentAttachment();
 		ValueableVector<std::unique_ptr<AttachmentClass>> ChildAttachments;
 		std::map<int, ValueableVector<std::unique_ptr<AttachmentClass>>> DormantAttachments;
 

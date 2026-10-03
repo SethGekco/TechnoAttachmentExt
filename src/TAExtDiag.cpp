@@ -29,7 +29,7 @@ void TAExtDiag_ReportNoMove(const char* const tag, TechnoClass* const pThis)
 	}
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	bool const hasParent = pExt && pExt->ParentAttachment;
+	bool const hasParent = pExt && pExt->GetLiveParentAttachment();
 	auto const children = pExt ? pExt->ChildAttachments.size() : 0u;
 
 	Debug::Log("[TAExt-diag] NoMove override: site=%s type=%s parent=%s children=%u%s\n",

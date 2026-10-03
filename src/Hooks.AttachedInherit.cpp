@@ -22,27 +22,27 @@
 bool __fastcall TechnoClass_OnGround_TAExt(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return (pExt && pExt->ParentAttachment
-			&& pExt->ParentAttachment->ResolveInheritHeightStatus() && pExt->ParentAttachment->Parent)
-		? pExt->ParentAttachment->Parent->IsOnFloor()
+	return (pExt && pExt->GetLiveParentAttachment()
+			&& pExt->GetLiveParentAttachment()->ResolveInheritHeightStatus() && pExt->GetLiveParentAttachment()->Parent)
+		? pExt->GetLiveParentAttachment()->Parent->IsOnFloor()
 		: pThis->ObjectClass::IsOnFloor();
 }
 
 bool __fastcall TechnoClass_InAir_TAExt(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return (pExt && pExt->ParentAttachment
-			&& pExt->ParentAttachment->ResolveInheritHeightStatus() && pExt->ParentAttachment->Parent)
-		? pExt->ParentAttachment->Parent->IsInAir()
+	return (pExt && pExt->GetLiveParentAttachment()
+			&& pExt->GetLiveParentAttachment()->ResolveInheritHeightStatus() && pExt->GetLiveParentAttachment()->Parent)
+		? pExt->GetLiveParentAttachment()->Parent->IsInAir()
 		: pThis->ObjectClass::IsInAir();
 }
 
 bool __fastcall TechnoClass_IsSurfaced_TAExt(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return (pExt && pExt->ParentAttachment
-			&& pExt->ParentAttachment->ResolveInheritHeightStatus() && pExt->ParentAttachment->Parent)
-		? pExt->ParentAttachment->Parent->IsSurfaced()
+	return (pExt && pExt->GetLiveParentAttachment()
+			&& pExt->GetLiveParentAttachment()->ResolveInheritHeightStatus() && pExt->GetLiveParentAttachment()->Parent)
+		? pExt->GetLiveParentAttachment()->Parent->IsSurfaced()
 		: pThis->ObjectClass::IsSurfaced();
 }
 

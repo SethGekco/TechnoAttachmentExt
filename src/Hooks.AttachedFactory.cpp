@@ -36,10 +36,10 @@ DEFINE_HOOK(0x44EFD8, BuildingClass_FindExitCell_AttachedFactory, 0x6)
 		return 0;
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	if (!pExt || !pExt->ParentAttachment)
+	if (!pExt || !pExt->GetLiveParentAttachment())
 		return 0;
 
-	auto const pParent = pExt->ParentAttachment->Parent;
+	auto const pParent = pExt->GetLiveParentAttachment()->Parent;
 	if (!pParent)
 		return 0;
 

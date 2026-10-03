@@ -464,7 +464,7 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 			rules.push_back(&rule);
 	}
 
-	if (auto const pSlot = pExt->ParentAttachment)
+	if (auto const pSlot = pExt->GetLiveParentAttachment())
 	{
 		if (auto const pAttType = pSlot->GetType())
 		{
@@ -684,7 +684,7 @@ DEFINE_HOOK(0x6FDD77, TechnoClass_Fire_InstantSpawn_TAExt, 0x6)
 	// second mechanism to keep in step.
 	if (auto const pExt = TechnoExt::ExtMap.Find(pThis))
 	{
-		if (auto const pSlot = pExt->ParentAttachment)
+		if (auto const pSlot = pExt->GetLiveParentAttachment())
 		{
 			int const rel = pSlot->ResolveTargetsRelative();
 			int const only = pSlot->ResolveTargetsRelativeIndex();
