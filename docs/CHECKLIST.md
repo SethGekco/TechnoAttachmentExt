@@ -22,13 +22,27 @@ got as far as having an opinion.
 
 ## 1. Selling must not detonate attachments  ← *the bug you reported*
 
-*Live now. Build a GAROBO with its drone, then sell it.*
+*Host is `[GAROBO]` line 14080. Build it with its drone, then sell it.*
 
-- [ ] The drone **vanishes silently** — no explosion, no debris
-- [ ] Set `SoldAction=kill` in `[T_Sell]` → it **does** explode
+- [x] The drone **vanishes silently** — no explosion, no debris  ✅ **CONFIRMED**
+- [ ] `SoldAction=kill` → it **does** explode  *(now enabled — rerun)*
 
-The second half matters: it proves the tag is being read rather than the whole
-path being dead.
+**The first half passed**, which is the originally reported bug fixed: `vanish` is
+the default and it holds.
+
+The kill confirmation had not actually run. `Attachment0.Type` read
+`DroneAttachment;T_Sell` — `;` starts a comment in INI, so the slot was using
+`[DroneAttachment]`, and `[T_Sell]` (where `SoldAction` lives) was never
+consulted. `SoldAction=kill` was also still commented inside it. Two stacked
+reasons for the same symptom, both in the rules; the DLL did exactly what it was
+asked. Both are now fixed.
+
+⚠ **The `value;alternate` habit.** Parking a spare value after `;` works fine for
+`FLH` (the engine takes the first and ignores the rest) and is used that way on
+three other lines. On `.Type` it silently points the slot at the wrong section
+instead — and nothing logs, because "that type exists" is a perfectly valid
+answer. Worth a glance whenever a test produces default behaviour for no
+apparent reason.
 
 ---
 
