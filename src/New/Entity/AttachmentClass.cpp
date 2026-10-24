@@ -364,10 +364,13 @@ CoordStruct AttachmentClass::GetChildLocation()
 
 	if (this->Child)
 	{
-		auto const& offset = TechnoExt::ExtMap.Find(this->Child)->AttachmentMoveOffset;
-		location.X += offset.X;
-		location.Y += offset.Y;
-		location.Z += offset.Z;
+		if (auto const pChildExt = TechnoExt::ExtMap.Find(this->Child))
+		{
+			auto const& offset = pChildExt->AttachmentMoveOffset;
+			location.X += offset.X;
+			location.Y += offset.Y;
+			location.Z += offset.Z;
+		}
 	}
 
 	return location;
@@ -389,6 +392,9 @@ void AttachmentClass::UpdateMoveOffset()
 		return;
 
 	auto const pChildExt = TechnoExt::ExtMap.Find(this->Child);
+	if (!pChildExt)
+		return;
+
 	auto& offset = pChildExt->AttachmentMoveOffset;
 
 	int const radius = this->ResolveMoveRadius();
@@ -503,8 +509,8 @@ AttachmentClass::~AttachmentClass()
 	// clean up non-owning references
 	if (this->Child)
 	{
-		auto const& pChildExt = TechnoExt::ExtMap.Find(Child);
-		pChildExt->ParentAttachment = nullptr;
+		if (auto const pChildExt = TechnoExt::ExtMap.Find(Child))
+			pChildExt->ParentAttachment = nullptr;
 	}
 
 	auto position = std::find(Array.begin(), Array.end(), this);
@@ -1571,7 +1577,8 @@ void AttachmentClass::Destroy(TechnoClass* pSource)
 	if (this->Child)
 	{
 		auto const pChildExt = TechnoExt::ExtMap.Find(this->Child);
-		pChildExt->ParentAttachment = nullptr;
+		if (pChildExt)
+			pChildExt->ParentAttachment = nullptr;
 
 		auto pType = this->GetType();
 
@@ -1718,14 +1725,18 @@ bool AttachmentClass::DetachChild()
 void AttachmentClass::AttachChildCore(TechnoClass* pChild)
 {
 	this->Child = pChild;
-	TechnoExt::ExtMap.Find(pChild)->ParentAttachment = this;
+
+	if (auto const pChildExt = TechnoExt::ExtMap.Find(pChild))
+		pChildExt->ParentAttachment = this;
 }
 
 void AttachmentClass::DetachChildCore()
 {
 	if (this->Child)
 	{
-		TechnoExt::ExtMap.Find(this->Child)->ParentAttachment = nullptr;
+		if (auto const pChildExt = TechnoExt::ExtMap.Find(this->Child))
+			pChildExt->ParentAttachment = nullptr;
+
 		this->Child = nullptr;
 	}
 }

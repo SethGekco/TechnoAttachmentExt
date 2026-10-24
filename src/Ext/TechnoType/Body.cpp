@@ -26,7 +26,8 @@ void TechnoTypeExt::ExtData::ApplyTurretOffset(Matrix3D* mtx, double factor)
 
 void TechnoTypeExt::ApplyTurretOffset(TechnoTypeClass* pType, Matrix3D* mtx, double factor)
 {
-	TechnoTypeExt::ExtMap.Find(pType)->ApplyTurretOffset(mtx, factor);
+	if (auto const pExt = TechnoTypeExt::ExtMap.Find(pType))
+		pExt->ApplyTurretOffset(mtx, factor);
 }
 
 void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)

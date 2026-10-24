@@ -16,6 +16,7 @@
 #include <AbstractClass.h>
 
 #include <Utilities/Macro.h>
+#include <Helpers/Cast.h>
 
 #include <Ext/Techno/Body.h>
 #include <Ext/TechnoType/Body.h>
@@ -167,22 +168,58 @@ DEFINE_HOOK(0x43FE69, BuildingClass_AI_TickAttachments, 0xA)
 // Destruction — a destroyed parent destroys/notifies its children, and a
 // destroyed child notifies its parent.
 // ============================================================================
+// ⚠ THIS SEAT IS NOT TECHNO-ONLY, despite sitting in TechnoClass::KillCargo.
+//
+// KillCargo recurses into each passenger it detaches (0x707CF5 calls 0x707CB0),
+// and a cargo list can hold any ObjectClass. A TerrainClass -- a tree -- in a
+// building's passenger list reached here and was blind-cast to TechnoClass*,
+// then looked up in an ExtMap that never contains trees. Find() returned null,
+// DestroyAttachments added the ChildAttachments offset to it and dereferenced
+// 0x10. See HANDOFF-crash-20261019-224522.md.
+//
+// EBX is genuinely `this` (0x707CB1: mov ebx,ecx), so the register is right --
+// it is the TYPE that was assumed. abstract_cast checks the AbstractType rather
+// than trusting the seat's name.
 DEFINE_HOOK(0x707CB3, TechnoClass_KillCargo_HandleAttachments, 0x6)
 {
-	GET(TechnoClass*, pThis, EBX);
+	GET(ObjectClass*, pObject, EBX);
 	GET_STACK(TechnoClass*, pSource, STACK_OFFSET(0x4, 0x4));
 
-	TechnoExt::DestroyAttachments(pThis, pSource);
+	if (auto const pThis = abstract_cast<TechnoClass*>(pObject))
+		TechnoExt::DestroyAttachments(pThis, pSource);
 
 	return 0;
 }
 
+// ⚠ ALSO NOT TECHNO-ONLY -- same defect class as the 0x707CB3 seat above, found
+// by auditing after HANDOFF-crash-20261019-224522 and confirmed by disassembly:
+//
+//   5F6603  test byte [esi+0x14],1   ; an ObjectClass flag, NOT a type check
+//   5F6607  je   5F6612
+//   5F6609  push 0                   ; <- the 9 bytes we steal
+//   5F660B  mov  ecx,esi
+//   5F660D  call 0x707CB0            ; TechnoClass::KillCargo -- the very
+//                                    ;   function the tree crashed inside
+//   5F6612  mov  dl,1
+//   5F6616  call 0x7258D0            ; AnnounceInvalidPointer
+//
+// This is object teardown, reached by every ObjectClass, and the only gate ahead
+// of us is a flag. Upstream's name for this seat keeps the distinction we had
+// dropped: ObjectClass_RemoveThis_TechnoClass_NotifyParent.
 DEFINE_HOOK(0x5F6609, ObjectClass_RemoveThis_NotifyParent, 0x9)
 {
-	GET(TechnoClass*, pThis, ESI);
+	GET(ObjectClass*, pObject, ESI);
 
-	pThis->KillPassengers(nullptr);  // restored code
-	TechnoExt::HandleDestructionAsChild(pThis);
+	// Restored code, deliberately UNCONDITIONAL. The engine calls KillCargo on
+	// whatever reaches here, so filtering by type would change engine behaviour,
+	// not protect it. The call is non-virtual (0x707CB0 with ECX = this), and the
+	// seat inside it is now type-checked, so a non-Techno is handled there.
+	static_cast<TechnoClass*>(pObject)->KillPassengers(nullptr);
+
+	// Ours needs a real Techno: HandleDestructionAsChild looks the object up in
+	// an ExtMap that only ever contains Technos.
+	if (auto const pThis = abstract_cast<TechnoClass*>(pObject))
+		TechnoExt::HandleDestructionAsChild(pThis);
 
 	return 0x5F6612;
 }

@@ -26,6 +26,8 @@ namespace TAExtPowerNetwork
 bool TechnoExt::AttachTo(TechnoClass* pThis, TechnoClass* pParent)
 {
 	auto const pParentExt = TechnoExt::ExtMap.Find(pParent);
+	if (!pParentExt)
+		return false;
 
 	for (auto const& pAttachment : pParentExt->ChildAttachments)
 	{
@@ -39,7 +41,8 @@ bool TechnoExt::AttachTo(TechnoClass* pThis, TechnoClass* pParent)
 bool TechnoExt::DetachFromParent(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
-	return pExt->GetLiveParentAttachment()->DetachChild();
+	auto const pSlot = pExt ? pExt->GetLiveParentAttachment() : nullptr;
+	return pSlot && pSlot->DetachChild();
 }
 
 void TechnoExt::InitializeAttachments(TechnoClass* pThis)
@@ -65,7 +68,15 @@ void TechnoExt::DestroyAttachments(TechnoClass* pThis, TechnoClass* pSource)
 	if (TechnoExt::DeployTransferSource == pThis)
 		return;
 
-	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
+	// Find() does NOT null-check, and does not guarantee a hit: it returns null
+	// for any key not in the map. The KillCargo seat above can hand us an object
+	// that was never registered (a tree in a cargo list did exactly that), and
+	// CurrentMission below would also be a bogus read on a non-Techno. Guard
+	// before either. TryFind() only null-checks the KEY -- it would not have
+	// helped here, because the key was a perfectly valid TerrainClass.
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
 
 	// Is the host being SOLD rather than destroyed?
 	//
@@ -133,7 +144,9 @@ void TechnoExt::HandleDestructionAsChild(TechnoClass* pThis)
 	if (TechnoExt::DeployTransferSource == pThis)
 		return;
 
-	auto const& pExt = TechnoExt::ExtMap.Find(pThis);
+	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
 
 	if (pExt->GetLiveParentAttachment())
 		pExt->GetLiveParentAttachment()->ChildDestroyed();
@@ -142,6 +155,9 @@ void TechnoExt::HandleDestructionAsChild(TechnoClass* pThis)
 void TechnoExt::UnlimboAttachments(TechnoClass* pThis)
 {
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
+
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->Unlimbo();
 }
@@ -154,6 +170,9 @@ void TechnoExt::LimboAttachments(TechnoClass* pThis)
 		return;
 
 	auto const pExt = TechnoExt::ExtMap.Find(pThis);
+	if (!pExt)
+		return;
+
 	for (auto const& pAttachment : pExt->ChildAttachments)
 		pAttachment->Limbo();
 }
@@ -162,6 +181,8 @@ void TechnoExt::TransferAttachments(TechnoClass* pThis, TechnoClass* pThat)
 {
 	auto const pThisExt = TechnoExt::ExtMap.Find(pThis);
 	auto const pThatExt = TechnoExt::ExtMap.Find(pThat);
+	if (!pThisExt || !pThatExt)
+		return;
 
 	for (auto& pAttachment : pThisExt->ChildAttachments)
 	{
@@ -176,6 +197,8 @@ void TechnoExt::HandleAttachmentConversion(TechnoClass* pThis, TechnoTypeClass* 
 {
 	auto const pThisExt = TechnoExt::ExtMap.Find(pThis);
 	auto const pNewTypeExt = TechnoTypeExt::ExtMap.Find(pNewType);
+	if (!pThisExt || !pNewTypeExt)
+		return;
 
 	const int oldTypeIndex = TechnoTypeClass::Array.FindItemIndex(pOldType);
 	const int newTypeIndex = TechnoTypeClass::Array.FindItemIndex(pNewType);
@@ -282,6 +305,8 @@ void TechnoExt::HandleAttachmentDeployTransfer(TechnoClass* pFrom, TechnoClass* 
 {
 	auto const pFromExt = TechnoExt::ExtMap.Find(pFrom);
 	auto const pToExt = TechnoExt::ExtMap.Find(pTo);
+	if (!pFromExt || !pToExt)
+		return;
 
 	// The flag is consumed here - clear it now that the transfer is happening.
 	TechnoExt::DeployTransferSource = nullptr;
