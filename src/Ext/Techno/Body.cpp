@@ -112,6 +112,14 @@ void TechnoExt::ExtData::SaveToStream(PhobosStreamWriter& Stm)
 
 CoordStruct TechnoExt::GetFLHAbsoluteCoords(TechnoClass* pThis, CoordStruct pCoord, bool isOnTurret)
 {
+	// Public static over a raw TechnoClass*, dereferenced on line one. An
+	// attachment with a null Parent reached it and read address 0
+	// (HANDOFF-crash-20261030-203952). Guarding here makes every present and
+	// future caller safe, including AttachmentClass::GetChildAnchor, which makes
+	// the identical call.
+	if (!pThis)
+		return CoordStruct::Empty;
+
 	auto const pType = pThis->GetTechnoType();
 	auto const pFoot = abstract_cast<FootClass*, true>(pThis);
 	Matrix3D mtx;

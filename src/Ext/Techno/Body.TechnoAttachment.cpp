@@ -159,7 +159,12 @@ void TechnoExt::UnlimboAttachments(TechnoClass* pThis)
 		return;
 
 	for (auto const& pAttachment : pExt->ChildAttachments)
+	{
+		if (!pAttachment)
+			continue; // the null check DestroyAttachments already has
+
 		pAttachment->Unlimbo();
+	}
 }
 
 void TechnoExt::LimboAttachments(TechnoClass* pThis)
@@ -174,7 +179,12 @@ void TechnoExt::LimboAttachments(TechnoClass* pThis)
 		return;
 
 	for (auto const& pAttachment : pExt->ChildAttachments)
+	{
+		if (!pAttachment)
+			continue;
+
 		pAttachment->Limbo();
+	}
 }
 
 void TechnoExt::TransferAttachments(TechnoClass* pThis, TechnoClass* pThat)

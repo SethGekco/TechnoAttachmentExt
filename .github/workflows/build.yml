@@ -24,6 +24,7 @@ jobs:
           python3 tools/check_log_varargs.py src
           python3 tools/check_member_init.py src
           python3 tools/check_ext_find_guard.py src
+          python3 tools/check_parent_guard.py src
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2

@@ -417,7 +417,8 @@ void AttachmentClass::UpdateMoveOffset()
 
 	// The child's own target wins over the host's: a turret that acquired its own
 	// victim should lean at THAT one, not at whatever the hull is shooting.
-	auto const pTarget = this->Child->Target ? this->Child->Target : this->Parent->Target;
+	auto const pTarget = this->Child->Target ? this->Child->Target
+		: (this->Parent ? this->Parent->Target : nullptr);
 
 	if (mode == 2 || !pTarget)
 	{
@@ -726,6 +727,11 @@ void AttachmentClass::CreateChild()
 	// prerequisite being currently satisfied. Dynamic prerequisites create
 	// unconditionally and are hidden/shown in AI() instead.
 	if (!this->PrerequisiteDynamic() && !this->PrerequisitesMet())
+		return;
+
+	// No host means no owning house to create the child for, and nothing to
+	// attach it to -- Parent is dereferenced for both below.
+	if (!this->Parent)
 		return;
 
 	if (auto const pChildType = this->GetChildType())
@@ -1255,6 +1261,9 @@ void AttachmentClass::ConvertChildTo(TechnoTypeClass* pNewType)
 
 	auto const pType = this->GetType();
 
+	if (!this->Parent)
+		return; // the owner fallback and the failure log both read Parent
+
 	// Capture carry-over state before the old instance goes away.
 	double const healthPercent = pOld->GetHealthPercentage();
 	float const veterancy = pOld->Veterancy.Veterancy;
@@ -1620,7 +1629,16 @@ void AttachmentClass::ChildDestroyed()
 
 void AttachmentClass::Unlimbo()
 {
-	if (this->Child)
+	// Parent as well as Child. Parent is nullable at any time -- InvalidatePointer
+	// clears it in place and removes NOTHING from the host's ChildAttachments, so
+	// a parentless slot stays in the vector that UnlimboAttachments walks. This
+	// guarded only Child and then used Parent three times; the first use crashed
+	// (HANDOFF-crash-20261030-203952). Guarding the callee would not have been
+	// enough -- the two facing reads below dereference it again immediately.
+	//
+	// Skipping is the correct answer, not merely the safe one: with no parent
+	// there is no transform to position the child against.
+	if (this->Child && this->Parent)
 	{
 		CoordStruct childCoord = TechnoExt::GetFLHAbsoluteCoords(
 			this->Parent, this->Data->FLH, this->Data->IsOnTurret);
@@ -1706,7 +1724,7 @@ bool AttachmentClass::DetachChild()
 			this->Child->QueueMission(pdetm.Get(), false);
 
 		// FIXME this won't work probably
-		if (this->ResolveInheritOwner())
+		if (this->Parent && this->ResolveInheritOwner())
 			this->Child->SetOwningHouse(this->Parent->GetOriginalOwner(), false);
 
 		// remove the attachment locomotor manually just to be safe
