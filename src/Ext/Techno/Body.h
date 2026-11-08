@@ -141,6 +141,11 @@ public:
 		float LastVeterancy;
 		bool LastVeterancyValid;
 
+		// Position in TechnoExt::PointerHolders, or -1 while this techno holds
+		// nothing InvalidatePointer could clear. Runtime only, not serialized:
+		// LoadFromStream re-registers every loaded techno.
+		int PointerHolderIndex;
+
 		ExtData(TechnoClass* OwnerObject) : Extension<TechnoClass>(OwnerObject)
 			, ParentAttachment {}
 			, ChildAttachments {}
@@ -161,11 +166,21 @@ public:
 			, AttachmentMoveOffset { }
 			, LastVeterancy { 0.0f }
 			, LastVeterancyValid { false }
+			, PointerHolderIndex { -1 }
 		{ }
 
 		virtual ~ExtData() override;
 
 		virtual void InvalidatePointer(void* ptr, bool bRemoved) override;
+
+		// Call IMMEDIATELY before anything is stored into ChildAttachments,
+		// DormantAttachments or InstantSpawnLive, with no game call in between
+		// (a call can kill something, and that death's pointer walk only visits
+		// PointerHolders). tools/check_pointer_holders.py enforces it.
+		void MarkPointerHolder();
+		void UnmarkPointerHolder();
+		// True when InvalidatePointer would find nothing to clear.
+		bool HoldsNoPointers() const;
 		virtual void LoadFromStream(PhobosStreamReader& Stm) override;
 		virtual void SaveToStream(PhobosStreamWriter& Stm) override;
 
@@ -210,6 +225,16 @@ public:
 	};
 
 	static ExtContainer ExtMap;
+
+	// Every techno that may hold a pointer InvalidatePointer clears. A death
+	// used to walk ALL technos (ExtMap.PointerGotInvalid): hundreds of walks
+	// over thousands of technos when a house is defeated. Every techno outside
+	// this list holds nothing, so walking only the list clears the same
+	// pointers. Order does not matter: each techno only clears its own fields.
+	static std::vector<ExtData*> PointerHolders;
+
+	// The AnnounceInvalidPointer hook's walk, over PointerHolders only.
+	static void PointerGotInvalid(void* ptr, bool bRemoved);
 
 	// Set before deploy-target construction to skip InitializeAttachments.
 	static TechnoClass* DeployTransferSource;

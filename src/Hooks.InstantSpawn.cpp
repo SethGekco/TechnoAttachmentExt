@@ -578,6 +578,7 @@ void TAExt_RunInstantSpawns(TechnoClass* pOwner, int trigger, int weaponIndex)
 			if (!pSpawned || ruleCopy.Max <= 0)
 				return;
 
+			pExt->MarkPointerHolder();
 			pExt->InstantSpawnLive.push_back(pSpawned);
 			pExt->InstantSpawnLiveRule.push_back(static_cast<int>(i));
 		};

@@ -29,13 +29,16 @@
 // consumed/killed (e.g. by a terror drone) leaves a dangling pointer and the
 // next attachment AI tick calls a virtual on freed memory -> crash.
 // Phobos hooks the same address for its own containers; Syringe chains both.
+//
+// Walks only TechnoExt::PointerHolders, not every techno: a defeat runs this
+// hundreds of times in one frame (see TechnoExt::PointerHolders).
 // ============================================================================
 DEFINE_HOOK(0x7258D0, TechnoAttachmentExt_AnnounceInvalidPointer, 0x6)
 {
 	GET(void* const, pInvalid, ECX);
 	GET(bool const, removed, EDX);
 
-	TechnoExt::ExtMap.PointerGotInvalid(pInvalid, removed);
+	TechnoExt::PointerGotInvalid(pInvalid, removed);
 	TechnoTypeExt::ExtMap.PointerGotInvalid(pInvalid, removed);
 
 	return 0;

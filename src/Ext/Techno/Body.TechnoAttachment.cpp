@@ -58,7 +58,10 @@ void TechnoExt::InitializeAttachments(TechnoClass* pThis)
 		return;
 
 	for (auto& entry : pTypeExt->AttachmentData)
+	{
+		pExt->MarkPointerHolder();
 		pExt->ChildAttachments.emplace_back(std::make_unique<AttachmentClass>(&entry, pThis, nullptr))->OnCreated();
+	}
 }
 
 void TechnoExt::DestroyAttachments(TechnoClass* pThis, TechnoClass* pSource)
@@ -197,6 +200,7 @@ void TechnoExt::TransferAttachments(TechnoClass* pThis, TechnoClass* pThat)
 	for (auto& pAttachment : pThisExt->ChildAttachments)
 	{
 		pAttachment->Parent = pThat;
+		pThatExt->MarkPointerHolder();
 		pThatExt->ChildAttachments.push_back(std::move(pAttachment));
 	}
 
@@ -221,25 +225,31 @@ void TechnoExt::HandleAttachmentConversion(TechnoClass* pThis, TechnoTypeClass* 
 
 	// Step 1: Store current (old type) mount points as dormant (without limboing yet)
 	// We preserve old attachments as is so we can then restore them as is
+	pThisExt->MarkPointerHolder();
 	pThisExt->DormantAttachments[oldTypeIndex] = std::move(pThisExt->ChildAttachments);
 
 	bool areNewAttachments = false;
 	// Step 2: Establish new mount points - restore from dormant or create fresh
 	if (auto node = pThisExt->DormantAttachments.extract(newTypeIndex))
 	{
+		pThisExt->MarkPointerHolder();
 		pThisExt->ChildAttachments = std::move(node.mapped());
 	}
 	else
 	{
 		// Do NOT call OnCreated() here - we do not consider all of "technically" new attachments as new.
 		for (auto& entry : pNewTypeExt->AttachmentData)
+		{
+			pThisExt->MarkPointerHolder();
 			pThisExt->ChildAttachments.emplace_back(std::make_unique<AttachmentClass>(&entry, pThis, nullptr));
+		}
 
 		areNewAttachments = true;
 	}
 
 	// Step 3: Match old mount points to new active ones by ID; transfer children and synchronize timers.
 	// Assumes each attachment ID is unique per TechnoType, which is enforced on parsing.
+	pThisExt->MarkPointerHolder();
 	auto& oldMounts = pThisExt->DormantAttachments[oldTypeIndex];
 
 	// Shallow copy of old mount pointers for consumed-entry tracking; originals remain in DormantAttachments.
@@ -372,7 +382,9 @@ void TechnoExt::HandleAttachmentDeployTransfer(TechnoClass* pFrom, TechnoClass* 
 	}
 
 	// Move pFrom's active and dormant attachments into pTo so they live on the surviving object.
+	pToExt->MarkPointerHolder();
 	pToExt->ChildAttachments = std::move(pFromExt->ChildAttachments);
+	pToExt->MarkPointerHolder();
 	pToExt->DormantAttachments = std::move(pFromExt->DormantAttachments);
 
 	// Re-parent all active mounts to point at the new parent techno.

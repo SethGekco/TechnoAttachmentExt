@@ -1,5 +1,8 @@
 #include "Body.h"
 
+#include <algorithm>
+#include <intrin.h>
+
 #include <TechnoClass.h>
 #include <FootClass.h>
 #include <BulletClass.h>
@@ -16,9 +19,119 @@
 #include <New/Entity/AttachmentClass.h>
 
 TechnoExt::ExtContainer TechnoExt::ExtMap;
+std::vector<TechnoExt::ExtData*> TechnoExt::PointerHolders;
 TechnoClass* TechnoExt::DeployTransferSource = nullptr;
 
-TechnoExt::ExtData::~ExtData() = default;
+TechnoExt::ExtData::~ExtData()
+{
+	this->UnmarkPointerHolder();
+}
+
+void TechnoExt::ExtData::MarkPointerHolder()
+{
+	if (this->PointerHolderIndex < 0)
+	{
+		this->PointerHolderIndex = static_cast<int>(TechnoExt::PointerHolders.size());
+		TechnoExt::PointerHolders.push_back(this);
+	}
+}
+
+void TechnoExt::ExtData::UnmarkPointerHolder()
+{
+	int const index = this->PointerHolderIndex;
+	if (index < 0)
+		return;
+
+	auto& holders = TechnoExt::PointerHolders;
+	auto const pLast = holders.back();
+	holders[index] = pLast;
+	pLast->PointerHolderIndex = index;
+	holders.pop_back();
+	this->PointerHolderIndex = -1;
+}
+
+bool TechnoExt::ExtData::HoldsNoPointers() const
+{
+	if (!this->InstantSpawnLive.empty() || !this->ChildAttachments.empty())
+		return false;
+
+	for (auto const& [key, vec] : this->DormantAttachments)
+	{
+		if (!vec.empty())
+			return false;
+	}
+
+	return true;
+}
+
+// TAEXT_VERIFY_HOLDERS=1 in the game's environment (test runs only): after
+// every holder walk the old full walk runs as well, and any techno outside
+// PointerHolders that still holds something is counted as a miss. A miss
+// would be a write without MarkPointerHolder; the full walk then clears it
+// exactly as before, so a verify run is safe either way. Both walks are
+// timed, which gives the old and new cost on the same deaths in one game.
+static bool VerifyPass = false;
+static unsigned VerifyMisses = 0;
+
+static bool VerifyHoldersEnabled()
+{
+	static int const enabled = []
+	{
+		char value[8] {};
+		return GetEnvironmentVariableA("TAEXT_VERIFY_HOLDERS", value, sizeof(value)) > 0 && value[0] == '1';
+	}();
+
+	return enabled != 0;
+}
+
+void TechnoExt::PointerGotInvalid(void* ptr, bool bRemoved)
+{
+	if (ExtMap.InvalidateExtDataIgnorable(ptr))
+		return;
+
+	bool const verify = VerifyHoldersEnabled();
+	unsigned __int64 const start = verify ? __rdtsc() : 0;
+
+	// Back to front, so pruning (which moves the last entry, already visited,
+	// into this slot) never skips anyone.
+	auto& holders = TechnoExt::PointerHolders;
+	for (size_t i = holders.size(); i-- > 0; )
+	{
+		auto const pExt = holders[i];
+		pExt->InvalidatePointer(ptr, bRemoved);
+
+		if (pExt->HoldsNoPointers())
+			pExt->UnmarkPointerHolder();
+	}
+
+	if (!verify)
+		return;
+
+	static unsigned walks = 0;
+	static unsigned maxHolders = 0;
+	static unsigned __int64 holderCycles = 0;
+	static unsigned __int64 fullCycles = 0;
+
+	unsigned __int64 const middle = __rdtsc();
+	unsigned const missesBefore = VerifyMisses;
+	VerifyPass = true;
+	ExtMap.PointerGotInvalid(ptr, bRemoved);
+	VerifyPass = false;
+	unsigned __int64 const end = __rdtsc();
+
+	++walks;
+	holderCycles += middle - start;
+	fullCycles += end - middle;
+	maxHolders = std::max(maxHolders, static_cast<unsigned>(holders.size()));
+
+	if (VerifyMisses != missesBefore || walks % 2000 == 0)
+	{
+		Debug::Log("[TAExt] pointer holders: %u walks, %u holders now (max %u), %u misses, "
+			"holder walk %llu Mcycles, full walk %llu Mcycles\n",
+			walks, static_cast<unsigned>(holders.size()), maxHolders, VerifyMisses,
+			holderCycles / 1000000, fullCycles / 1000000);
+	}
+}
 
 AttachmentClass* TechnoExt::ExtData::GetLiveParentAttachment()
 {
@@ -30,6 +143,15 @@ AttachmentClass* TechnoExt::ExtData::GetLiveParentAttachment()
 
 void TechnoExt::ExtData::InvalidatePointer(void* ptr, bool bRemoved)
 {
+	if (VerifyPass)
+	{
+		if (this->PointerHolderIndex >= 0)
+			return; // the holder walk already did this one
+
+		if (!this->HoldsNoPointers())
+			++VerifyMisses;
+	}
+
 	// H1e: drop any live-spawn record for the object going away, BEFORE it is
 	// freed. The two vectors are parallel, so they must be erased in lockstep.
 	for (size_t i = this->InstantSpawnLive.size(); i-- > 0; )
@@ -96,6 +218,10 @@ void TechnoExt::ExtData::LoadFromStream(PhobosStreamReader& Stm)
 	// the slot list may or may not exist yet. Defer to the first synced tick,
 	// where everything is known to be present.
 	this->AttachmentsPendingRestore = !this->SavedChildren.empty();
+
+	// InstantSpawnLive was just read back. Register unconditionally; the next
+	// pointer walk drops the ones that hold nothing.
+	this->MarkPointerHolder();
 }
 
 void TechnoExt::ExtData::SaveToStream(PhobosStreamWriter& Stm)
