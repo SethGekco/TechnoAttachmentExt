@@ -205,6 +205,22 @@ DEFINE_HOOK(0x7415A9, TechnoAttachmentExt_ApproachTarget_SetWeaponIndex, 0x6)
 	return 0;
 }
 
+// The unit, if CanAutoTargetObject takes the NoMove override below for it.
+static UnitClass* CanAutoTargetNoMoveUnit(TechnoClass* const pThis)
+{
+	const auto pUnit = abstract_cast<UnitClass*, true>(pThis);
+	return pUnit && TechnoExt::HasAttachmentLoco(pUnit) ? pUnit : nullptr;
+}
+
+// For PerfExt, which runs CanAutoTargetObject ahead of time and may run it on
+// several threads: 1 if the hook below takes the override for this scanner,
+// which writes (the diagnostic's set and log), so its target checks must stay
+// serial. Shares the hook's condition, so the two can't drift apart.
+extern "C" __declspec(dllexport) int __cdecl TechnoAttachmentExt_TargetCheckWrites(TechnoClass* pScanner)
+{
+	return pScanner && CanAutoTargetNoMoveUnit(pScanner) ? 1 : 0;
+}
+
 // TechnoClass::CanAutoTargetObject — use the (range-suppressed) fire error.
 DEFINE_HOOK(0x6F7CE2, TechnoAttachmentExt_CanAutoTargetObject_NoMove, 0x6)
 {
@@ -212,14 +228,11 @@ DEFINE_HOOK(0x6F7CE2, TechnoAttachmentExt_CanAutoTargetObject_NoMove, 0x6)
 	GET(AbstractClass* const, pTarget, ESI);
 	GET(const int, weaponIndex, EBX);
 
-	if (const auto pUnit = abstract_cast<UnitClass*, true>(pThis))
+	if (const auto pUnit = CanAutoTargetNoMoveUnit(pThis))
 	{
-		if (TechnoExt::HasAttachmentLoco(pUnit))
-		{
-			TAExtDiag_ReportNoMove("CanAutoTargetObject", pUnit);
-			R->EAX(pUnit->GetFireError(pTarget, weaponIndex, true));
-			return 0x6F7CEE;
-		}
+		TAExtDiag_ReportNoMove("CanAutoTargetObject", pUnit);
+		R->EAX(pUnit->GetFireError(pTarget, weaponIndex, true));
+		return 0x6F7CEE;
 	}
 
 	return 0;

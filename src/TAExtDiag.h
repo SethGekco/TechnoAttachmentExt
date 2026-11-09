@@ -5,14 +5,20 @@
 // advances the frame) still produces rapidly-escalating log lines that name
 // exactly which site is being hammered. Normal play reaches 1M calls only over
 // many minutes, so it stays quiet; a spin loop floods it within a second.
+//
+// The count is atomic: PerfExt may run target checks (which reach
+// GetAttachment) on several threads at once, and a plain ++ would lose counts.
 
 #include <Utilities/Debug.h>
 
+#include <atomic>
+
 #define TAEXT_DIAG_COUNT(tag)                                                   \
 	do {                                                                       \
-		static unsigned long long _taext_count = 0;                            \
-		if ((++_taext_count & 0xFFFFFull) == 0)                                \
-			Debug::Log("[TAExt-diag] " tag " x%llu\n", _taext_count);          \
+		static std::atomic<unsigned long long> _taext_count { 0 };             \
+		unsigned long long const _taext_n = ++_taext_count;                    \
+		if ((_taext_n & 0xFFFFFull) == 0)                                      \
+			Debug::Log("[TAExt-diag] " tag " x%llu\n", _taext_n);              \
 	} while (0)
 
 class TechnoClass;
