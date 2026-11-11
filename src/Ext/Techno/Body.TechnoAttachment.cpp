@@ -408,11 +408,19 @@ bool TechnoExt::IsAttached(TechnoClass* pThis)
 	return pExt && pExt->GetLiveParentAttachment();
 }
 
+// Asks the locomotor itself, without COM. IPersistPtr's QueryInterface and the
+// copy's AddRef/Release wrote the locomotor's refcount and the game's global
+// COM counter (0xABCD3C) four times per call, and the GetFireError hook calls
+// this for every out-of-range candidate of a target scan, always about the
+// scanner. With PerfExt's lane 3 running those checks on several threads, all
+// of them wrote the same two cache lines. Every locomotor is a LocomotionClass
+// (the game's, Phobos's and ours), whose QueryInterface for IPersist returns
+// this same object, so GetClassID answers exactly as before.
 bool TechnoExt::HasAttachmentLoco(FootClass* pThis)
 {
-	IPersistPtr pPersist = pThis->Locomotor;
+	ILocomotion* const pLoco = pThis->Locomotor.GetInterfacePtr();
 	CLSID locoCLSID {};
-	return pPersist && SUCCEEDED(pPersist->GetClassID(&locoCLSID))
+	return pLoco && SUCCEEDED(static_cast<LocomotionClass*>(pLoco)->GetClassID(&locoCLSID))
 		&& locoCLSID == __uuidof(AttachmentLocomotionClass);
 }
 
