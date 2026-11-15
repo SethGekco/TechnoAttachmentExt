@@ -7,10 +7,11 @@ WHY THIS EXISTS
 ---------------
 The Y-sort wrapper (Hooks.AttachedRender.cpp) runs for every item
 LayerClass::AddObject's insert scan passes: thousands of calls per new anim
-or unit. It answers "is this techno attached?" from TechnoExt::EverAttached,
-a small set, and skips the ExtMap lookup (a hash probe over every techno) for
-every techno outside it. That is only right while every techno whose
-ParentAttachment is set is in the set.
+or unit. It takes the techno's ExtData from TechnoExt::EverAttached, a map
+of the technos ever attached as a child, instead of an ExtMap lookup (a hash
+probe over every techno), and a techno outside it goes straight to the
+original GetYSort. That is only right while every techno whose
+ParentAttachment is set is in the map.
 
 A missed MarkEverAttached is not slow, it is WRONG: that child sorts at its
 own Y instead of over or under its parent (YSortPosition, YSortAdjust are

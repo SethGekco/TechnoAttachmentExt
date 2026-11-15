@@ -15,7 +15,7 @@
 #include <New/Entity/AttachmentClass.h>
 #include <Ext/TechnoType/Body.h>
 
-#include "PointerSet.h"
+#include "PointerMap.h"
 
 class WeaponTypeClass;
 
@@ -181,9 +181,9 @@ public:
 		// PointerHolders). tools/check_pointer_holders.py enforces it.
 		void MarkPointerHolder();
 		void UnmarkPointerHolder();
-		// Call IMMEDIATELY before ParentAttachment is set to a slot: it puts
-		// this techno into TechnoExt::EverAttached. tools/check_ever_attached.py
-		// enforces it.
+		// Call IMMEDIATELY before ParentAttachment is set to a slot: it maps
+		// this techno to this ExtData in TechnoExt::EverAttached.
+		// tools/check_ever_attached.py enforces it.
 		void MarkEverAttached();
 		// True when InvalidatePointer would find nothing to clear.
 		bool HoldsNoPointers() const;
@@ -243,11 +243,12 @@ public:
 	static void PointerGotInvalid(void* ptr, bool bRemoved);
 
 	// Every techno whose ParentAttachment has been set since its ExtData was
-	// made (ExtData's destructor takes it out; a detach leaves it in). Every
-	// techno outside it has a null ParentAttachment, so a hot "is it attached?"
-	// can answer from this small set instead of an ExtMap lookup, a hash probe
-	// over every techno. Game thread only.
-	static PointerSet EverAttached;
+	// made, mapped to that ExtData (ExtData's destructor takes it out; a detach
+	// leaves it in). Every techno outside it has a null ParentAttachment, and
+	// for every techno in it the value is what ExtMap.Find returns, so a hot
+	// "is it attached?" can answer from this smaller map instead of an ExtMap
+	// lookup, a hash probe over every techno. Game thread only.
+	static PointerMap EverAttached;
 
 	// Set before deploy-target construction to skip InitializeAttachments.
 	static TechnoClass* DeployTransferSource;
