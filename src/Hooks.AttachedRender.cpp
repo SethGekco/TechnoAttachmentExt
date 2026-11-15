@@ -74,15 +74,50 @@ static TechnoExt::ExtData* LookUpSortY(ObjectClass* pThis)
 	return pTechno ? TechnoExt::ExtMap.Find(pTechno) : nullptr;
 }
 
-// TAEXT_VERIFY_YSORT=1 in the game's environment (test runs only): every call
-// also does the old lookup and counts a miss when the two would answer
-// differently: EverAttached gives another ExtData than ExtMap.Find, or none
-// for a techno with a live parent. The answer then comes from the old lookup,
-// so a verify run is safe either way. Both lookups are timed (the object's
-// first line is read before either, as the call reads it anyway); the fast
-// path replaces the one with the other on every call, so their difference is
-// what it saves, the timer's own cost cancelling out.
-static int VerifySortY = -1;
+// The fast path: the ExtData comes from EverAttached. A techno outside it was
+// never attached since its ExtData was made, so ParentAttachment is null and
+// SortYAttached would only end in the original.
+static int SortYFast(ObjectClass* pThis)
+{
+	auto const pExt = static_cast<TechnoExt::ExtData*>(TechnoExt::EverAttached.Find(pThis));
+	if (!pExt)
+		return pThis->ObjectClass::GetYSort();
+
+	return SortYAttached(pThis, pExt);
+}
+
+// Test runs only, from the game's environment, read on the first call:
+//   TAEXT_VERIFY_YSORT=1  every call also does the old lookup and counts a miss
+//     when the two would answer differently: EverAttached gives another
+//     ExtData than ExtMap.Find, or none for a techno with a live parent. The
+//     answer then comes from the old lookup, so a verify run is safe either
+//     way. Both lookups are timed (the object's first line is read before
+//     either, as the call reads it anyway).
+//   TAEXT_TIME_YSORT=1  the old path and the fast path take the calls by
+//     turns, each call timed whole (lookups, ExtData, GetYSort); the timer's
+//     cost is the same in both halves. TAEXT_TIME_YSORT=null puts the old path
+//     in both halves, which shows the halves' bias.
+// Totals go to debug.log ("[TAExt] y-sort") every 2^20 calls.
+enum class SortYMode { Unread, Plain, Verify, Time, TimeNull };
+static SortYMode SortYTest = SortYMode::Unread;
+
+static SortYMode ReadSortYMode()
+{
+	char value[8] {};
+	if (GetEnvironmentVariableA("TAEXT_VERIFY_YSORT", value, sizeof(value)) > 0 && value[0] == '1')
+		return SortYMode::Verify;
+
+	char time[8] {};
+	if (GetEnvironmentVariableA("TAEXT_TIME_YSORT", time, sizeof(time)) > 0)
+	{
+		if (time[0] == '1')
+			return SortYMode::Time;
+		if (time[0] == 'n')
+			return SortYMode::TimeNull;
+	}
+
+	return SortYMode::Plain;
+}
 
 static void CheckSortY(ObjectClass* pThis)
 {
@@ -117,30 +152,52 @@ static void CheckSortY(ObjectClass* pThis)
 	}
 }
 
+static int TimeSortY(ObjectClass* pThis, bool fastHalf)
+{
+	static unsigned turn = 0;
+	static unsigned calls[2] {};
+	static unsigned __int64 cycles[2] {};
+
+	unsigned const half = turn++ & 1;
+	unsigned __int64 const start = __rdtsc();
+	int const result = (half && fastHalf) ? SortYFast(pThis) : SortYAttached(pThis, LookUpSortY(pThis));
+	unsigned __int64 const end = __rdtsc();
+
+	++calls[half];
+	cycles[half] += end - start;
+
+	if (turn % 1048576 == 0)
+	{
+		Debug::Log("[TAExt] y-sort timing (%s): old path %u calls %llu Mcycles, %s %u calls %llu Mcycles\n",
+			fastHalf ? "by turns" : "null", calls[0], cycles[0] / 1000000,
+			fastHalf ? "fast path" : "old path", calls[1], cycles[1] / 1000000);
+	}
+
+	return result;
+}
+
 int __fastcall TechnoClass_SortY_Wrapper_TAExt(ObjectClass* pThis)
 {
-	if (VerifySortY)
+	if (SortYTest != SortYMode::Plain)
 	{
-		if (VerifySortY < 0)
-		{
-			char value[8] {};
-			VerifySortY = GetEnvironmentVariableA("TAEXT_VERIFY_YSORT", value, sizeof(value)) > 0 && value[0] == '1';
-		}
+		if (SortYTest == SortYMode::Unread)
+			SortYTest = ReadSortYMode();
 
-		if (VerifySortY)
+		switch (SortYTest)
 		{
+		case SortYMode::Verify:
 			CheckSortY(pThis);
 			return SortYAttached(pThis, LookUpSortY(pThis));
+		case SortYMode::Time:
+			return TimeSortY(pThis, true);
+		case SortYMode::TimeNull:
+			return TimeSortY(pThis, false);
+		default:
+			break;
 		}
 	}
 
-	// Never attached since its ExtData was made: ParentAttachment is null and
-	// SortYAttached would only end in the original.
-	auto const pExt = static_cast<TechnoExt::ExtData*>(TechnoExt::EverAttached.Find(pThis));
-	if (!pExt)
-		return pThis->ObjectClass::GetYSort();
-
-	return SortYAttached(pThis, pExt);
+	return SortYFast(pThis);
 }
 
 DEFINE_FUNCTION_JUMP(CALL,  0x449413, TechnoClass_SortY_Wrapper_TAExt); // BuildingClass draw
