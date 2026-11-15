@@ -20,11 +20,18 @@
 
 TechnoExt::ExtContainer TechnoExt::ExtMap;
 std::vector<TechnoExt::ExtData*> TechnoExt::PointerHolders;
+PointerSet TechnoExt::EverAttached;
 TechnoClass* TechnoExt::DeployTransferSource = nullptr;
 
 TechnoExt::ExtData::~ExtData()
 {
 	this->UnmarkPointerHolder();
+	TechnoExt::EverAttached.Erase(this->OwnerObject());
+}
+
+void TechnoExt::ExtData::MarkEverAttached()
+{
+	TechnoExt::EverAttached.Insert(this->OwnerObject());
 }
 
 void TechnoExt::ExtData::MarkPointerHolder()

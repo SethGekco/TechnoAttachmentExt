@@ -15,6 +15,8 @@
 #include <New/Entity/AttachmentClass.h>
 #include <Ext/TechnoType/Body.h>
 
+#include "PointerSet.h"
+
 class WeaponTypeClass;
 
 // H1a instant spawn (Hooks.InstantSpawn.cpp). Runs every rule on pOwner that
@@ -179,6 +181,10 @@ public:
 		// PointerHolders). tools/check_pointer_holders.py enforces it.
 		void MarkPointerHolder();
 		void UnmarkPointerHolder();
+		// Call IMMEDIATELY before ParentAttachment is set to a slot: it puts
+		// this techno into TechnoExt::EverAttached. tools/check_ever_attached.py
+		// enforces it.
+		void MarkEverAttached();
 		// True when InvalidatePointer would find nothing to clear.
 		bool HoldsNoPointers() const;
 		virtual void LoadFromStream(PhobosStreamReader& Stm) override;
@@ -235,6 +241,13 @@ public:
 
 	// The AnnounceInvalidPointer hook's walk, over PointerHolders only.
 	static void PointerGotInvalid(void* ptr, bool bRemoved);
+
+	// Every techno whose ParentAttachment has been set since its ExtData was
+	// made (ExtData's destructor takes it out; a detach leaves it in). Every
+	// techno outside it has a null ParentAttachment, so a hot "is it attached?"
+	// can answer from this small set instead of an ExtMap lookup, a hash probe
+	// over every techno. Game thread only.
+	static PointerSet EverAttached;
 
 	// Set before deploy-target construction to skip InitializeAttachments.
 	static TechnoClass* DeployTransferSource;

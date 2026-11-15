@@ -1745,7 +1745,10 @@ void AttachmentClass::AttachChildCore(TechnoClass* pChild)
 	this->Child = pChild;
 
 	if (auto const pChildExt = TechnoExt::ExtMap.Find(pChild))
+	{
+		pChildExt->MarkEverAttached();
 		pChildExt->ParentAttachment = this;
+	}
 }
 
 void AttachmentClass::DetachChildCore()
